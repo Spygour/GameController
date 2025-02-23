@@ -1,0 +1,167 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+library work;
+use work.SpiSlaveTypes.all;
+
+entity Spi is
+    generic(SystemClk : integer := 50000000);
+    
+    port(SystemClk : in std_logic := '1';
+         Clk      : in std_logic := '1';
+         SpiClk   : in std_logic := '0';
+         Reset_n  : in std_logic := '0';
+         SO     : out std_logic := '0';
+         SI     : in  std_logic := '0';
+         CS       : in std_logic := '1';
+         SpiTxWord : in  SpiWord  := (others => '0');
+         SpiRxWord : out SpiWord  := (others => '0');
+         SpiBits : in  integer   := 16;
+         SpiWords : in integer := 100;
+         StartSpi : in  std_logic := '0';
+         EndSpi   : out std_logic := '0';
+         WriteDataWord : out SpiWord : =(others => '0');
+         ReadDataWord : in   SpiWord : =(others => '0');
+         Wren : out std_logic := '0';
+         ReadAddress : out std_logic_vector (6 DOWNTO 0);
+         WriteAddress : out std_logic_vector (6 DOWNTO 0);
+         SpiPllLocked : out std_logic := '0');
+
+end Spi;
+
+architecture rtl of Spi is
+
+signal SpiBitCounter  : integer := 0;
+signal SpiWordCounter : integer := 0;
+signal SpiReadAddress : integer := 0;
+signal SpiWriteAddres : integer :=0;
+signal SpiWriteEnable : std_logic := '0';
+signal CS_reg : std_logic <= '0';
+signal SI_reg : std_logic <= '0';
+signal SpiClk_reg : std_logic <= '0';
+
+type Spi_State is
+    (IDLE_STATE,
+	 READ_BIT,
+     DECEIDE_STATE,
+     WRITE_BIT,
+     WAIT_CLK,
+     END_STATE);
+signal SpiSlaveState : Spi_State := IDLE_STATE;
+
+begin
+    SpiRam:entity work.SpiRam(SYN) IS
+	port map
+	(
+		clock		=> Clk,
+		data		=> WriteDataWord,
+		rdaddress	=> ReadAddress,
+		wraddress	=> WriteAddress,
+		wren		=> Wren,
+		q		    => ReadDataWord
+	);
+
+    Spipll:entity work.SpiPll(SYN)
+    port map
+    (
+        areset => Reset_n,
+		inclk0 => SystemClk,	
+		c0     => Clk,
+		locked =>  SpiPllLocked
+    );
+
+
+    CS_reg <= CS;
+    SI_reg <= SI;
+    SpiClk_reg <= SpiClk;
+    process(Clk, Reset_n) is
+    begin
+        if (Reset_n = '1') then
+            SpiClkCounter <= 0;
+            SpiBitCounter <= 0;
+            SpiWordCounter <= 0;
+            SpiSlaveState <= IDLE_STATE;
+            WriteAddress <= (others => '0');
+            ReadAddress <= (others => '0');
+            WrEn <= '0';
+        elsif rising_edge(Clk) then
+            case SpiSlaveState is
+                when IDLE_STATE =>
+                    if ( (CS_reg = '0') and (StartSpi = '1') )  then
+                        SpiSlaveState <= READ_BIT;
+                        EndSpi <= '0';
+                        SpiBitCounter <= '0';
+                        SpiWordCounter <= '0';
+                    end if;
+                
+                when READ_BIT =>
+                    if (CS_reg = '1') then
+                        SpiSlaveState <= END_STATE;
+                    else if (SpiClk_reg = '1') then
+                        SpiRxWord(SpiBitCounter) <= SI_reg;
+                        SpiSlaveState <= DECEIDE_STATE;
+                    end if;
+                
+                when DECEIDE_STATE =>
+                    if SpiBitCounter=SpiBits then
+                        if SpiWordCounter = SpiWords then
+                            SpiBitCounter <= 0;
+                            SpiWordCounter <= 0;
+                            -- Store Word
+                            WrEn <= '1';
+                            WriteDataWord <= SpiRxWord;
+                            SpiSlaveState <= END_STATE;
+                        else if SpiWordCounter < SpiWords
+                            SpiBitCounter <= 0;
+                            -- Store Word
+                            WrEn <= '1';
+                            WriteDataWord <= SpiRxWord;
+                            -- End
+                            SpiWordCounter <= SpiWordCounter + 1;
+                            SpiSlaveState <= WRITE_BIT; 
+                        end if;
+                    else
+                        SpiBitCounter <= SpiBitCounter + 1;
+                        SpiSlaveState <= WRITE_BIT;
+                    end if;
+                    
+                
+                when WRITE_BIT =>
+                    if (SpiClk_reg = '0') then
+                        if (CS_reg = '0') then
+                            WrEn <= '0';
+                            -- Update Write Address
+                            WriteAddress <= std_logic_vector(unsigned(WriteAddress) + 1);
+                            SO <= SpiRxWord(SpiBitCounter);
+                            SpiBitCounter <= SpiBitCounter + 1;
+                            SpiSlaveState <= READ_BIT;
+                        else if (StartSpi = '0') then
+                            -- Store Word
+                            WrEn <= '1';
+                            WriteDataWord <= SpiRxWord;
+                            SpiSlaveState <= END_STATE;
+                        else
+                            -- Store Word
+                            WrEn <= '1';
+                            WriteDataWord <= SpiRxWord;
+                            SpiSlaveState <= END_STATE;
+                        end if;
+                    end if;
+
+
+                when END_STATE =>
+                    if (CS_reg = '1') then
+                        -- Deactivate Write Enable
+                        WrEn <= '0';
+                        -- Reset the Write Address
+                        WriteAddress <= (others => '0');
+                        SpiSlaveState <= IDLE_STATE;
+                        EndSpi <= '1';
+                    end if;
+
+                when others => NULL;
+            
+            end case;
+    end process;
+
+end architecture;

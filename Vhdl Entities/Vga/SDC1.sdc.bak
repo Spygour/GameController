@@ -1,0 +1,8 @@
+create_clock -name Clk -period 20.000 -waveform {0 10} [get_ports {ActlClk}]
+set_input_delay -clock { Clk } 0.2 [get_ports {Reset_n}]
+set_input_delay -clock { Clk } 0.2 [get_ports {Miso}]
+set_input_delay -clock { Clk } 0.2 [get_ports {StartSpiMan}]
+set_output_delay -clock { Clk } 0.2 [get_ports {Mosi}]
+set_output_delay -clock { Clk } 0.1 [get_ports {SpiClk}]
+set_clock_uncertainty -from { Clk } -to { Clk } -setup 0.4
+set_clock_uncertainty -from { Clk } -to { Clk } -hold 0.4

@@ -1,0 +1,95 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+library work;
+use work.VgaTypes.all;
+
+
+entity Vga_Handler is 
+    port(Reset_n  : in std_logic := '1';
+         HsyncClk : out std_logic := '0';
+         VsyncClk : out std_logic := '0';
+         R_0 : out std_logic := '0';
+         R_1 : out std_logic := '0';
+         R_2 : out std_logic := '0';
+         G_0 : out std_logic := '0';
+         G_1 : out std_logic := '0';
+         G_2 : out std_logic := '0';
+         B_0 : out std_logic := '0';
+         B_1 : out std_logic := '0';
+         B_2 : out std_logic := '0'
+    );
+end Vga_Handler;
+
+architecture sim of Vga_Handler is
+    constant SystemFreq : integer := 40000000;
+    constant VsyncFreq : integer := 60;
+    constant HsyncFreq : integer := 37680;
+
+    signal ColorClk :  std_logic  := '0';
+    signal HsyncClk :  std_logic := '0';
+    signal VsyncClk :  std_logic := '0';
+    signal R_0      :  std_logic := '0';
+    signal R_1      :  std_logic := '0';
+    signal R_2      :  std_logic := '0';
+    signal G_0      :  std_logic := '0';
+    signal G_1      :  std_logic := '0';
+    signal G_2      :  std_logic := '0';
+    signal B_0      :  std_logic := '0';
+    signal B_1      :  std_logic := '0';
+    signal B_2      :  std_logic := '0';
+    signal LineCycle : std_logic := '0';
+    signal LineColor : LineColor_t := (others => (others => '0'));
+    signal x_axis   : unsigned(9 downto 0) := (others => '0');
+    signal y_axis   :  unsigned(9 downto 0) := (others => '0');
+    signal x_axis_write   : unsigned(9 downto 0) := (others => '0');
+
+begin
+    Vga: entity work.Vga(rtl)
+        generic map(SystemFreq => SystemFreq, 
+                    VsyncFreq  => VsyncFreq, 
+                    HsyncFreq  => HsyncFreq)
+        port map(Reset_n   => Reset_n,
+                 ColorClk  => ColorClk,
+                 HsyncClk  => HsyncClk,
+                 VsyncClk  => VsyncClk,
+                 R_0       => R_0,    
+                 R_1       => R_1,    
+                 R_2       => R_2,    
+                 G_0       => G_0,    
+                 G_1       => G_1,    
+                 G_2       => G_2,    
+                 B_0       => B_0,    
+                 B_1       => B_1,    
+                 B_2       => B_2,
+                 LineCycle => LineCycle,
+                 LineColor => LineColor,
+                 x_axis    => x_axis,
+                 y_axis    => y_axis);
+
+    process
+    begin(ColorClk, Reset_n)
+        if (Reset_n = '0') then
+            LineColor <= (others => (others => '0'));
+        elsif rising_edge(ColorClk) then
+            if ( (y_axis=X"0C8") and (x_axis>x_axis_write)) then
+                if (x_axis_write > X"C8" and x_axis_write<X"190") then
+                    -- 0x1FF = 255
+                    LineColor(to_integer(x_axis_write)) <= X"1FF"
+                    x_axis_write <= x_axis_write + 1
+                elsif (x_axis= X"1FF") then
+                    x_axis_write <= (others => '0');
+                end if;
+            elsif ( (y_axis=X"190") and (x_axis>x_axis_write) ) then
+                if (x_axis_write > X"C8" and x_axis_write<X"190") then
+                    -- 0x1FF = 255
+                    LineColor(to_integer(x_axis_write)) <= X"000"
+                    x_axis_write <= x_axis_write + 1
+                elsif (x_axis= X"1FF") then
+                    x_axis_write <= (others => '0');
+                end if;
+            end if;
+        end if;
+    end process;
+
+end architecture;

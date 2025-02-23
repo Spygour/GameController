@@ -1,0 +1,68 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+library work;
+use work.SpiSlaveTypes.all;
+
+entity SpiSlaveHandler is
+    
+    port(ActlClk : in std_logic := '1';
+         Clk      : inout std_logic := '1';
+         SpiClk   : in std_logic := '0';
+         Reset_n  : in std_logic := '1';
+         SO     : out std_logic := '0';
+         SI     : in  std_logic := '0';
+         CS       : in std_logic := '1');
+
+end SpiSlaveHandler;
+
+architecture rtl of SpiSlaveHandler is
+
+constant SpiBits : integer   := 16;
+constant SpiWords : integer := 100;
+
+signal StartSpi : std_logic := '0';
+signal EndSpi   : std_logic := '0';
+signal WriteDataWord : SpiWord := (others => '0');
+signal ReadDataWord  : SpiWord := (others => '0');
+signal Wren : std_logic := '0';
+signal ReadAddress : std_logic_vector (6 DOWNTO 0);
+signal WriteAddress : std_logic_vector (6 DOWNTO 0);
+signal SpiPllLocked : std_logic := '0';
+signal PllClk : std_logic := '0';
+
+signal SpiTxWord : SpiWord  := (others => '0');
+signal SpiRxWord : SpiWord  := (others => '0');
+
+begin
+
+    SpiSlave:entity work.SpiSlave(SYN)
+    port map
+    (
+        ActlClk       => ActlClk,
+        Clk           => PllClk,
+        SpiClk        => SpiClk,
+        Reset_n       => Reset_n,
+        SO            => SO, 
+        SI            => SI,
+        CS            => CS,
+        StartSpi      => StartSpi,
+        EndSpi        => EndSpi,
+        WriteDataWord => WriteDataWord,
+        ReadDataWord  => ReadDataWord,
+        Wren          => Wren,
+        ReadAddress   => ReadAddress,
+        WriteAddress  => WriteAddress,
+        SpiPllLocked  => SpiPllLocked
+    );
+
+    process(PllClk, Reset_n) is
+    begin
+        if (Reset_n = '1') then
+
+        elsif rising_edge(Clk) then
+            
+		end if;
+    end process;
+
+end architecture;
