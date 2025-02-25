@@ -172,6 +172,8 @@ void AtomAru_Init(IfxGtm_Atom_Timer* mytimer,float32 frequency, uint32 startingD
   IfxGtm_Atom_Ch_setAruReadAddress0(mytimer->atom, mytimer->triggerChannel, address);
   IfxGtm_Atom_Timer_run(mytimer);
 
+  /* Enable the automatic update of the atom timer */
+  IfxGtm_Atom_Timer_applyUpdate(mytimer);
   /* GTM ARU INITIALIZATION */
   GTM_ARU_ACCESS.U = 0x00000000;
   GTM_ARU_DATA_H.U = data[1];
@@ -188,10 +190,9 @@ void AtomAru_Init(IfxGtm_Atom_Timer* mytimer,float32 frequency, uint32 startingD
   /* Pulse Notify Mode */
   GTM_ARU_IRQ_MODE.U = 0x2;
   /* Enable Write Access */
-  GTM_ARU_ACCESS.U = 0x00002000;
-  IfxGtm_Atom_Timer_applyUpdate(mytimer);
-  while (!(GTM_ARU_IRQ_NOTIFY.U & 0x4));
-  GTM_ARU_IRQ_NOTIFY.U = 0x4;
+  GTM_ARU_ACCESS.B.WREQ = 1;
+  /* Enable the automatic update of the atom timer */
+  //IfxGtm_Atom_Timer_applyUpdate(mytimer);
 }
 
 void AtomAru_SendData(uint32 address, uint16* data)
