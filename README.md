@@ -1,6 +1,6 @@
 Functions used inside
 /**********************************************************************************************************************
- * \file DsAdc.h
+ * \file AruAtom.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  *
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of
@@ -59,7 +59,7 @@ void AtomAru_SendData(uint32 address, uint16* data);
 #endif /* INFINEONARDUINOLIKE_DSADC_H_ */
 
 /**********************************************************************************************************************
- * \file DsAdc.c
+ * \file AruAtom.c
  * \copyright Copyright (C) Infineon Technologies AG 2019
  *
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of
@@ -93,7 +93,7 @@ void AtomAru_SendData(uint32 address, uint16* data);
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-
+#define ISR_PRIORITY_ARU 20
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -109,6 +109,14 @@ IfxGtm_Atom_Timer_Config atomSerialConfig;
 /*********************************************************************************************************************/
 /*---------------------------------------------Function Implementations----------------------------------------------*/
 /*********************************************************************************************************************/
+IFX_INTERRUPT(InterruptHandlerAru, 0, ISR_PRIORITY_ARU);
+
+void InterruptHandlerAru(void)
+{
+  /* Deactivate the interrupt */
+  GTM_ARU_IRQ_NOTIFY.U = 0x4;
+}
+
 
 static inline void setAtomSerialConfig(IfxGtm_Atom_ToutMap* pin,Ifx_GTM *GTM, uint16 clock, uint32 startingDataStream)
 {
@@ -163,27 +171,46 @@ void AtomAru_Init(IfxGtm_Atom_Timer* mytimer,float32 frequency, uint32 startingD
   IfxGtm_Atom_Timer_stop(mytimer);
   IfxGtm_Atom_Ch_setAruReadAddress0(mytimer->atom, mytimer->triggerChannel, address);
   IfxGtm_Atom_Timer_run(mytimer);
+
+  /* GTM ARU INITIALIZATION */
   GTM_ARU_ACCESS.U = 0x00000000;
   GTM_ARU_DATA_H.U = data[1];
   GTM_ARU_DATA_L.U = data[0];
   GTM_ARU_ACCESS.B.ADDR  = address;
-  //GTM_ARU_IRQ_EN.U = 0x4; /* This is needed for isr activation */
+
+  /* Initialization of the interrupt for the ARU */
+  volatile Ifx_SRC_SRCR *src;
+  src = MODULE_SRC.GTM_ARUIRQ;
+  IfxSrc_init(src, IfxSrc_Tos_cpu0, ISR_PRIORITY_ARU);
+  IfxSrc_enable(src);
+  GTM_ARU_IRQ_EN.U = 0x4;
+
+  /* Pulse Notify Mode */
+  GTM_ARU_IRQ_MODE.U = 0x2;
+  /* Enable Write Access */
   GTM_ARU_ACCESS.U = 0x00002000;
-  IfxGtm_Atom_Timer_applyUpdate(mytimer); /* This is important right there the atom needs to be updated continiously */
+  IfxGtm_Atom_Timer_applyUpdate(mytimer);
   while (!(GTM_ARU_IRQ_NOTIFY.U & 0x4));
   GTM_ARU_IRQ_NOTIFY.U = 0x4;
 }
 
 void AtomAru_SendData(uint32 address, uint16* data)
 {
- /* Now atom is always updated */
   GTM_ARU_DATA_H.U = data[1];
   GTM_ARU_DATA_L.U = data[0];
   GTM_ARU_ACCESS.B.ADDR  = address;
   GTM_ARU_ACCESS.B.WREQ = 1;
-
-  while (!(GTM_ARU_IRQ_NOTIFY.U & 0x4));
-  GTM_ARU_IRQ_NOTIFY.U = 0x4;
 }
 
 
+void AtomAru_ReadData(uint32 address, uint16* data)
+{
+  GTM_ARU_ACCESS.B.ADDR  = address;
+  GTM_ARU_ACCESS.B.RREQ = 1;
+
+  /* Wait till the interrupt is finished */
+  while (!(GTM_ARU_IRQ_NOTIFY.U & 0x4));
+
+  data[0] = (uint16)GTM_ARU_DATA_L.U;
+  data[1] = (uint16)GTM_ARU_DATA_H.U;
+}
