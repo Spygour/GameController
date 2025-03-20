@@ -48,7 +48,6 @@ architecture rtl of SdRam is
         PRECHARGE_ALL,
         PRECHARGE
         AUTO_REFRESH_STARTUP,
-        SELF_REFRESH,
         SELF_REFRESH_EXIT,
         NOP_WITH_COUNTER,
 
@@ -82,6 +81,13 @@ begin
                     SdRamNextState <= PRECHARGE_ALL;
                     SdRamState <= DELAY;
                     NopThreshold <= 10000; --100 us  = 10000 cycles with 100 mhz speed
+                    -- APPLY NOP HERE
+                    CKE <= '1';
+                    CS <= '0';
+                    RAS <= '1';
+                    CAS <= '1';
+                    WE <= '1';
+                    NopCounter <= NopCounter + 1;
 
                 when DELAY =>
                     if (NopCounter = NopThreshold) then
@@ -106,7 +112,7 @@ begin
                     CAS <= '1';
                     WE <= '0';
                     Address(10) <= '1';
-                    NopThreshold <= 1; -- Number of repetitions is 2 so 2-1 = 1
+                    NopThreshold <= 1; -- Number of repetitions is 2
                     SdRamState <= AUTO_REFRESH_STARTUP;
 
                 when AUTO_REFRESH_STARTUP =>
@@ -116,7 +122,7 @@ begin
                     RAS <= '0';
                     CAS <= '0';
                     WE <= '1';
-		            -- Move to not
+		            -- Move to no0
                     SdRamState <= NOP;
                     if (NopCounter = NopThreshold) then
                         NopCounter = 0;
@@ -128,6 +134,7 @@ begin
                     end if;
 
                 when MODE_REGISTER_SET =>
+                    --SEND REGISTER MODE
                     CKE <= '1';
                     CS <= '0';
                     RAS <= '0';
@@ -142,41 +149,32 @@ begin
                 
                 when IDLE =>
                     if  RdEn = '0' and WrEn = '0' then
+                        -- SEND SELF REFRESH
                         CKE <= '0';
                         CS <= '0';
                         RAS <= '0';
                         CAS <= '0';
                         WE <= '1';
                         Address <= (others => '0');
-                        SdRamState <= SELF_REFRESH;
+                        SdRamState <= SELF_REFRESH_EXIT;
+                        NopThreshold <= 9;
                     else
                         SdRamState <= ACTIVE;
                     end if;
 
 
-                when SELF_REFRESH =>
-                    if  RdEn = '1' or WrEn = '1' then
-                        -- SEND NOP
+                when SELF_REFRESH_EXIT =>
+                    if (NopCounter = 10) then
+                        NopCounter <= 1;
+                        NopThreshold <= 1;
+                        -- SEND NOP 
                         CKE <= '1';
                         CS <= '0';
                         RAS <= '1';
                         CAS <= '1';
                         WE <= '1';
-                        NopThreshold <= 10; -- 77 ns = 11, first time done here so threshold is 10
-                        SdRamState <= SELF_REFRESH_EXIT;
-                    end if;
-
-
-                when SELF_REFRESH_EXIT =>
-                    if (NopCounter = 10) then
-                        NopCounter <= 0;
-                        -- MOVE TO AUTOREFRESH
-                        CKE <= '1';
-                        CS <= '0';
-                        RAS <= '0';
-                        CAS <= '0';
-                        WE <= '1';
-                        SdRamState <= IDLE
+                        SdRamNextState <= IDLE;
+                        SdRamState <= NOP_WITH_COUNTER;
                     else
                         NopCounter <= NopCounter + 1;
                         SdRamState <= SELF_REFRESH_EXIT;
@@ -186,17 +184,18 @@ begin
                 when ACTIVE =>
                     -- Inputs here are the Row and the Bank which is 0 at startup
                     if Bank = x"4" then
-                        Bank = x"0";
+                        Bank <= x"0";
                     else
-                        Bank = std_logic(unsigned(Bank) + 1);
+                        Bank <= std_logic(unsigned(Bank) + 1);
                     end if;
-		            -- Send the active command with Rows
                     Address(9 downto 0) <= RowsAddress;
+                    -- SEND ACTIVE 
                     CKE <= '1';
                     CS <= '0';
-                    RAS <= '1';
+                    RAS <= '0';
                     CAS <= '1';
                     WE <= '1';
+                    NopCounter = 0;
                     if (RdEn = '1') then
 			            -- This will be used to update the next rows once this happens
 			            RdFinish <= '0';
@@ -244,13 +243,13 @@ begin
                     end if;
                 
                 when WRITE_STATE =>
+                    -- SEND WRITE HERE
                     CS <= '0';
                     RAS <= '1';
                     CAS <= '0';
                     WE <= '0';
                     DQ <= Datacols(DataColsIndex);
                     SdRamState <= WRITE_STORE;
-                    DatacolsIndex <= DatacolsIndex + 1;
 
                 when WRITE_STORE =>
                     -- SEND NOP HERE
@@ -294,6 +293,7 @@ begin
                     RAS <= '1';
                     CAS <= '1';
                     WE <= '1';
+                    NopCounter <= NopCounter + 1;
                     SdRamState <= SdRamNextState;
             end case;
         end if;
