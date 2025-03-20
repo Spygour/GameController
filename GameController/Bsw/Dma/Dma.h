@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file TimerTom.h
+ * \file Dma.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,19 +25,13 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
-#ifndef INFINEONARDUINOLIKE_INTERRUPTS_H_
-#define INFINEONARDUINOLIKE_INTERRUPTS_H_
-#include "IfxGpt12.h"
-#include "Ifx_Types.h"
-#include "IfxGpt12.h"
-#include "IfxGtm_Atom_Timer.h"
-#include "IfxGtm_Tom_Timer.h"
-
+#ifndef INFINEONARDUINOLIKE_DMA_H_
+#define INFINEONARDUINOLIKE_DMA_H_
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-
+#include "IfxDma_Dma.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -45,7 +39,7 @@
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-extern boolean CmuClkEn;
+
 /*********************************************************************************************************************/
 /*-------------------------------------------------Data Structures---------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -57,24 +51,10 @@ extern boolean CmuClkEn;
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-void TomInterrupt_Init(IfxGtm_Tom_Timer *mytomtimer,float freq,uint16 priority,uint16 tom,uint16 channel, uint16 clock);
-void AtomInterrupt_Init(IfxGtm_Atom_Timer* mytimer,float32 frequency, uint16 priority,uint16 atom,uint16 channel);
-void Gpt12interrupt_Init(uint16 reload,IfxGpt12_Gpt1BlockPrescaler gtp1prescaler,IfxGpt12_TimerInputPrescaler timerPrescaler,uint16 priority);
-/*Tom Pwm timer test function*/
-void TomPwmTimer_Init(IfxGtm_Tom_Timer *mytomtimer,uint32 Period,uint16 DutyCycle,IfxGtm_Tom_ToutMap* pin);
-void TomTimer_SetDutyCycle(IfxGtm_Tom_Timer *mytomtimer, uint16 DutyCycle);
-void TomTimer_SetPeriod(IfxGtm_Tom_Timer *mytomtimer,uint32 Period);
-void TomTimer_SetDutyAndPeriod(IfxGtm_Tom_Timer *mytomtimer,uint16 DutyCycle,uint32 Period);
-void TomTimer_SetPeriodActl(IfxGtm_Tom_Timer *mytomtimer, uint16 Period, IfxGtm_Tom_Ch_ClkSrc Prescaler);
-void TomTimer_SetDutyCycleActl(IfxGtm_Tom_Timer *mytomtimer, uint16 DutyCycle);
-void AtomTimer_SetDutyCycle(IfxGtm_Atom_Timer *myatomtimer, uint16 DutyCycle);
-void AtomTimer_SetPeriod(IfxGtm_Atom_Timer *myatomtimer,uint32 Period);
-void AtomTimer_SetPeriodActl(IfxGtm_Atom_Timer *myatomtimer,uint32 Period);
-void AtomTimer_SetDutyCycleAct(IfxGtm_Atom_Timer *myatomtimer, uint32 DutyCycle);
-
-/* Atom Serial Mode */
-void AtomSerialPwm_Init(IfxGtm_Atom_Timer* mytimer,float32 frequency, uint32 startingDataStream, uint32 bitShift, IfxGtm_Atom_ToutMap* atomPin);
-void AtomTimer_SetDataStream(IfxGtm_Atom_Timer *myatomtimer, uint32 DataStream);
-void AtomTimer_SetNumberOfShifts(IfxGtm_Atom_Timer *myatomtimer, uint32 Shifts);
-
-#endif /* INFINEONARDUINOLIKE_INTERRUPTS_H_ */
+void Dma_Init(IfxDma_Dma_Channel* DmaChannel,  uint16 BytesPerTransfer, uint32 SourceAddress, uint32 DestinationAddress, uint8 Priority, IfxDma_ChannelIncrementCircular SourceCirc, IfxDma_ChannelIncrementCircular DstCirc,IfxDma_ChannelMoveSize moveSize );
+void Dma_Transfer(IfxDma_Dma_Channel* DmaChannel);
+void Dma_SetSourceAddress(IfxDma_Dma_Channel* DmaChannel,  uint32 SourceAddress);
+void Dma_SetDestinationAddress(IfxDma_Dma_Channel* DmaChannel,  uint32 DestinationAddress);
+void Dma_InitDaisyChain(IfxDma_Dma_Channel* DmaChannel,  uint16 BytesPerTransfer, uint32 SourceAddress, uint32 DestinationAddress, uint8 Priority, IfxDma_ChannelIncrementCircular SourceCirc, IfxDma_ChannelIncrementCircular DstCirc,IfxDma_ChannelMoveSize moveSize );
+void Dma_InitDaisyChainMaster(IfxDma_Dma_Channel* DmaChannel,  uint16 BytesPerTransfer, uint32 SourceAddress, uint32 DestinationAddress, uint8 Priority, IfxDma_ChannelIncrementCircular SourceCirc, IfxDma_ChannelIncrementCircular DstCirc,IfxDma_ChannelMoveSize moveSize );
+#endif /* INFINEONARDUINOLIKE_DMA_H_ */

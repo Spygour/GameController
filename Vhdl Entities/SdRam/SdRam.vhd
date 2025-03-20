@@ -39,10 +39,11 @@ architecture rtl of SdRam is
         POWERON,
         DELAY,
         POWERDOWN,
-        IDLE_STATE,
+        IDLE,
         MODE_REGISTER_SET,
-        ROW_ACTIVE,
+        ACTIVE,
         WRITE_STATE,
+        WRITE_STORE,
         READ_STATE,
         READ_STORE,
         PRECHARGE_ALL,
@@ -159,6 +160,12 @@ begin
                         SdRamState <= SELF_REFRESH_EXIT;
                         NopThreshold <= 9;
                     else
+                        -- SEND ACTIVE 
+                        CKE <= '1';
+                        CS <= '0';
+                        RAS <= '0';
+                        CAS <= '1';
+                        WE <= '1';
                         SdRamState <= ACTIVE;
                     end if;
 
@@ -180,7 +187,6 @@ begin
                         SdRamState <= SELF_REFRESH_EXIT;
                     end if;
 
-
                 when ACTIVE =>
                     -- Inputs here are the Row and the Bank which is 0 at startup
                     if Bank = x"4" then
@@ -189,10 +195,10 @@ begin
                         Bank <= std_logic(unsigned(Bank) + 1);
                     end if;
                     Address(9 downto 0) <= RowsAddress;
-                    -- SEND ACTIVE 
+                    -- SEND NOP
                     CKE <= '1';
                     CS <= '0';
-                    RAS <= '0';
+                    RAS <= '1';
                     CAS <= '1';
                     WE <= '1';
                     NopCounter = 0;
@@ -215,6 +221,7 @@ begin
                 when READ_STATE =>
                     -- Auto Precharge so just a nop after the end of read (READ_STORE)
                     Address(10) = '1';
+                    -- SEND READ COMMAND
                     CS <= '0';
                     RAS <= '1';
                     CAS <= '0';
@@ -227,17 +234,26 @@ begin
                     SdRamState <=  NOP_WITH_COUNTER;
 
                 when READ_STORE =>
+                    DataCols(DatacolsIndex) <= DQ;
                     if (DataColsIndex = 1) then
+                        -- SEND ACTIVE
+                        CKE <= '1';
+                        CS <= '0';
+                        RAS <= '0';
+                        CAS <= '1';
+                        WE <= '1';
 			            RdFinish <= '1';
-                        DataCols(DatacolsIndex) <= DQ;
                         DatacolsIndex <= 0;
                         DQM <= b"11";
                         -- Wait extra time here thats why its zero (WAIT FOR PRECHARGE)
-                        NopThreshold <= 0;
-                        SdRamNextState <= ACTIVE;
-                        SdRamState <= NOP_WITH_COUNTER;
+                        SdRamState <= ACTIVE;
                     else
-                        DataCols(DatacolsIndex) <= DQ;
+                        -- SEND NOP
+                        CKE <= '1';
+                        CS <= '0';
+                        RAS <= '1';
+                        CAS <= '1';
+                        WE <= '1';
                         DataColsIndex <= DataColsIndex+1;
                         SdRamState <= READ_STORE;
                     end if;
@@ -252,20 +268,24 @@ begin
                     SdRamState <= WRITE_STORE;
 
                 when WRITE_STORE =>
-                    -- SEND NOP HERE
-                    CKE <= '1';
-                    CS <= '0';
-                    RAS <= '1';
-                    CAS <= '1';
-                    WE <= '1';
                     DQ <= Datacols(DataColsIndex);
                     if (DataColsIndex = 1) then
+                        -- SEND ACTIVE
+                        CKE <= '1';
+                        CS <= '0';
+                        RAS <= '0';
+                        CAS <= '1';
+                        WE <= '1';
                         NopThreshold <= 0;
-                        SdRamState <= NOP_WITH_COUNTER;
-                        SdRamNextState <= ACTIVE;
-                        DQ <= Datacols(DataColsIndex);
+                        SdRamState <= ACTIVE;
                         DatacolsIndex <= 0;
                     else
+                        -- SEND NOP HERE
+                        CKE <= '1';
+                        CS <= '0';
+                        RAS <= '1';
+                        CAS <= '1';
+                        WE <= '1';
                         SdRamState <= WRITE_STORE;
                         DQ <= Datacols(DataColsIndex);
                         DatacolsIndex <= DatacolsIndex + 1;
