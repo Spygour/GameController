@@ -17,17 +17,16 @@ entity SdRam is
          CKE : out std_logic := '0';
          CS : out std_logic := '0';
          DQM : out std_logic_vector (0 to 1) := (others => '0');
-         DQ : inout std_logic_vector (15 downto 0) : (others => '0');
+         DQ : inout std_logic_vector (15 downto 0) := (others => '0');
          RAS : out std_logic := '0';
          WE : out std_logic := '0';
          RdEn : in std_logic := '0';
          WrEn : in std_logic := '0';
 	     RdFinish : out std_logic := '0';
 	     WrFinish : out std_logic := '0;
-         DataCols : out DataCols_t := (others => (others => '0');
+         DataCols : out DataCols_t := (others => (others => '0'));
          RowsAddress : in std_logic_vector (9 downto 0) := (others => '0');
          ColsAddress : in std_logic_vector (9 downto 0) := (others => '0');
-         );
          );
 
 end SdRam;
@@ -73,8 +72,8 @@ begin
             -- Start with 4 in order to set it to 0
             Bank <= x"4";
             DQM <= b"11";
-	    RdFinish <= '1';
-	    WrFinish <= '1';
+	        RdFinish <= '1';
+	        WrFinish <= '1';
         elsif rising_edge(CLK) and PllLocked = '1' then --Here we should increase the counter
             case SdRamState is
                 when POWERON =>
@@ -126,7 +125,7 @@ begin
 		            -- Move to no0
                     SdRamState <= NOP;
                     if (NopCounter = NopThreshold) then
-                        NopCounter = 0;
+                        NopCounter <= 0;
 			            -- AutoRefresh -> NOP -> AutoRefresh -> NOP -> MODE_REGISTER_SET
                         SdRamNextState <= MODE_REGISTER_SET;
                     else
