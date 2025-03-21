@@ -2,16 +2,17 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 library work;
-use work.SdRamTypes.all;
+use work.SdRamTypes.all
 
 
 entity SdRam is 
+    generic();
+
     port(Reset_n : in std_logic := '1';
-         CLK : out std_logic := '0';
-			SdRamClock: in std_logic := '0';
-	      PllLocked : in std_logic := '0';
+         CLK : in std_logic := '0';
+	     PllLocked : in std_logic := '0';
          Address : out std_logic_vector (12 downto 0) := (others => '0');
-         Bank : inout std_logic_vector (1 downto 0) := (others => '0');
+         Bank : out std_logic_vector (1 downto 0) := (others => '0');
          CAS : out std_logic := '0';
          CKE : out std_logic := '0';
          CS : out std_logic := '0';
@@ -21,17 +22,16 @@ entity SdRam is
          WE : out std_logic := '0';
          RdEn : in std_logic := '0';
          WrEn : in std_logic := '0';
-	      RdFinish : out std_logic := '1';
-	      WrFinish : out std_logic := '1';
-         DataColsInput : in std_logic_vector (15 downto 0) := (others => '0');
-			DataColsOutput : out std_logic_vector (15 downto 0) := (others => '0');
-         RowsAddress : in unsigned (9 downto 0) := (others => '0');
-         ColsAddress : in unsigned (9 downto 0) := (others => '0')
+	     RdFinish : out std_logic := '1';
+	     WrFinish : out std_logic := '1;
+         DataCols : out DataCols_t := (others => (others => '0'));
+         RowsAddress : in std_logic_vector (9 downto 0) := (others => '0');
+         ColsAddress : in std_logic_vector (9 downto 0) := (others => '0');
          );
 
 end SdRam;
 
-architecture SYN of SdRam is
+architecture rtl of SdRam is
 
     type SDRAM_STATE is
     (
@@ -40,16 +40,17 @@ architecture SYN of SdRam is
         POWERDOWN,
         IDLE,
         MODE_REGISTER_SET,
-        ACTIVE_STATE,
+        ACTIVE,
         WRITE_STATE,
         WRITE_STORE,
         READ_STATE,
         READ_STORE,
         PRECHARGE_ALL,
+        PRECHARGE
         AUTO_REFRESH_STARTUP,
         SELF_REFRESH_EXIT,
         NOP_WITH_COUNTER,
-		  NOP
+
     );
     
     signal SdRamState : SDRAM_STATE := POWERON;
@@ -57,11 +58,11 @@ architecture SYN of SdRam is
     signal NopCounter : integer := 0;
     signal NopThreshold : integer := 0;
     signal DatacolsIndex : integer := 0;
-	 signal CLK_tmp : std_logic := '0';
+
 
 
 begin
-    process(SdRamClock, Reset_n, PllLocked) is
+    process(CLK, Reset_n, PllLocked) is
     begin
         if (Reset_n = '1') then
             DatacolsIndex <= 0;
@@ -69,11 +70,11 @@ begin
             SdRamState <= POWERON;
             NopThreshold <= 0;
             -- Start with 4 in order to set it to 0
-            Bank <= std_logic_vector(to_unsigned(4, 2));
+            Bank <= x"4";
             DQM <= b"11";
-	         RdFinish <= '1';
-	         WrFinish <= '1';
-        elsif rising_edge(SdRamClock) and PllLocked = '1' then --Here we should increase the counter
+	        RdFinish <= '1';
+	        WrFinish <= '1';
+        elsif rising_edge(CLK) and PllLocked = '1' then --Here we should increase the counter
             case SdRamState is
                 when POWERON =>
                     Bank <= (others => '0');
@@ -141,7 +142,7 @@ begin
                     WE <= '0';
                     Bank <= (others => '0');
                     -- CAS LATENCY = 2 AND BURST LENGTH  = 2
-                    Address(9 downto 0) <= std_logic_vector(to_unsigned(34, 10));
+                    Address(9 downto 0) <= x"22";
                     SdRamState <= NOP_WITH_COUNTER;
 		            NopThreshold <= 0;
                     SdRamNextState <= IDLE;
@@ -164,7 +165,7 @@ begin
                         RAS <= '0';
                         CAS <= '1';
                         WE <= '1';
-                        SdRamState <= ACTIVE_STATE;
+                        SdRamState <= ACTIVE;
                     end if;
 
 
@@ -185,21 +186,21 @@ begin
                         SdRamState <= SELF_REFRESH_EXIT;
                     end if;
 
-                when ACTIVE_STATE =>
+                when ACTIVE =>
                     -- Inputs here are the Row and the Bank which is 0 at startup
-                    if Bank = std_logic_vector(to_unsigned(4, 2)) then
-                        Bank <= std_logic_vector(to_unsigned(0, 2));
+                    if Bank = x"4" then
+                        Bank <= x"0";
                     else
-                        Bank <= std_logic_vector(unsigned(Bank) + 1);
+                        Bank <= std_logic(unsigned(Bank) + 1);
                     end if;
-                    Address(9 downto 0) <= std_logic_vector(RowsAddress);
+                    Address(9 downto 0) <= RowsAddress;
                     -- SEND NOP
                     CKE <= '1';
                     CS <= '0';
                     RAS <= '1';
                     CAS <= '1';
                     WE <= '1';
-                    NopCounter <= 0;
+                    NopCounter = 0;
                     if (RdEn = '1') then
 			            -- This will be used to update the next rows once this happens
 			            RdFinish <= '0';
@@ -218,21 +219,21 @@ begin
 
                 when READ_STATE =>
                     -- Auto Precharge so just a nop after the end of read (READ_STORE)
-                    Address(10) <= '1';
+                    Address(10) = '1';
                     -- SEND READ COMMAND
                     CS <= '0';
                     RAS <= '1';
                     CAS <= '0';
                     WE <= '1';
-		              DQM <= b"00";
+		            DQM <= b"00";
                     -- Choose the collumns address
-                    Address(9 downto 0) <= std_logic_vector(ColsAddress);
+                    Address(9 downto 0) <= ColsAddress;
                     NopThreshold <= 0;
                     SdRamNextState <= READ_STORE;
                     SdRamState <=  NOP_WITH_COUNTER;
 
                 when READ_STORE =>
-                    DataColsOutput <= DQ;
+                    DataCols(DatacolsIndex) <= DQ;
                     if (DataColsIndex = 1) then
                         -- SEND ACTIVE
                         CKE <= '1';
@@ -240,11 +241,11 @@ begin
                         RAS <= '0';
                         CAS <= '1';
                         WE <= '1';
-			               RdFinish <= '1';
+			            RdFinish <= '1';
                         DatacolsIndex <= 0;
                         DQM <= b"11";
                         -- Wait extra time here thats why its zero (WAIT FOR PRECHARGE)
-                        SdRamState <= ACTIVE_STATE;
+                        SdRamState <= ACTIVE;
                     else
                         -- SEND NOP
                         CKE <= '1';
@@ -262,11 +263,11 @@ begin
                     RAS <= '1';
                     CAS <= '0';
                     WE <= '0';
-                    DQ <= DatacolsInput;
+                    DQ <= Datacols(DataColsIndex);
                     SdRamState <= WRITE_STORE;
 
                 when WRITE_STORE =>
-                    DQ <= DatacolsInput;
+                    DQ <= Datacols(DataColsIndex);
                     if (DataColsIndex = 1) then
                         -- SEND ACTIVE
                         CKE <= '1';
@@ -275,7 +276,7 @@ begin
                         CAS <= '1';
                         WE <= '1';
                         NopThreshold <= 0;
-                        SdRamState <= ACTIVE_STATE;
+                        SdRamState <= ACTIVE;
                         DatacolsIndex <= 0;
                     else
                         -- SEND NOP HERE
@@ -285,13 +286,13 @@ begin
                         CAS <= '1';
                         WE <= '1';
                         SdRamState <= WRITE_STORE;
-                        DQ <= DatacolsInput;
+                        DQ <= Datacols(DataColsIndex);
                         DatacolsIndex <= DatacolsIndex + 1;
                     end if;
 
 
                 when NOP_WITH_COUNTER =>
-                    Address(10) <= '0';
+                    Address(10) = '0';
                     CKE <= '1';
                     CS <= '0';
                     RAS <= '1';
@@ -313,14 +314,10 @@ begin
                     WE <= '1';
                     NopCounter <= NopCounter + 1;
                     SdRamState <= SdRamNextState;
-						  
-					when others => null;
             end case;
         end if;
     end process;
-	 
-	 
-	 CLK <= SdRamClock;
+
 
 
 end architecture;

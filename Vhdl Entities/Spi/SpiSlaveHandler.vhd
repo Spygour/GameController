@@ -12,7 +12,7 @@ entity SpiSlaveHandler is
          SO     : out std_logic := '0';
          SI     : in  std_logic := '0';
          CS       : in std_logic := '1';
-	 Leds  : out std_logic_vector (0 to 7) := "11111111";
+	       Leds  : out std_logic_vector (0 to 7) := "11111111";
          SpiReady : out std_logic := '0');
 
 end SpiSlaveHandler;
@@ -43,10 +43,10 @@ begin
 	 Spipll:entity work.SpiPll(SYN)
     port map
     (
-        areset => Reset_n,
-	inclk0 => ActlClk,	
-	c0     => Clk,
-	locked =>  SpiPllLocked
+      areset => Reset_n,
+	    inclk0 => ActlClk,	
+	    c0     => Clk,
+	    locked =>  SpiPllLocked
     );
 	 
 	 SpiRam:entity work.SpiRam(SYN)
@@ -63,22 +63,22 @@ begin
 	 SpiSlave:entity work.SpiSlave(rtl)
     port map
     (
-        ActlClk       => ActlClk,
-        Clk           => Clk,
-        SpiClk        => SpiClk,
-        Reset_n       => Reset_n,
-        SO            => SO, 
-        SI            => SI,
-        CS            => CS,
-        StartSpi      => StartSpi,
-        EndSpi        => EndSpi,
-        Words         => Words,
-        WrEn          => WrEn,
-	WriteDataWord => WriteDataWord,
-	ReadDataWord  => ReadDataWord,
-        WriteAddress   => WriteAddress,
-        ReadAddress   => ReadAddress,
-        lockedloop  => SpiPllLocked
+      ActlClk       => ActlClk,
+      Clk           => Clk,
+      SpiClk        => SpiClk,
+      Reset_n       => Reset_n,
+      SO            => SO, 
+      SI            => SI,
+      CS            => CS,
+      StartSpi      => StartSpi,
+      EndSpi        => EndSpi,
+      Words         => Words,
+      WrEn          => WrEn,
+	    WriteDataWord => WriteDataWord,
+	    ReadDataWord  => ReadDataWord,
+      WriteAddress   => WriteAddress,
+      ReadAddress   => ReadAddress,
+      lockedloop  => SpiPllLocked
     );
 
     process(Clk, Reset_n, SpiPllLocked) is
