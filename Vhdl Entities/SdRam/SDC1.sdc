@@ -1,12 +1,8 @@
 set_time_format -unit ns -decimal_places 2
 create_clock -name {ActlClk} -period 20.000 -waveform {0 10} [get_ports {ActlClk}]
 derive_pll_clocks
-set_clock_uncertainty -from [get_clocks {ActlClk}] -to [get_clocks {ActlClk}] -setup 0.1
-set_clock_uncertainty -from [get_clocks {ActlClk}] -to [get_clocks {ActlClk}] -hold 0.1
-set_clock_uncertainty -from [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] -to [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] -setup 0.1
-set_clock_uncertainty -from [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] -to [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] -hold 0.1
-set_input_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {Reset_n}]
-set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {CLK}]
+derive_clock_uncertainty
+set_input_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}]  0.1 [get_ports {Reset_n}]
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {Address[0]}]
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {Address[1]}]
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {Address[2]}]
@@ -63,4 +59,13 @@ set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_g
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DQ[15]}]
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {RAS}]
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {WE}]
-set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {SdRamEnd}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DebugLeds[0]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DebugLeds[1]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DebugLeds[2]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DebugLeds[3]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DebugLeds[4]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DebugLeds[5]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DebugLeds[6]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {DebugLeds[7]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[1]}] 0.1 [get_ports {SDRAM_CLKOUT}]
+
