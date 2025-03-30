@@ -9,7 +9,7 @@ entity SdRamHandler is
          ActlClk : in std_logic := '0';
          SDRAM_CLKOUT : out std_logic;
          Address : out std_logic_vector (12 downto 0) := (others => '0');
-         Bank : inout std_logic_vector (1 downto 0) := b"00";
+         Bank : inout std_logic_vector (1 downto 0) := (others => '0');
          CAS : out std_logic := '0';
          CKE : out std_logic := '0';
          CS : out std_logic := '1';
@@ -53,7 +53,6 @@ architecture rtl of SdRamHandler is
     signal Cnt : integer := 0;
     signal Index : STD_LOGIC_VECTOR (0 downto 0) := (others => '0');
     signal switch : std_logic := '0';
-    signal tempVar: unsigned (15 downto 0) := (others => '0');
 	component SdRamSysClock is
 		port (
 			ref_clk_clk        : in  std_logic := 'X'; -- clk
@@ -114,7 +113,6 @@ begin
 			ColsAddress <= to_unsigned(0,10);
 			DebugLeds <= b"00000000";
             Cnt <= 0;
-            tempVar <= (others => '0');
             switch <= '0';
         elsif rising_edge(SdRamClk) and PllLocked = '1' then
             case SdRamHandlerState is
@@ -122,10 +120,10 @@ begin
                     SdRamHandlerState <= START_WRITE;
                     if switch = '0' then
                         DataColsInput(1) <= x"0F12";
-					    DataColsInput(0) <= x"1500";
+								DataColsInput(0) <= x"1500";
                     else
                         DataColsInput(1) <= x"4312";
-					    DataColsInput(0) <= x"5113";
+								DataColsInput(0) <= x"23FF";
                     end if;
 
                 when START_WRITE =>
@@ -183,12 +181,13 @@ begin
                     if Cnt = 100000000 then
                         Cnt <= 0;
                         if (Index(0) = '1') then
+									 Index(0) <= '0';
                             switch <= not switch;
 									 SdRamHandlerState <= IDLE;
-                        else 
+                        else
+									 Index(0) <= '1';
                             SdRamHandlerState <= VALIDATE_READ;
                         end if;
-                        Index(0) <= not Index(0);
                     else
                         Cnt <= Cnt + 1;
                     end if;

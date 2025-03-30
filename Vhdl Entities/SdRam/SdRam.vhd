@@ -44,8 +44,10 @@ architecture SYN of SdRam is
         ACTIVE_STATE,
         WRITE_STATE,
         WRITE_STORE,
+        BURST_TERMINATE_WRITE,
         READ_STATE,
         READ_STORE,
+        BURST_TERMINATE_READ,
         PRECHARGE_ALL,
         AUTO_REFRESH_STARTUP,
         SELF_REFRESH_EXIT,
@@ -139,9 +141,9 @@ begin
                     CAS <= '0';
                     WE <= '0';
                     -- CAS LATENCY = 2 AND BURST LENGTH  = 1 (2 words)
-                    Address(10 downto 0) <= b"00000100001";
+                    Address <= b"0000000100001";
                     SdRamState <= NOP_WITH_COUNTER;
-		            NopThreshold <= 1;
+		            NopThreshold <= 0;
                     NopCounter <= 0;
                     SdRamNextState <= IDLE;
                 
@@ -186,17 +188,13 @@ begin
                     end if;
 
                 when ACTIVE_STATE =>
-                    BankSwitch <= not BankSwitch;
-                    DatacolsIndex <= 0;
                     -- Inputs here are the Row and the Bank which is 0 at startup
-                    Bank(1) <= not Bank(1);
-                    Address(9 downto 0) <= b"0000000000";
+                    Address <= b"0000000000000";
                     -- SEND NOP
                     CKE <= '1';
                     RAS <= '1';
                     CAS <= '1';
                     WE <= '1';
-                    Address(12 downto 10) <= b"000";
                     NopCounter <= 0;
                     -- DQ is high 'z' cause we don't know if it is read or write
                     DQ <= (others => 'Z');
@@ -205,14 +203,21 @@ begin
                     if (RdEn = '1') then
 			            -- This will be used to update the next rows once this happens
 			            RdFinish <= '0';
-                        --Go to nop for one cycle since we run at 100 mhz
+                        -- Go to nop for one cycle since we run at 100 mhz
                         NopThreshold <= 0;
                         SdRamNextState <= READ_STATE;
                         SdRamState <=  NOP_WITH_COUNTER;
-                    else
-			            -- This will be used to update the next rows once this happens
-			            WrFinish <= '0';
-                       --Go to nop for one cycle since we run at 100 mhz
+                    elsif WrEn = '1' or BankSwitch = '1' then
+						-- This will be used to update the next rows once this happens
+						WrFinish <= '0';
+                        -- Go to nop for one cycle since we run at 100 mhz
+                        NopThreshold <= 0;
+                        SdRamNextState <= WRITE_STATE;
+                        SdRamState <=  NOP_WITH_COUNTER;
+                    else 
+                        -- This will be used to update the next rows once this happens
+						WrFinish <= '0';
+                        -- Go to nop for one cycle since we run at 100 mhz
                         NopThreshold <= 0;
                         SdRamNextState <= WRITE_STATE;
                         SdRamState <=  NOP_WITH_COUNTER;
@@ -235,13 +240,16 @@ begin
 
                 when READ_STORE =>
                     if (DataColsIndex = 1) then
+                        DataColsOutput(DataColsIndex) <= DQ;
+                        DataColsIndex <= 0;
                         if RdEn = '1' then
                             -- SEND ACTIVE
                             CKE <= '1';
                             RAS <= '0';
                             CAS <= '1';
                             WE <= '1';
-							Address(12 downto 0) <= std_logic_vector(RowsAddress);
+                            Bank(0) <= not Bank(0);
+                            Address(12 downto 0) <= std_logic_vector(RowsAddress);
                              -- Wait extra time here thats why its zero (WAIT FOR PRECHARGE)
                             SdRamState <= ACTIVE_STATE;
                             NopThreshold <= 0;
@@ -255,7 +263,6 @@ begin
                             NopThreshold <= 9;
                             RdFinish <= '1';
                         end if;
-                        DataColsOutput(DataColsIndex) <= DQ;
                     else
                         DataColsOutput(DataColsIndex) <= DQ;
                         -- SEND NOP
@@ -274,38 +281,25 @@ begin
                     CAS <= '0';
                     WE <= '0';
                     -- ENABLE AUTO PRECHARGE
-                    Address(12 downto 10) <= b"001";
-                    Address(9 downto 0) <= std_logic_vector(ColsAddress);
+                    Address <= b"001" & std_logic_vector(ColsAddress);
                     DQM <= b"00";
                     DQ <= DatacolsInput(DataColsIndex);
                     SdRamState <= WRITE_STORE;
                     DatacolsIndex <= DatacolsIndex + 1;
+                    -- PREPARE TO WRITE DATA IN TWO BANKS
+                    BankSwitch <= not BankSwitch;
 
                 when WRITE_STORE =>
-                    -- SEND THE LAST DATA
+                    -- SEND THE DATA
                     DQ <= DatacolsInput(DataColsIndex);
                     if (DataColsIndex = 1) then
-                        if BankSwitch = '1' or WrEn = '1' then
-                            -- SEND ACTIVE
-                            CKE <= '1';
-                            RAS <= '0';
-                            CAS <= '1';
-                            WE <= '1';
-							Address(12 downto 0) <= std_logic_vector(RowsAddress);
-                            SdRamState <= ACTIVE_STATE;
-                            NopThreshold <= 0;
-                        elsif WrEn = '0' then
-                            -- SEND SELF REFRESH
-                            CKE <= '0';
-                            RAS <= '0';
-                            CAS <= '0';
-                            WE <= '1';
-                            -- AUTO PRECHARGE ENABLE
-                            Address(9 downto 0) <= b"0000000000";
-                            SdRamState <= SELF_REFRESH_EXIT;
-                            NopThreshold <= 9;
-                            WrFinish <= '1';
-                        end if;
+                        DataColsIndex <= 0;
+                        -- SEND BURST TERMINATE
+                        CKE <= '1';
+                        RAS <= '1';
+                        CAS <= '1';
+                        WE <= '0';
+                        SdRamState <= BURST_TERMINATE_WRITE;
                     else
                         -- SEND NOP HERE
                         CKE <= '1';
@@ -314,6 +308,30 @@ begin
                         WE <= '1';
                         SdRamState <= WRITE_STORE;
                         DatacolsIndex <= DatacolsIndex + 1;
+                    end if;
+
+                when BURST_TERMINATE_WRITE =>
+                    if BankSwitch = '1' or WrEn = '1' then
+                        -- SEND ACTIVE
+                        CKE <= '1';
+                        RAS <= '0';
+                        CAS <= '1';
+                        WE <= '1';
+                        Bank(0) <= not Bank(0);
+                        Address(12 downto 0) <= std_logic_vector(RowsAddress);
+                        SdRamState <= ACTIVE_STATE;
+                        NopThreshold <= 0;
+                    elsif WrEn = '0' then
+                        -- SEND SELF REFRESH
+                        CKE <= '0';
+                        RAS <= '0';
+                        CAS <= '0';
+                        WE <= '1';
+                        -- DEFAULT ADDRESS VALUE
+                        Address(9 downto 0) <= b"0000000000";
+                        SdRamState <= SELF_REFRESH_EXIT;
+                        NopThreshold <= 9;
+                        WrFinish <= '1';
                     end if;
 
                 when NOP_WITH_COUNTER =>
