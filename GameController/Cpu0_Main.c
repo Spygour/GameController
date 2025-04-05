@@ -62,7 +62,7 @@ int core0_main(void)
     PixelSend_Init();
     while(1)
     {
-      PixelSend_SendSpi(300);
+      PixelSend_SendSpi(2);
       wait(time1000ms);
     }
     return (1);

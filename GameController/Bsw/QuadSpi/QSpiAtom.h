@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file PixelSend.c
+ * \file TimerTom.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,42 +25,46 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
+#ifndef INFINEONARDUINOLIKE_INTERRUPTS_H_
+#define INFINEONARDUINOLIKE_INTERRUPTS_H_
 
+/*********************************************************************************************************************/
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "../Bsw/QuadSpi/QSpiAtom.h"
-#include "../Bsw/Ports/Ports.h"
-#include "PixelSend.h"
+#include "Ifx_Types.h"
+#include "IfxGtm_Atom_PwmHL.h"
+#include "_Utilities/Ifx_Assert.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define PIXELSEND_READY MODULE_P00,3
-#define QSPI_FREQUENCY 10000000
-#define PIXELSEND_MAXSIZE 256
+typedef void                    (*IfxGtm_Atom_SerialTimers_Update)(IfxGtm_Atom_PwmHl *driver, Ifx_TimerValue *tOn);
+typedef struct
+{
+    Ifx_Pwm_Mode                 mode;                 /**< \brief Pwm Mode */
+    boolean                      inverted;             /**< \brief Inverted configuration for the selected mode */
+    IfxGtm_Atom_SerialTimers_Update      setMode;               /**< \brief update call back function for the selected mode */
+} IfxGtm_Atom_Serial;
+
+
+typedef uint16* QSPIATOM_SPIBUFFER;
+typedef uint16* QSPIATOM_INPUTBUFFER;
+
+typedef Ifx_GTM_ATOM_CH* QSPIATOM_MOSIREGS;
+
+typedef struct
+{
+    QSPIATOM_SPIBUFFER* SpiBuffer;
+    uint8* ringBufferSize;
+}QSPIATOM_RINGBUFFER;
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-/* SPI Configuration Registers */
-IfxGtm_Atom_ToutMapP PixelSend_SpiSignals[5] =
-{
-    &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
-    &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
-    &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
-    &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
-    &IfxGtm_ATOM1_1_TOUT11_P00_2_OUT
-};
 
-uint16 PixelSend_SpiData1[PIXELSEND_MAXSIZE];
-uint16 PixelSend_SpiData2[PIXELSEND_MAXSIZE];
-uint16 PixelSend_SpiData3[PIXELSEND_MAXSIZE];
+/*********************************************************************************************************************/
+/*-------------------------------------------------Data Structures---------------------------------------------------*/
+/*********************************************************************************************************************/
 
-QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] = 
-{
-  PixelSend_SpiData1,
-  PixelSend_SpiData2,
-  PixelSend_SpiData3
-};
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -68,39 +72,6 @@ QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-
-/*********************************************************************************************************************/
-/*---------------------------------------------Function Implementations----------------------------------------------*/
-/*********************************************************************************************************************/
-
-void PixelSend_Init(void)
-{
-  /* Initialize the Spi Pin */
-  QSpiAtom_Init(QSPI_FREQUENCY,  &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT, PixelSend_SpiSignals, PixelSend_SpiData);
-
-  Ports_SetPinInputNoPull(&PIXELSEND_READY);
-
-  /* Wait till the port becomes high */
-  while (Ports_GetPinState(&PIXELSEND_READY) == FALSE) {}
-}
-
-
-
-void PixelSend_SendSpi(uint16 size)
-{
-  PixelSend_SpiData[0][0] = 0xabcd;
-  PixelSend_SpiData[0][1] = 0x2321;
-  PixelSend_SpiData[1][0] = 0x4543;
-  PixelSend_SpiData[1][1] = 0x3423;
-  PixelSend_SpiData[2][0] = 0xfecd;
-  PixelSend_SpiData[2][1] = 0xcdfe;
-
-  if (Ports_GetPinState(&PIXELSEND_READY) == FALSE)
-  {
-    QSpiAtom_StartQuadSpiTranscaction(size);
-  }
-  else
-  {
-    /* Here we do nothing */
-  }
-}
+void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_Atom_ToutMapP* slavePins, QSPIATOM_INPUTBUFFER* Message);
+void QSpiAtom_StartQuadSpiTranscaction(uint32 size);
+#endif /* INFINEONARDUINOLIKE_INTERRUPTS_H_ */
