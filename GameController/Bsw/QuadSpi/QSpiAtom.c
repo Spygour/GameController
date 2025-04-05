@@ -411,17 +411,17 @@ boolean IfxGtm_AtomSerialChannelsInit(IfxGtm_Atom_PwmHl *driver, IfxGtm_Atom_Pwm
     /* Here we set up the daisy chain dma channels */
     QSpiAtom_DataChannel[0].channelId = IfxDma_ChannelId_10;
     Dma_InitDaisyChainMaster(&QSpiAtom_DataChannel[0], 1, (uint32)(&QSpiAtom_TxSpiBuffer_Ch1[0]),
-        (uint32)(&QSpiAtom_MosiChannels[0]->SR1.U), 0,IfxDma_ChannelIncrementCircular_256,
+        (uint32)(&QSpiAtom_MosiChannels[0]->SR1.U), 0,IfxDma_ChannelIncrementCircular_128,
         IfxDma_ChannelIncrementCircular_none, IfxDma_ChannelMoveSize_16bit);
 
     QSpiAtom_DataChannel[1].channelId = IfxDma_ChannelId_9;
     Dma_InitDaisyChain(&QSpiAtom_DataChannel[1], 1, (uint32)(&QSpiAtom_TxSpiBuffer_Ch2[0]),
-        (uint32)(&QSpiAtom_MosiChannels[1]->SR1.U), 0,IfxDma_ChannelIncrementCircular_256,
+        (uint32)(&QSpiAtom_MosiChannels[1]->SR1.U), 0,IfxDma_ChannelIncrementCircular_128,
         IfxDma_ChannelIncrementCircular_none, IfxDma_ChannelMoveSize_16bit);
 
     QSpiAtom_DataChannel[2].channelId = IfxDma_ChannelId_8;
     Dma_InitDaisyChain(&QSpiAtom_DataChannel[2], 1, (uint32)(&QSpiAtom_TxSpiBuffer_Ch3[0]),
-        (uint32)(&QSpiAtom_MosiChannels[2]->SR1.U), 0,IfxDma_ChannelIncrementCircular_256,
+        (uint32)(&QSpiAtom_MosiChannels[2]->SR1.U), 0,IfxDma_ChannelIncrementCircular_128,
         IfxDma_ChannelIncrementCircular_none, IfxDma_ChannelMoveSize_16bit);
 
     return Result;
@@ -438,14 +438,14 @@ static void QSpiAtom_DmaInit(QSPIATOM_INPUTBUFFER* Message)
   QSpiAtom_DmaChannel[2].channelId = (IfxDma_ChannelId)2;
 
   Dma_Init(&QSpiAtom_DmaChannel[0], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(&Message[0][0]),
-      (uint32)(&QSpiAtom_TxBuffer[0][0]), 0,IfxDma_ChannelIncrementCircular_128,
+      (uint32)(&QSpiAtom_TxBuffer[0][0]), 0,IfxDma_ChannelIncrementCircular_256,
       IfxDma_ChannelIncrementCircular_128, IfxDma_ChannelMoveSize_16bit);
 
   Dma_Init(&QSpiAtom_DmaChannel[1], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(&Message[1][0]),
-      (uint32)(&QSpiAtom_TxBuffer[1][0]), 0,IfxDma_ChannelIncrementCircular_128, IfxDma_ChannelIncrementCircular_128,
+      (uint32)(&QSpiAtom_TxBuffer[1][0]), 0,IfxDma_ChannelIncrementCircular_256, IfxDma_ChannelIncrementCircular_128,
       IfxDma_ChannelMoveSize_16bit);
   Dma_Init(&QSpiAtom_DmaChannel[2], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(&Message[2][0]),
-      (uint32)(&QSpiAtom_TxBuffer[2][0]), QUAD_SPI_DMA_ISR,IfxDma_ChannelIncrementCircular_128,
+      (uint32)(&QSpiAtom_TxBuffer[2][0]), QUAD_SPI_DMA_ISR,IfxDma_ChannelIncrementCircular_256,
       IfxDma_ChannelIncrementCircular_128, IfxDma_ChannelMoveSize_16bit);
 
 }
