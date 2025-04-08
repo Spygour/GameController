@@ -113,12 +113,24 @@ IFX_INTERRUPT(QSpiAtom_Isr,0, MASTER_TIMER_ISR);
 void QSpiAtom_Isr(void)
 {
   /* Clear the timer interrupt */
-  QSpiAtom_MosiChannels[0]->IRQ_NOTIFY.B.CCU0TC = 1;
+  IfxGtm_Atom_Timer_acknowledgeTimerIrq(&QSpiAtom_Output.timer);
 
   if (QSpiAtom_SpiEnd == FALSE)
   {
     switch (QSpiAtom_DataRemain)
     {
+      case 0:
+      {
+        /* Prepare the chip select */
+        QSpiAtom_ChipSelect->SR1.U = 0xFFFF;
+        for (uint8 i = 0; i < MOSI_CHANNELS; i++)
+        {
+          QSpiAtom_MosiChannels[i]->SR1.U = 0;
+        }
+        QSpiAtom_SpiEnd = TRUE;
+        break;
+      }
+
       default:
       {
         /* Start the Dma channel 0 transcaction */
@@ -138,18 +150,6 @@ void QSpiAtom_Isr(void)
         }
         break;
       }
-
-      case 0:
-      {
-        /* Prepare the chip select */
-        QSpiAtom_ChipSelect->SR1.U = 0xFFFF;
-        for (uint8 i = 0; i < MOSI_CHANNELS; i++)
-        {
-          QSpiAtom_MosiChannels[i]->SR1.U = 0;
-        }
-        QSpiAtom_SpiEnd = TRUE;
-        break;
-      }
     }
   }
   else
@@ -163,10 +163,10 @@ void QSpiAtom_Isr(void)
 IFX_INTERRUPT(QSpiAtom_DmaIsr, 0, QUAD_SPI_DMA_ISR);
 void QSpiAtom_DmaIsr(void)
 {
+  /* Enable global Interrupts   */
+  IfxCpu_enableInterrupts();
   if (QSpiAtom_SpiEnd == TRUE)
   {
-    /* Enable global Interrupts   */
-    IfxCpu_enableInterrupts();
     /* Prepare the chip select */
     QSpiAtom_ChipSelect->SR1.U = 0x0;
     /* Start the Dma channel 0 transcaction */
@@ -496,10 +496,10 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
 
   IfxGtm_Atom_ToutMapP Ccx[] =
           {
-              slavePins[0], /* PWM High-side 1 */
-              slavePins[1], /* PWM High-side 2 */
-              slavePins[2],  /* PWM High-side 3 is null since the third pwm phase is provide by the master timer*/
-              slavePins[3]
+              slavePins[0], /* CHIP SELECT */
+              slavePins[1], /* MOSI1  */
+              slavePins[2],  /* MOSI2 */
+              slavePins[3]  /* MOSI3 */
           };
   IfxGtm_Atom_PwmHl_initConfig(&PwmHlConfig);
   PwmHlConfig.base.channelCount = MAX_ATOM_CHANNELS; /* Controlled channels are three */
