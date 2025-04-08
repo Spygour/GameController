@@ -7,11 +7,11 @@ use work.SpiSlaveTypes.all;
 entity SpiSlaveHandler is
     
     port(ActlClk : in std_logic := '1';
-         SpiClk   : in std_logic := '0';
+         SpiClk   : in std_logic := 'Z';
          Reset_n  : in std_logic := '1';
          SO     : out std_logic := '0';
-         SI     : in  std_logic := '0';
-         CS       : in std_logic := '1';
+         SI     : in  std_logic := 'Z';
+         CS       : in std_logic := 'Z';
 	       Leds  : out std_logic_vector (0 to 7) := "11111111";
          SpiReady : out std_logic := '0');
 
