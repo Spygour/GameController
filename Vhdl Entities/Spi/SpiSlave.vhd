@@ -7,12 +7,12 @@ use work.SpiSlaveTypes.all;
 entity SpiSlave is
     
     port(ActlClk : in std_logic := '1';
-         Clk      : in std_logic := '1';
+         Clk      : in std_logic := 'Z';
          SpiClk   : in std_logic := '0';
          Reset_n  : in std_logic := '1';
          SO     : out std_logic := '0';
-         SI     : in  std_logic := '0';
-         CS       : in std_logic := '1';
+         SI     : in  std_logic := 'Z';
+         CS       : in std_logic := 'Z';
          StartSpi : in  std_logic := '0';
          EndSpi   : inout std_logic := '1';
          Words : out integer := 0;
