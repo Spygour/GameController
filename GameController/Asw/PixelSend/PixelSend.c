@@ -32,30 +32,37 @@
 #include "../Bsw/QuadSpi/QSpiAtom.h"
 #include "../Bsw/Ports/Ports.h"
 #include "PixelSend.h"
+
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
 #define PIXELSEND_READY MODULE_P00,3
 #define QSPI_FREQUENCY 10000000
 #define PIXELSEND_MAXSIZE 256
+#define PIXELSEND_MOSI1                       1
+#define PIXELSEND_MOSI2                       2
+#define PIXELSEND_MOSI3                       3
+#define PIXELSEND_CHIP_SELECT                 0
+#define PIXELSEND_CLOCK                       4
+#define PIXELSEND_MASTERCLOCK                 &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
 /* SPI Configuration Registers */
 IfxGtm_Atom_ToutMapP PixelSend_SpiSignals[5] =
 {
-    &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
-    &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
-    &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
-    &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
-    &IfxGtm_ATOM1_1_TOUT11_P00_2_OUT
+    [PIXELSEND_CHIP_SELECT] = &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
+    [PIXELSEND_MOSI1] = &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
+    [PIXELSEND_MOSI2] = &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
+    [PIXELSEND_MOSI3] = &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
+    [PIXELSEND_CLOCK] = &IfxGtm_ATOM1_1_TOUT11_P00_2_OUT
 };
 
-uint16 PixelSend_SpiData1[PIXELSEND_MAXSIZE];
-uint16 PixelSend_SpiData2[PIXELSEND_MAXSIZE];
-uint16 PixelSend_SpiData3[PIXELSEND_MAXSIZE];
+static uint16 PixelSend_SpiData1[PIXELSEND_MAXSIZE];
+static uint16 PixelSend_SpiData2[PIXELSEND_MAXSIZE];
+static uint16 PixelSend_SpiData3[PIXELSEND_MAXSIZE];
 
-QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] = 
+QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
 {
   PixelSend_SpiData1,
   PixelSend_SpiData2,
@@ -76,12 +83,15 @@ QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
 void PixelSend_Init(void)
 {
   /* Initialize the Spi Pin */
-  QSpiAtom_Init(QSPI_FREQUENCY,  &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT, PixelSend_SpiSignals, PixelSend_SpiData);
+  QSpiAtom_Init(QSPI_FREQUENCY,  PIXELSEND_MASTERCLOCK, PixelSend_SpiSignals, PixelSend_SpiData);
 
   Ports_SetPinInputNoPull(&PIXELSEND_READY);
 
-  /* Wait till the port becomes high */
-  while (Ports_GetPinState(&PIXELSEND_READY) == FALSE) {}
+  Ifx_TickTime time1000ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 1000);
+  wait(time1000ms);
+  /* Send dummy load due to hardware bug */
+  /* Wait till the port becomes false */
+  //while (Ports_GetPinState(&PIXELSEND_READY) == FALSE) {}
 }
 
 
@@ -94,13 +104,33 @@ void PixelSend_SendSpi(uint16 size)
   PixelSend_SpiData[1][1] = 0x3423;
   PixelSend_SpiData[2][0] = 0xfecd;
   PixelSend_SpiData[2][1] = 0xcdfe;
-
-  if (Ports_GetPinState(&PIXELSEND_READY) == FALSE)
+  PixelSend_SpiData[0][2] = 0xabcd;
+  PixelSend_SpiData[0][3] = 0x2321;
+  PixelSend_SpiData[1][2] = 0x4543;
+  PixelSend_SpiData[1][3] = 0x3423;
+  PixelSend_SpiData[2][2] = 0xfecd;
+  PixelSend_SpiData[2][3] = 0xcdfe;
+  Ifx_TickTime time1000ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 1000);
+  /* Wait till the port becomes high */
+  if (Ports_GetPinState(&PIXELSEND_READY) == TRUE)
   {
     QSpiAtom_StartQuadSpiTranscaction(size);
   }
   else
   {
-    /* Here we do nothing */
+    QSpiAtom_StartQuadSpiTranscaction(size);
+    /* Do nothing */
   }
+  for (uint8 i = 0; i < 10; i++)
+  {
+    wait(time1000ms);
+    QSpiAtom_StartQuadSpiTranscaction(size);
+  }
+
+  wait(time1000ms);
+  QSpiAtom_StartQuadSpiTranscaction(size);
+
+
+  wait(time1000ms);
+  QSpiAtom_StartQuadSpiTranscaction(size);
 }

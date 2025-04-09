@@ -34,7 +34,8 @@
 #include "../Bsw/Dma/Dma.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
-/*********************************************************************************************************************/                    /* Define the GPT12 Timer interrupt priority            */
+/*********************************************************************************************************************/
+#define SPI_CLOCK                   4
 #define MAX_ATOM_CHANNELS           4
 #define  MOSI_CHANNELS              3
 #define MASTER_TIMER_ISR            18
@@ -57,13 +58,9 @@ typedef struct
     uint32              spiPeriod;
 } QSPIATOM_OUTPUT;
 
-
 static QSPIATOM_OUTPUT QSpiAtom_Output;
 
 volatile boolean QSpiAtom_SpiEnd = TRUE;
-
-
-static uint8 QSpiAtom_RingBufferSize = 0;
 
 IfxDma_Dma_Channel QSpiAtom_DmaChannel[MOSI_CHANNELS];
 
@@ -80,24 +77,20 @@ static QSPIATOM_SPIBUFFER QSpiAtom_TxBuffer[MOSI_CHANNELS] =
     QSpiAtom_TxSpiBuffer_Ch3
 };
 
-QSPIATOM_RINGBUFFER QSpiAtom_Buffer =
-{
-    QSpiAtom_TxBuffer,
-    &QSpiAtom_RingBufferSize
-};
 
-static QSPIATOM_MOSIREGS QSpiAtom_MosiChannels[MOSI_CHANNELS] =
+static volatile QSPIATOM_MOSIREGS QSpiAtom_MosiChannels[MOSI_CHANNELS] =
 {
     NULL_PTR,
     NULL_PTR,
     NULL_PTR
 };
 
-static QSPIATOM_MOSIREGS QSpiAtom_ChipSelect = NULL_PTR;
+static volatile QSPIATOM_MOSIREGS QSpiAtom_ChipSelect = NULL_PTR;
+
+static volatile QSPIATOM_MOSIREGS QSpiAtom_Timer = NULL_PTR;
 
 
-volatile uint32 QSpiAtom_DataRemain = 0;
-volatile uint8 QSpiAtom_DataIndex = 0;
+static volatile uint32 QSpiAtom_DataRemain = 0;
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 
@@ -112,51 +105,33 @@ IFX_STATIC void IfxGtmAtomSerialUpdate(IfxGtm_Atom_PwmHl *driver, Ifx_TimerValue
 IFX_INTERRUPT(QSpiAtom_Isr,0, MASTER_TIMER_ISR);
 void QSpiAtom_Isr(void)
 {
-  /* Clear the timer interrupt */
-  IfxGtm_Atom_Timer_acknowledgeTimerIrq(&QSpiAtom_Output.timer);
-
-  if (QSpiAtom_SpiEnd == FALSE)
-  {
     switch (QSpiAtom_DataRemain)
     {
       case 0:
       {
-        /* Prepare the chip select */
+        QSpiAtom_DataChannel[0].dma->CH[QSpiAtom_DataChannel[0].channelId].CHCSR.B.SCH = 1;
+        QSpiAtom_DataRemain = 129;
+        /* Prepare the SpiEnd to be TRUE */
+        break;
+      }
+
+      case 129:
+      {
         QSpiAtom_ChipSelect->SR1.U = 0xFFFF;
-        for (uint8 i = 0; i < MOSI_CHANNELS; i++)
-        {
-          QSpiAtom_MosiChannels[i]->SR1.U = 0;
-        }
+        IfxGtm_Atom_Timer_stop(&QSpiAtom_Output.SpiClk);
+        IfxGtm_Atom_Timer_stop(&QSpiAtom_Output.timer);
         QSpiAtom_SpiEnd = TRUE;
         break;
       }
 
       default:
       {
-        /* Start the Dma channel 0 transcaction */
         QSpiAtom_DataChannel[0].dma->CH[QSpiAtom_DataChannel[0].channelId].CHCSR.B.SCH = 1;
         QSpiAtom_DataRemain--;
-        QSpiAtom_DataIndex++;
-        if (QSpiAtom_DataIndex == MAX_FIFODATA)
-        {
-          uint32 DataTransfer = (QSpiAtom_DataRemain < MAX_FIFODATA) ? QSpiAtom_DataRemain : MAX_FIFODATA ;
-          /* Transfer with Dma to all the fifos */
-          for (uint8 i = 0; i < MOSI_CHANNELS; i++)
-          {
-            QSpiAtom_DmaChannel[i].dma->CH[QSpiAtom_DmaChannel[i].channelId].CHCFGR.B.TREL = DataTransfer;
-            QSpiAtom_DmaChannel[i].dma->CH[QSpiAtom_DmaChannel[i].channelId].CHCSR.B.SCH = 1;
-          }
-          QSpiAtom_DataIndex = 0;
-        }
         break;
       }
     }
-  }
-  else
-  {
-    IfxGtm_Atom_Timer_stop(&QSpiAtom_Output.SpiClk);
-    IfxGtm_Atom_Timer_stop(&QSpiAtom_Output.timer);
-  }
+    QSpiAtom_Timer->IRQ_NOTIFY.B.CCU0TC = 1;
 }
 
 
@@ -167,20 +142,16 @@ void QSpiAtom_DmaIsr(void)
   IfxCpu_enableInterrupts();
   if (QSpiAtom_SpiEnd == TRUE)
   {
-    /* Prepare the chip select */
-    QSpiAtom_ChipSelect->SR1.U = 0x0;
-    /* Start the Dma channel 0 transcaction */
-    QSpiAtom_DataChannel[0].dma->CH[QSpiAtom_DataChannel[0].channelId].CHCSR.B.SCH = 1;
-    
-    QSpiAtom_DataIndex++;
-    QSpiAtom_DataRemain--;
-    IfxGtm_Atom_Timer_disableUpdate(&QSpiAtom_Output.SpiClk);
-    IfxGtm_Atom_Timer_disableUpdate(&QSpiAtom_Output.timer);
     QSpiAtom_SpiEnd =  FALSE;
-    IfxGtm_Atom_Timer_run(&QSpiAtom_Output.timer);
+    /* Prepare the chip select */
+    QSpiAtom_DataChannel[0].dma->CH[QSpiAtom_DataChannel[0].channelId].CHCSR.B.SCH = 1;
+    QSpiAtom_ChipSelect->SR1.U = 0x0000;
+    QSpiAtom_DataRemain--;
+    //Ifx__NOP(1);
+    /* Prepare the data when the isr is triggered */
     IfxGtm_Atom_Timer_run(&QSpiAtom_Output.SpiClk);
-    IfxGtm_Atom_Timer_applyUpdate(&QSpiAtom_Output.SpiClk);
-    IfxGtm_Atom_Timer_applyUpdate(&QSpiAtom_Output.timer);
+    IfxGtm_Atom_Timer_run(&QSpiAtom_Output.timer);
+
   }
   else
   {
@@ -236,7 +207,7 @@ IFX_STATIC void IfxGtmAtomSerialUpdateOff(IfxGtm_Atom_PwmHl *driver, Ifx_TimerVa
 
   for (ChannelIndex = 0; ChannelIndex < driver->base.channelCount; ChannelIndex++)
   {
-    IfxGtm_Atom_Ch_setCompareOneShadow(driver->atom, driver->ccxTemp[ChannelIndex],
+    IfxGtm_Atom_Ch_setCompareOne(driver->atom, driver->ccxTemp[ChannelIndex],
           0);
   }
 }
@@ -285,6 +256,8 @@ IFX_STATIC IFX_CONST IfxGtm_Atom_Serial IfxGtmAtomSerialchModes[2] = {
 
 IFX_STATIC void IfxGtmAtomStoreSrRegs(IfxGtm_Atom_PwmHl *driver)
 {
+  QSpiAtom_Timer = IfxGtm_Atom_Ch_getChannelPointer(QSpiAtom_Output.timer.atom, QSpiAtom_Output.timer.timerChannel);
+
   /* Get the Chip Select Register */
   QSpiAtom_ChipSelect = IfxGtm_Atom_Ch_getChannelPointer(driver->atom, driver->ccx[0]);
 
@@ -293,6 +266,7 @@ IFX_STATIC void IfxGtmAtomStoreSrRegs(IfxGtm_Atom_PwmHl *driver)
   {
     QSpiAtom_MosiChannels[channelIndex - 1] = IfxGtm_Atom_Ch_getChannelPointer(driver->atom, driver->ccx[channelIndex]);
   }
+
 }
 
 
@@ -381,7 +355,7 @@ boolean IfxGtm_AtomSerialChannelsInit(IfxGtm_Atom_PwmHl *driver, IfxGtm_Atom_Pwm
             driver->base.ccxActiveState, FALSE);
 
         /* Initialize the port */
-        if (config->initPins == TRUE)
+        if ( (config->initPins == TRUE) )
         {
             IfxGtm_PinMap_setAtomTout(config->ccx[ChannelIndex],
                 config->base.outputMode, config->base.outputDriver);
@@ -433,18 +407,18 @@ static void QSpiAtom_DmaInit(QSPIATOM_INPUTBUFFER* Message)
 {
 
   /* Initialization of the Dma Fifo 2 channel */
-  QSpiAtom_DmaChannel[0].channelId = (IfxDma_ChannelId)0;
-  QSpiAtom_DmaChannel[1].channelId = (IfxDma_ChannelId)1;
-  QSpiAtom_DmaChannel[2].channelId = (IfxDma_ChannelId)2;
+  QSpiAtom_DmaChannel[0].channelId = (IfxDma_ChannelId)3;
+  QSpiAtom_DmaChannel[1].channelId = (IfxDma_ChannelId)2;
+  QSpiAtom_DmaChannel[2].channelId = (IfxDma_ChannelId)1;
 
-  Dma_Init(&QSpiAtom_DmaChannel[0], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(&Message[0][0]),
+  Dma_Init(&QSpiAtom_DmaChannel[0], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(Message[0]),
       (uint32)(&QSpiAtom_TxBuffer[0][0]), 0,IfxDma_ChannelIncrementCircular_256,
       IfxDma_ChannelIncrementCircular_128, IfxDma_ChannelMoveSize_16bit);
 
-  Dma_Init(&QSpiAtom_DmaChannel[1], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(&Message[1][0]),
+  Dma_Init(&QSpiAtom_DmaChannel[1], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(Message[1]),
       (uint32)(&QSpiAtom_TxBuffer[1][0]), 0,IfxDma_ChannelIncrementCircular_256, IfxDma_ChannelIncrementCircular_128,
       IfxDma_ChannelMoveSize_16bit);
-  Dma_Init(&QSpiAtom_DmaChannel[2], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(&Message[2][0]),
+  Dma_Init(&QSpiAtom_DmaChannel[2], QUAD_SPI_BUFFER_SIZE >> 2, (uint32)(Message[2]),
       (uint32)(&QSpiAtom_TxBuffer[2][0]), QUAD_SPI_DMA_ISR,IfxDma_ChannelIncrementCircular_256,
       IfxDma_ChannelIncrementCircular_128, IfxDma_ChannelMoveSize_16bit);
 
@@ -456,8 +430,8 @@ static void QSpiAtom_DmaInit(QSPIATOM_INPUTBUFFER* Message)
 void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_Atom_ToutMapP* slavePins,
                           QSPIATOM_INPUTBUFFER* Message)
 {
-  IfxGtm_Cmu_Clk ClckSrc= IfxGtm_Cmu_Clk_5;
-  IfxGtm_Cmu_Clk SpiClk = IfxGtm_Cmu_Clk_4;
+  IfxGtm_Cmu_Clk ClckSrc= IfxGtm_Cmu_Clk_4;
+  IfxGtm_Cmu_Clk SpiClk = IfxGtm_Cmu_Clk_5;
   float32 frequency;
   /* Enable GTM, it is necessary if the GTM is not initialized earlier */
   IfxGtm_enable(&MODULE_GTM);
@@ -476,7 +450,7 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
 
 
   /*init pwm using the IfxGtm_Atom_Timer_Config of the Tom timer library*/
-  TimerConfig.irqModeTrigger       = IfxGtm_IrqMode_level;              /* Enable the pulse of the Output signal as interrupt*/
+  TimerConfig.irqModeTrigger       = IfxGtm_IrqMode_pulseNotify;              /* Enable the pulse of the Output signal as interrupt*/
   TimerConfig.base.frequency       = baseFrequency;                           /* Set timer frequency */
   TimerConfig.base.isrPriority     = MASTER_TIMER_ISR;                        /* Enable the master timer ISR */
   TimerConfig.base.isrProvider     = IfxSrc_Tos_cpu0;                         /* Isr on cpu 0 */
@@ -488,7 +462,7 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
   IfxGtm_Atom_Agc_enableChannelUpdate(QSpiAtom_Output.timer.agc,QSpiAtom_Output.timer.triggerChannel,TRUE);
 
   /* Initialize the SpiClk Pwm */
-  IfxGtmAtomSerialSetSpiClk(slavePins[MAX_ATOM_CHANNELS], SpiClk, baseFrequency);
+  IfxGtmAtomSerialSetSpiClk(slavePins[SPI_CLOCK], SpiClk, baseFrequency);
   /* Here we stop the spi clock and we will update it inside the isr */
   IfxGtm_Atom_Timer_stop(&QSpiAtom_Output.SpiClk);
   /* Initialize the slave mosi channels */
@@ -496,10 +470,10 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
 
   IfxGtm_Atom_ToutMapP Ccx[] =
           {
-              slavePins[0], /* CHIP SELECT */
-              slavePins[1], /* MOSI1  */
-              slavePins[2],  /* MOSI2 */
-              slavePins[3]  /* MOSI3 */
+              slavePins[0], /* Chip select */
+              slavePins[1], /* Moai 1 */
+              slavePins[2], /* Mosi 2 */
+              slavePins[3]  /* Mosi 3 */
           };
   IfxGtm_Atom_PwmHl_initConfig(&PwmHlConfig);
   PwmHlConfig.base.channelCount = MAX_ATOM_CHANNELS; /* Controlled channels are three */
@@ -535,20 +509,23 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
   IfxGtm_Atom_Timer_disableUpdate(&QSpiAtom_Output.timer);
   IfxGtmAtomSerialUpdatePeriod(&QSpiAtom_Output.pwm);
   IfxGtm_Atom_Timer_applyUpdate(&QSpiAtom_Output.timer);  /* Start every PWM signal at the same time */
-  IfxGtm_Atom_Timer_stop(&QSpiAtom_Output.timer);
+  QSpiAtom_SpiEnd = FALSE;
+  IfxGtm_Atom_Timer_run(&QSpiAtom_Output.timer);
 
 }
 
 
 void QSpiAtom_StartQuadSpiTranscaction(uint32 size)
 {
-  QSpiAtom_DataRemain = size;
+  QSpiAtom_DataRemain= size + 1;
   uint32 transferCount = (QSpiAtom_DataRemain > QUAD_SPI_BUFFER_SIZE) ? QUAD_SPI_BUFFER_SIZE : QSpiAtom_DataRemain;
+  QSpiAtom_DataRemain--;
   /* Transfer with Dma to all the fifos */
   for (uint8 i = 0; i < MOSI_CHANNELS; i++)
   {
-    QSpiAtom_DmaChannel[i].dma->CH[QSpiAtom_DmaChannel[i].channelId].CHCFGR.B.TREL = transferCount;
-    QSpiAtom_DmaChannel[i].dma->CH[QSpiAtom_DmaChannel[i].channelId].CHCSR.B.SCH = 1;
+    IfxDma_Dma_setChannelTransferCount(&QSpiAtom_DmaChannel[i], transferCount);
+    IfxDma_Dma_setChannelSourceAddress(&QSpiAtom_DataChannel[i], (uint32)(&QSpiAtom_TxBuffer[i][0]));
+    IfxDma_Dma_startChannelTransaction(&QSpiAtom_DmaChannel[i]);
   }
 }
 

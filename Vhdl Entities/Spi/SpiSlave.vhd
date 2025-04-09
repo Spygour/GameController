@@ -6,9 +6,9 @@ use work.SpiSlaveTypes.all;
 
 entity SpiSlave is
     
-    port(ActlClk : in std_logic := '1';
-         Clk      : in std_logic := 'Z';
-         SpiClk   : in std_logic := '0';
+    port(ActlClk : in std_logic := '0';
+         Clk      : in std_logic := '0';
+         SpiClk   : in std_logic := 'Z';
          Reset_n  : in std_logic := '1';
          SO     : out std_logic := '0';
          SI     : in  std_logic := 'Z';
@@ -27,8 +27,8 @@ end SpiSlave;
 
 architecture rtl of SpiSlave is
 
-constant SpiBits : unsigned (4 downto 0)   := "11111";
-constant SpiWords : unsigned (6 downto 0)  := "1100100";
+constant SpiBits : unsigned (3 downto 0)   := "1111";
+constant SpiWords : unsigned (7 downto 0)  := "11111111";
 
 signal SpiBitCnt  : unsigned (4 downto 0) := (others => '0');
 signal SpiWordCounter : unsigned (6 downto 0) := (others => '0');
@@ -58,6 +58,7 @@ begin
 			SpiClk_prev <= '0';
             Cs_current <= '1';
             Cs_prev <= '1';
+				EndSpi <= '1';
 
         elsif rising_edge(Clk) and lockedloop = '1' then
             SpiClk_prev <= SpiClk_current;
@@ -75,6 +76,7 @@ begin
                         SpiRxWord <= (others => '0');
                         WrEn <= '0';
                         SO <= '0';
+								EndSpi <= '0';
                     end if;
 
                 when RISE_DETECT_START =>
@@ -92,7 +94,7 @@ begin
                     elsif (SpiClk_current = '1' and SpiClk_prev = '0') then
                         WrEn <= '0';
 						SO <= SpiTxWord(to_integer(SpiBitCnt));
-                        if SpiWordCounter >= SpiWords then
+                        if SpiWordCounter > SpiWords then
                             SpiSlaveState <= END_STATE;
                         elsif SpiBitCnt <= "00000" then
                             WriteAddress <= std_logic_vector(unsigned(WriteAddress) + 1);
@@ -123,7 +125,7 @@ begin
                     elsif (SpiClk_current = '0' and SpiClk_prev = '0') then
                         SpiSlaveState <= RISE_DETECT;
                         if (SpiBitCnt = SpiBits) then
-							WrEn <= '1';
+									 WrEn <= '1';
                             SpiWordCounter <= SpiWordCounter + 1;
                             WriteDataWord <= SpiRxWord;
                             SpiTxWord <= SpiRxWord;
@@ -135,7 +137,7 @@ begin
 
 
                 when END_STATE =>
-					WriteAddress <= (others => '0');
+					     WriteAddress <= (others => '0');
                     SO <= '0';
                     WrEn <= '0';
                     WriteDataWord <= SpiRxWord;

@@ -6,13 +6,13 @@ use work.SpiSlaveTypes.all;
 
 entity SpiSlaveHandler is
     
-    port(ActlClk : in std_logic := '1';
+    port(ActlClk : in std_logic := '0';
          SpiClk   : in std_logic := 'Z';
          Reset_n  : in std_logic := '1';
          SO     : out std_logic := '0';
          SI     : in  std_logic := 'Z';
          CS       : in std_logic := 'Z';
-	       Leds  : out std_logic_vector (0 to 7) := "11111111";
+		 Leds  : out std_logic_vector (0 to 7) := "11111111";
          SpiReady : out std_logic := '0');
 
 end SpiSlaveHandler;
@@ -37,16 +37,16 @@ signal EndSpi : std_logic := '1';
 signal SpiTxWord : SpiWord  := (others => '0');
 signal SpiRxWord : SpiWord  := (others => '0');
 signal SpiHandlerState : Spi_Handler_State := IDLE_STATE;
-signal memoryPart : unsigned (1 DOWNTO 0) := (others => '0'); 
+signal counter : integer := 0;
 
 begin
 	 Spipll:entity work.SpiPll(SYN)
     port map
     (
-      areset => Reset_n,
-	    inclk0 => ActlClk,	
-	    c0     => Clk,
-	    locked =>  SpiPllLocked
+        areset => Reset_n,
+	inclk0 => ActlClk,	
+	c0     => Clk,
+	locked =>  SpiPllLocked
     );
 	 
 	 SpiRam:entity work.SpiRam(SYN)
@@ -63,29 +63,29 @@ begin
 	 SpiSlave:entity work.SpiSlave(rtl)
     port map
     (
-      ActlClk       => ActlClk,
-      Clk           => Clk,
-      SpiClk        => SpiClk,
-      Reset_n       => Reset_n,
-      SO            => SO, 
-      SI            => SI,
-      CS            => CS,
-      StartSpi      => StartSpi,
-      EndSpi        => EndSpi,
-      Words         => Words,
-      WrEn          => WrEn,
-	    WriteDataWord => WriteDataWord,
-	    ReadDataWord  => ReadDataWord,
-      WriteAddress   => WriteAddress,
-      ReadAddress   => ReadAddress,
-      lockedloop  => SpiPllLocked
+        ActlClk       => ActlClk,
+        Clk           => Clk,
+        SpiClk        => SpiClk,
+        Reset_n       => Reset_n,
+        SO            => SO, 
+        SI            => SI,
+        CS            => CS,
+        StartSpi      => StartSpi,
+        EndSpi        => EndSpi,
+        Words         => Words,
+        WrEn          => WrEn,
+	WriteDataWord => WriteDataWord,
+	ReadDataWord  => ReadDataWord,
+        WriteAddress   => WriteAddress,
+        ReadAddress   => ReadAddress,
+        lockedloop  => SpiPllLocked
     );
 
     process(Clk, Reset_n, SpiPllLocked) is
     begin
         if (Reset_n = '1') then
 		      StartSpi <= '0';
-		      memoryPart <= (others => '0'); 
+				counter <= 0;
         	SpiHandlerState <= IDLE_STATE;
         	SpiReady <= '0';
 		      Leds <= "11111111";
@@ -97,17 +97,13 @@ begin
               ReadAddress <= (others => '0');
 
             when ACTIVATE_SPI =>
-              SpiReady <= '1';
-              SpiHandlerState <= END_STATE;
-              if (memoryPart = "11") then
-                memoryPart <= "00";
-              else
-                memoryPart <= memoryPart + 1;
-              end if;
+              SpiHandlerState <= RUN_STATE;
+				  SpiReady <= '1';
             
             when RUN_STATE =>
 	            -- Set SpiReady to avoid the uC to send Data
 				      if EndSpi = '0' then
+						   Leds <= "11110000";
 					      SpiReady <= '0';
 					      StartSpi <= '0';
 					      SpiHandlerState <= END_STATE;
@@ -115,17 +111,50 @@ begin
 
 				    when END_STATE =>
               if (EndSpi = '1') then
-                if (memoryPart = "00") then
-                  Leds <= ReadDataWord(0 to 7);
-                elsif memoryPart = "01" then
-                  Leds <= ReadDataWord(8 to 15);
-                elsif memoryPart = "10" then
-                  Leds <= ReadDataWord(16 to 23);
-                else
-                  Leds <= ReadDataWord(24 to 31);
-                end if;
-                SpiHandlerState <= IDLE_STATE;
+                Leds <= "00000000";
+					 ReadAddress <= (others => '0');
+                SpiHandlerState <= DELAY_ONESEC1;
               end if;
+				  
+				when DELAY_ONESEC1 =>
+					if (counter = 100000000) then
+						Leds <= ReadDataWord(15 downto 8);
+						SpiHandlerState<= DELAY_ONESEC2;
+						counter <= 0;
+					else
+						counter <= counter + 1;
+					end if;
+					
+				when DELAY_ONESEC2 =>
+					if (counter = 100000000) then
+						Leds <= ReadDataWord(7 downto 0);
+						SpiHandlerState<= DELAY_ONESEC3;
+						ReadAddress <= b"0000001";
+						counter <= 0;
+					else
+						counter <= counter + 1;
+					end if;
+					
+				when DELAY_ONESEC3 =>
+					if (counter = 100000000) then
+						Leds <= ReadDataWord(15 downto 8);
+						SpiHandlerState<= DELAY_ONESEC4;
+						counter <= 0;
+					else
+						counter <= counter + 1;
+					end if;
+					
+					
+				when DELAY_ONESEC4 =>
+					if (counter = 100000000) then
+						Leds <= ReadDataWord(7 downto 0);
+						SpiHandlerState<= END_STATE;
+						counter <= 0;
+					else
+						counter <= counter + 1;
+					end if;
+					
+					
 
             when others => NULL;
 
