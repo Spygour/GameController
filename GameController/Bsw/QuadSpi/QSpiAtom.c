@@ -32,6 +32,7 @@
 
 #include "../Bsw/QuadSpi/QSpiAtom.h"
 #include "../Bsw/Dma/Dma.h"
+#include "IfxCpu_IntrinsicsTasking.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -44,6 +45,7 @@
 #define QUAD_SPI_BUFFER_SIZE        128
 #define QAUD_SPI_FILLLEVEL          64
 #define MAX_FIFODATA                100
+#define ATOM_CHANNELS               8
 
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
@@ -56,11 +58,17 @@ typedef struct
     IfxGtm_Atom_Serial  update;
     IfxGtm_Atom_Timer   SpiClk;
     uint32              spiPeriod;
+    uint32        TimerOnValue;
+    uint32        TimerOffValue;
+    uint32        SpiClkOnValue;
+    uint32        SpiClkOffValue;
 } QSPIATOM_OUTPUT;
 
 static QSPIATOM_OUTPUT QSpiAtom_Output;
 
 volatile boolean QSpiAtom_SpiEnd = TRUE;
+volatile boolean QSpiAtom_SpiReady = TRUE;
+
 
 IfxDma_Dma_Channel QSpiAtom_DmaChannel[MOSI_CHANNELS];
 
@@ -110,6 +118,7 @@ void QSpiAtom_Isr(void)
       case 0:
       {
         QSpiAtom_DataChannel[0].dma->CH[QSpiAtom_DataChannel[0].channelId].CHCSR.B.SCH = 1;
+        QSpiAtom_ChipSelect->SR1.U = 0xFFFF;
         QSpiAtom_DataRemain = 129;
         /* Prepare the SpiEnd to be TRUE */
         break;
@@ -117,7 +126,6 @@ void QSpiAtom_Isr(void)
 
       case 129:
       {
-        QSpiAtom_ChipSelect->SR1.U = 0xFFFF;
         IfxGtm_Atom_Timer_stop(&QSpiAtom_Output.SpiClk);
         IfxGtm_Atom_Timer_stop(&QSpiAtom_Output.timer);
         QSpiAtom_SpiEnd = TRUE;
@@ -131,34 +139,57 @@ void QSpiAtom_Isr(void)
         break;
       }
     }
-    QSpiAtom_Timer->IRQ_NOTIFY.B.CCU0TC = 1;
+    QSpiAtom_Timer->IRQ_NOTIFY.U = 0x1;
 }
 
 
 IFX_INTERRUPT(QSpiAtom_DmaIsr, 0, QUAD_SPI_DMA_ISR);
 void QSpiAtom_DmaIsr(void)
 {
+  /* Prepare the chip select */
+  QSpiAtom_DataChannel[0].dma->CH[QSpiAtom_DataChannel[0].channelId].CHCSR.B.SCH = 1;
+  QSpiAtom_ChipSelect->SR1.U = 0x0000;
+  QSpiAtom_SpiEnd =  FALSE;
+
+  QSpiAtom_DataRemain--;
+  QSpiAtom_Output.SpiClk.agc->ENDIS_CTRL.U = QSpiAtom_Output.SpiClkOnValue;
+  QSpiAtom_Output.SpiClk.agc->ENDIS_STAT.U = QSpiAtom_Output.SpiClkOnValue;
+  /* Start the mosis/cs timer , hardware will ignore the false clock */
+  QSpiAtom_Output.timer.agc->ENDIS_CTRL.U = QSpiAtom_Output.TimerOnValue;
+  QSpiAtom_Output.timer.agc->ENDIS_STAT.U = QSpiAtom_Output.TimerOnValue;
+
   /* Enable global Interrupts   */
   IfxCpu_enableInterrupts();
-  if (QSpiAtom_SpiEnd == TRUE)
-  {
-    QSpiAtom_SpiEnd =  FALSE;
-    /* Prepare the chip select */
-    QSpiAtom_DataChannel[0].dma->CH[QSpiAtom_DataChannel[0].channelId].CHCSR.B.SCH = 1;
-    QSpiAtom_ChipSelect->SR1.U = 0x0000;
-    QSpiAtom_DataRemain--;
-    //Ifx__NOP(1);
-    /* Prepare the data when the isr is triggered */
-    IfxGtm_Atom_Timer_run(&QSpiAtom_Output.SpiClk);
-    IfxGtm_Atom_Timer_run(&QSpiAtom_Output.timer);
-
-  }
-  else
-  {
-    /* This is the second transaction so do nothing there */
-  }
 }
+/* IfxGtm_Atom_Agc_enableChannels(driver->agc, driver->channelsMask, 0, TRUE);
+value = IfxGtm_Atom_Agc_buildFeature(enableMask, disableMask, IFX_GTM_ATOM_AGC_ENDIS_CTRL_ENDIS_CTRL0_OFF);
+IfxGtm_Atom_Agc_buildFeature(uint16 enableMask, uint16 disableMask, uint8 bitfieldOffset)
+IfxGtm_Atom_Agc_enableChannels(Ifx_GTM_ATOM_AGC *agc, uint16 enableMask, uint16 disableMask, boolean immediate)
 
+    uint8  i;
+    uint32 reg  = 0;
+    uint32 mask = enableMask | (disableMask << 16);
+
+    for (i = 0; i < IFXGTM_ATOM_NUM_AGC_CHANNELS; i++)
+    {
+        uint8 shift = (i * 2) + bitfieldOffset;
+
+        if (mask & 0x1)
+        {
+            reg |= IfxGtm_FeatureControl_enable << shift;
+        }
+
+        if (mask & 0x10000)
+        {
+            reg |= IfxGtm_FeatureControl_disable << shift;
+        }
+
+        mask = mask >> 1;
+    }
+
+    return reg;
+
+*/
 
 IFX_STATIC void IfxGtmAtomSerialSetSpiClk(IfxGtm_Atom_ToutMap* SpiPin, IfxGtm_Cmu_Clk Clock, uint32 frequency)
 {
@@ -184,8 +215,8 @@ IFX_STATIC void IfxGtmAtomSerialSetSpiClk(IfxGtm_Atom_ToutMap* SpiPin, IfxGtm_Cm
   atomConfig.triggerOut     = SpiPin;
   atomConfig.clock          = Clock;
   atomConfig.base.countDir  = IfxStdIf_Timer_CountDir_up;
-  atomConfig.irqModeTimer   = IfxGtm_IrqMode_level;
-  atomConfig.irqModeTrigger = IfxGtm_IrqMode_pulseNotify;
+  atomConfig.irqModeTimer   = IfxGtm_IrqMode_pulseNotify;
+  atomConfig.irqModeTrigger   = IfxGtm_IrqMode_pulseNotify;
   atomConfig.initPins       = TRUE;
 
   IfxGtm_Atom_Timer_init(&QSpiAtom_Output.SpiClk, &atomConfig);
@@ -193,9 +224,8 @@ IFX_STATIC void IfxGtmAtomSerialSetSpiClk(IfxGtm_Atom_ToutMap* SpiPin, IfxGtm_Cm
   IfxGtm_Atom_Timer_disableUpdate(&QSpiAtom_Output.SpiClk);
   QSpiAtom_Output.spiPeriod = IfxGtm_Atom_Ch_getCompareZero(QSpiAtom_Output.SpiClk.atom, QSpiAtom_Output.SpiClk.triggerChannel);
   IfxGtm_Atom_Ch_setCompareShadow(QSpiAtom_Output.SpiClk.atom, QSpiAtom_Output.SpiClk.triggerChannel,
-    (3*QSpiAtom_Output.spiPeriod) >> 2, QSpiAtom_Output.spiPeriod >> 2);
+      QSpiAtom_Output.spiPeriod >> 2 , 3*QSpiAtom_Output.spiPeriod >> 2);
     IfxGtm_Atom_Timer_applyUpdate(&QSpiAtom_Output.SpiClk);
-  IfxGtm_Atom_Timer_applyUpdate(&QSpiAtom_Output.SpiClk); /* Enable the update of SpiClock Timer */
 }
 
 
@@ -267,6 +297,96 @@ IFX_STATIC void IfxGtmAtomStoreSrRegs(IfxGtm_Atom_PwmHl *driver)
     QSpiAtom_MosiChannels[channelIndex - 1] = IfxGtm_Atom_Ch_getChannelPointer(driver->atom, driver->ccx[channelIndex]);
   }
 
+}
+
+IFX_STATIC void IfxGtmAtomStorePwmValues(QSPIATOM_OUTPUT* qspi_out)
+{
+  uint8  i;
+  uint32 mask;
+  uint32 OnValue;
+  uint32 OffValue;
+
+  mask = qspi_out->timer.channelsMask;
+
+  for (i = 0; i < ATOM_CHANNELS; i++)
+  {
+      uint8 shift = (i * 2) + IFX_GTM_ATOM_AGC_ENDIS_CTRL_ENDIS_CTRL0_OFF;
+
+      if (mask & 0x1)
+      {
+        OnValue |= IfxGtm_FeatureControl_enable << shift;
+      }
+
+      if (mask & 0x10000)
+      {
+        OnValue |= IfxGtm_FeatureControl_disable << shift;
+      }
+
+      mask = mask >> 1;
+  }
+
+  mask = qspi_out->timer.channelsMask << 16;
+
+  for (i = 0; i < ATOM_CHANNELS; i++)
+  {
+      uint8 shift = (i * 2) + IFX_GTM_ATOM_AGC_ENDIS_CTRL_ENDIS_CTRL0_OFF;
+
+      if (mask & 0x1)
+      {
+        OffValue |= IfxGtm_FeatureControl_enable << shift;
+      }
+
+      if (mask & 0x10000)
+      {
+        OffValue |= IfxGtm_FeatureControl_disable << shift;
+      }
+
+      mask = mask >> 1;
+  }
+
+  qspi_out->TimerOnValue = OnValue;
+  qspi_out->TimerOffValue = OffValue;
+
+
+  mask = qspi_out->SpiClk.channelsMask;
+
+  for (i = 0; i < ATOM_CHANNELS; i++)
+  {
+      uint8 shift = (i * 2) + IFX_GTM_ATOM_AGC_ENDIS_CTRL_ENDIS_CTRL0_OFF;
+
+      if (mask & 0x1)
+      {
+        OnValue |= IfxGtm_FeatureControl_enable << shift;
+      }
+
+      if (mask & 0x10000)
+      {
+        OnValue |= IfxGtm_FeatureControl_disable << shift;
+      }
+
+      mask = mask >> 1;
+  }
+
+  mask = qspi_out->SpiClk.channelsMask << 16;
+
+  for (i = 0; i < ATOM_CHANNELS; i++)
+  {
+      uint8 shift = (i * 2) + IFX_GTM_ATOM_AGC_ENDIS_CTRL_ENDIS_CTRL0_OFF;
+
+      if (mask & 0x1)
+      {
+        OffValue |= IfxGtm_FeatureControl_enable << shift;
+      }
+
+      if (mask & 0x10000)
+      {
+        OffValue |= IfxGtm_FeatureControl_disable << shift;
+      }
+
+      mask = mask >> 1;
+  }
+  qspi_out->SpiClkOnValue = OnValue;
+  qspi_out->SpiClkOffValue = OffValue;
 }
 
 
@@ -510,6 +630,8 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
   IfxGtmAtomSerialUpdatePeriod(&QSpiAtom_Output.pwm);
   IfxGtm_Atom_Timer_applyUpdate(&QSpiAtom_Output.timer);  /* Start every PWM signal at the same time */
   QSpiAtom_SpiEnd = FALSE;
+  IfxGtmAtomStorePwmValues(&QSpiAtom_Output);
+  /* Start the clocks in order to stop them at the same time inside the isr */
   IfxGtm_Atom_Timer_run(&QSpiAtom_Output.timer);
 
 }
@@ -517,15 +639,23 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
 
 void QSpiAtom_StartQuadSpiTranscaction(uint32 size)
 {
-  QSpiAtom_DataRemain= size + 1;
-  uint32 transferCount = (QSpiAtom_DataRemain > QUAD_SPI_BUFFER_SIZE) ? QUAD_SPI_BUFFER_SIZE : QSpiAtom_DataRemain;
-  QSpiAtom_DataRemain--;
-  /* Transfer with Dma to all the fifos */
-  for (uint8 i = 0; i < MOSI_CHANNELS; i++)
+  if (QSpiAtom_SpiEnd == TRUE)
   {
-    IfxDma_Dma_setChannelTransferCount(&QSpiAtom_DmaChannel[i], transferCount);
-    IfxDma_Dma_setChannelSourceAddress(&QSpiAtom_DataChannel[i], (uint32)(&QSpiAtom_TxBuffer[i][0]));
-    IfxDma_Dma_startChannelTransaction(&QSpiAtom_DmaChannel[i]);
+    QSpiAtom_Output.SpiClk.atom->CH0.CN0.U = 0x5;
+    QSpiAtom_Output.timer.atom->CH0.CN0.U = 0xF;
+    QSpiAtom_ChipSelect->CN0.U = 0xF;
+    //QSpiAtom_Output.timer.atom->CH0.CN0.U = 0;
+    QSpiAtom_DataRemain= size + 1;
+    uint32 transferCount = (QSpiAtom_DataRemain > QUAD_SPI_BUFFER_SIZE) ? QUAD_SPI_BUFFER_SIZE : QSpiAtom_DataRemain;
+    QSpiAtom_DataRemain--;
+    /* Transfer with Dma to all the fifos */
+    for (uint8 i = 0; i < MOSI_CHANNELS; i++)
+    {
+      QSpiAtom_MosiChannels[i]->CN0.U = 0xF;
+      IfxDma_Dma_setChannelTransferCount(&QSpiAtom_DmaChannel[i], transferCount);
+      IfxDma_Dma_setChannelSourceAddress(&QSpiAtom_DataChannel[i], (uint32)(&QSpiAtom_TxBuffer[i][0]));
+      IfxDma_Dma_startChannelTransaction(&QSpiAtom_DmaChannel[i]);
+    }
   }
 }
 
