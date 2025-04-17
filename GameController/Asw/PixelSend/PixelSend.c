@@ -38,12 +38,12 @@
 /*********************************************************************************************************************/
 #define PIXELSEND_READY MODULE_P00,3
 #define QSPI_FREQUENCY 10000000
-#define PIXELSEND_MAXSIZE 256
-#define PIXELSEND_MOSI1                       1
-#define PIXELSEND_MOSI2                       2
-#define PIXELSEND_MOSI3                       3
-#define PIXELSEND_CHIP_SELECT                 0
-#define PIXELSEND_CLOCK                       4
+#define PIXELSEND_MAXSIZE 256u
+#define PIXELSEND_MOSI1                       1u
+#define PIXELSEND_MOSI2                       2u
+#define PIXELSEND_MOSI3                       3u
+#define PIXELSEND_CHIP_SELECT                 0u
+#define PIXELSEND_CLOCK                       4u
 #define PIXELSEND_MASTERCLOCK                 &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
@@ -82,22 +82,27 @@ QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
 
 void PixelSend_Init(void)
 {
+  boolean SpiReady;
+  Ports_SetPinInputNoPull(&PIXELSEND_READY);
   /* Initialize the Spi Pin */
   QSpiAtom_Init(QSPI_FREQUENCY,  PIXELSEND_MASTERCLOCK, PixelSend_SpiSignals, PixelSend_SpiData);
 
-  Ports_SetPinInputNoPull(&PIXELSEND_READY);
-
   Ifx_TickTime time1000ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 1000);
-  wait(time1000ms);
+  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
   /* Send dummy load due to hardware bug */
   /* Wait till the port becomes false */
-  //while (Ports_GetPinState(&PIXELSEND_READY) == FALSE) {}
+  while (SpiReady == FALSE)
+  {
+    SpiReady = Ports_GetPinState(&PIXELSEND_READY);
+  }
+  wait(time1000ms);
 }
 
 
 
 void PixelSend_SendSpi(uint16 size)
 {
+  boolean SpiReady;
   PixelSend_SpiData[0][0] = 0xabcd;
   PixelSend_SpiData[0][1] = 0x2321;
   PixelSend_SpiData[1][0] = 0x4543;
@@ -110,27 +115,14 @@ void PixelSend_SendSpi(uint16 size)
   PixelSend_SpiData[1][3] = 0x3423;
   PixelSend_SpiData[2][2] = 0xfecd;
   PixelSend_SpiData[2][3] = 0xcdfe;
-  Ifx_TickTime time1000ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 1000);
   /* Wait till the port becomes high */
-  if (Ports_GetPinState(&PIXELSEND_READY) == TRUE)
+  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
+  if (SpiReady == TRUE)
   {
     QSpiAtom_StartQuadSpiTranscaction(size);
   }
   else
   {
-    QSpiAtom_StartQuadSpiTranscaction(size);
     /* Do nothing */
   }
-  for (uint8 i = 0; i < 10; i++)
-  {
-    wait(time1000ms);
-    QSpiAtom_StartQuadSpiTranscaction(size);
-  }
-
-  wait(time1000ms);
-  QSpiAtom_StartQuadSpiTranscaction(size);
-
-
-  wait(time1000ms);
-  QSpiAtom_StartQuadSpiTranscaction(size);
 }

@@ -58,7 +58,7 @@ int core0_main(void)
     IfxCpu_emitEvent(&g_cpuSyncEvent);
     IfxCpu_waitEvent(&g_cpuSyncEvent, 1);
     PixelSend_Init();
-    PixelSend_SendSpi(4);
+    PixelSend_SendSpi(5);
 
     while(1)
     {

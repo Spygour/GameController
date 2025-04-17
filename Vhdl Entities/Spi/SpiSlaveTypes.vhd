@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_signed.all;
 
 package SpiSlaveTypes is
-    subtype SpiWord is std_logic_vector(15 downto 0);
+    subtype SpiWord is std_logic_vector(0 to 15);
 	 
 	 type Spi_State is
     (IDLE_STATE,
@@ -22,6 +22,7 @@ package SpiSlaveTypes is
 	  DELAY_ONESEC1,
 	  DELAY_ONESEC2,
 	  DELAY_ONESEC3,
-	  DELAY_ONESEC4
+	  DELAY_ONESEC4,
+      DELAY_ONESEC5
     );
 end SpiSlaveTypes;

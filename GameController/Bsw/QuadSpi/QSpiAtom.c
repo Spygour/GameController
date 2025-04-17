@@ -153,9 +153,9 @@ void QSpiAtom_DmaIsr(void)
 
   QSpiAtom_DataRemain--;
   QSpiAtom_Output.SpiClk.agc->ENDIS_CTRL.U = QSpiAtom_Output.SpiClkOnValue;
-  QSpiAtom_Output.SpiClk.agc->ENDIS_STAT.U = QSpiAtom_Output.SpiClkOnValue;
-  /* Start the mosis/cs timer , hardware will ignore the false clock */
   QSpiAtom_Output.timer.agc->ENDIS_CTRL.U = QSpiAtom_Output.TimerOnValue;
+  QSpiAtom_Output.SpiClk.agc->ENDIS_STAT.U = QSpiAtom_Output.SpiClkOnValue;
+  while (QSpiAtom_Output.SpiClk.atom->CH0.IRQ_NOTIFY.U == 0) {}
   QSpiAtom_Output.timer.agc->ENDIS_STAT.U = QSpiAtom_Output.TimerOnValue;
 
   /* Enable global Interrupts   */
@@ -591,7 +591,7 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
   IfxGtm_Atom_ToutMapP Ccx[] =
           {
               slavePins[0], /* Chip select */
-              slavePins[1], /* Moai 1 */
+              slavePins[1], /* Mosi 1 */
               slavePins[2], /* Mosi 2 */
               slavePins[3]  /* Mosi 3 */
           };
@@ -641,13 +641,12 @@ void QSpiAtom_StartQuadSpiTranscaction(uint32 size)
 {
   if (QSpiAtom_SpiEnd == TRUE)
   {
-    QSpiAtom_Output.SpiClk.atom->CH0.CN0.U = 0x5;
+    QSpiAtom_Output.SpiClk.atom->CH0.CN0.U = 0x0;
     QSpiAtom_Output.timer.atom->CH0.CN0.U = 0xF;
     QSpiAtom_ChipSelect->CN0.U = 0xF;
     //QSpiAtom_Output.timer.atom->CH0.CN0.U = 0;
-    QSpiAtom_DataRemain= size + 1;
+    QSpiAtom_DataRemain= size;
     uint32 transferCount = (QSpiAtom_DataRemain > QUAD_SPI_BUFFER_SIZE) ? QUAD_SPI_BUFFER_SIZE : QSpiAtom_DataRemain;
-    QSpiAtom_DataRemain--;
     /* Transfer with Dma to all the fifos */
     for (uint8 i = 0; i < MOSI_CHANNELS; i++)
     {
