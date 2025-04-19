@@ -38,7 +38,7 @@
 /*********************************************************************************************************************/
 #define PIXELSEND_READY MODULE_P00,3
 #define QSPI_FREQUENCY 10000000
-#define PIXELSEND_MAXSIZE 256u
+#define PIXELSEND_MAXSIZE 512U
 #define PIXELSEND_MOSI1                       1u
 #define PIXELSEND_MOSI2                       2u
 #define PIXELSEND_MOSI3                       3u
