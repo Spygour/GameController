@@ -50,12 +50,19 @@ void Ports_SetPinOutput(Ifx_P *port, uint8 pinIndex)
     IfxPort_setPinModeOutput(port,pinIndex, IfxPort_OutputMode_pushPull, IfxPort_OutputIdx_general);
     IfxPort_setPinLow(port,pinIndex);
 }
+
+void Ports_SetPinOutputPullup(Ifx_P *port, uint8 pinIndex)
+{
+    IfxPort_setPinModeOutput(port,pinIndex, IfxPort_OutputMode_pushPull, IfxPort_OutputIdx_general);
+    IfxPort_setPinHigh(port,pinIndex);
+}
+
 void Ports_SetPinOutputTrue(Ifx_P *port, uint8 pinIndex)
 {
     IfxPort_setPinHigh(port,pinIndex);
 }
 
-void Ports_SogglePinOutput(Ifx_P *port, uint8 pinIndex)
+void Ports_TogglePinOutput(Ifx_P *port, uint8 pinIndex)
 {
     IfxPort_togglePin(port,pinIndex);
 }

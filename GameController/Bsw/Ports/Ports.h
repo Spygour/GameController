@@ -35,6 +35,7 @@
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
 void Ports_SetPinOutput(Ifx_P *port, uint8 pinIndex);
+void Ports_SetPinOutputPullup(Ifx_P *port, uint8 pinIndex);
 void Ports_SetPinOutputTrue(Ifx_P *port, uint8 pinIndex);
 void Ports_SetPinOutputFalse(Ifx_P *port, uint8 pinIndex);
 void Ports_SetPinInputNoPull(Ifx_P *port, uint8 pinIndex);

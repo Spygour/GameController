@@ -45,6 +45,7 @@
 #define PIXELSEND_CHIP_SELECT                 0u
 #define PIXELSEND_CLOCK                       4u
 #define PIXELSEND_MASTERCLOCK                 &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT
+#define PIXELSEND_RESET MODULE_P00,4
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -84,12 +85,17 @@ void PixelSend_Init(void)
 {
   boolean SpiReady;
   Ports_SetPinInputNoPull(&PIXELSEND_READY);
+
+  /* Initialize the fpga reset pin */
+  Ports_SetPinOutputPullup(&PIXELSEND_RESET);
   /* Initialize the Spi Pin */
   QSpiAtom_Init(QSPI_FREQUENCY,  PIXELSEND_MASTERCLOCK, PixelSend_SpiSignals, PixelSend_SpiData);
 
   Ifx_TickTime time1000ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 1000);
+  /* Start the fpga */
+  Ports_SetPinOutputFalse(&PIXELSEND_RESET);
+
   SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  /* Send dummy load due to hardware bug */
   /* Wait till the port becomes false */
   while (SpiReady == FALSE)
   {
@@ -109,12 +115,6 @@ void PixelSend_SendSpi(uint16 size)
   PixelSend_SpiData[1][1] = 0x3423;
   PixelSend_SpiData[2][0] = 0xfecd;
   PixelSend_SpiData[2][1] = 0xcdfe;
-  PixelSend_SpiData[0][2] = 0xabcd;
-  PixelSend_SpiData[0][3] = 0x2321;
-  PixelSend_SpiData[1][2] = 0x4543;
-  PixelSend_SpiData[1][3] = 0x3423;
-  PixelSend_SpiData[2][2] = 0xfecd;
-  PixelSend_SpiData[2][3] = 0xcdfe;
   /* Wait till the port becomes high */
   SpiReady = Ports_GetPinState(&PIXELSEND_READY);
   if (SpiReady == TRUE)
