@@ -91,17 +91,18 @@ void PixelSend_Init(void)
   /* Initialize the Spi Pin */
   QSpiAtom_Init(QSPI_FREQUENCY,  PIXELSEND_MASTERCLOCK, PixelSend_SpiSignals, PixelSend_SpiData);
 
-  Ifx_TickTime time1000ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 1000);
+  Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
+  wait(time100ms);
   /* Start the fpga */
   Ports_SetPinOutputFalse(&PIXELSEND_RESET);
+  wait(time100ms);
 
   SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  /* Wait till the port becomes false */
+  /* Wait till the port becomes true */
   while (SpiReady == FALSE)
   {
     SpiReady = Ports_GetPinState(&PIXELSEND_READY);
   }
-  wait(time1000ms);
 }
 
 

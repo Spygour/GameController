@@ -12,21 +12,18 @@ entity SpiSlaveHandler is
          SO     : out std_logic := '0';
          SI     : in  std_logic;
          CS       : in std_logic;
-		 Leds  : out std_logic_vector (0 to 7) := "11111111";
+		 Leds  : out std_logic_vector (7 downto 0) := "11111111";
          SpiReady : out std_logic := '0');
 
 end SpiSlaveHandler;
 
 architecture rtl of SpiSlaveHandler is
 
-constant SpiBits : integer   := 32;
-constant SpiWords : integer := 100;
-
 signal Clk      : std_logic := '0';
 signal StartSpi : std_logic := '0';
 signal WrEn     : std_logic := '0';
-signal WriteDataWord : SpiWord := (others => '0');
-signal ReadDataWord  : SpiWord;
+signal WriteDataWord : SpiCorrected := (others => '0');
+signal ReadDataWord  : SpiCorrected;
 signal WriteAddress : std_logic_vector (7 DOWNTO 0) := (others => '0');
 signal ReadAddress : std_logic_vector (7 DOWNTO 0) := (others => '0');
 signal SpiPllLocked : std_logic := '0';
@@ -37,7 +34,15 @@ signal EndSpi : std_logic := '1';
 signal SpiTxWord : SpiWord  := (others => '0');
 signal SpiRxWord : SpiWord  := (others => '0');
 signal SpiHandlerState : Spi_Handler_State := IDLE_STATE;
+signal SpiHandlerNextState : Spi_Handler_State := IDLE_STATE;
 signal counter : integer := 0;
+signal DelayMax : integer :=0;
+signal successBits : unsigned (7 DOWNTO 0) := (others => '0');
+signal failbits : unsigned (7 DOWNTO 0) := (others => '0');
+signal bitIndex : unsigned(1 DOWNTO 0) := (others => '0');
+constant SuccessArray : Success_Arr := (x"ABCD", x"2321");
+signal Reset_Reg :std_logic := '1';
+signal CompareReg : SpiCorrected := (others => '0');
 
 begin
 	 Spipll:entity work.SpiPll(SYN)
@@ -66,7 +71,7 @@ begin
         ActlClk       => ActlClk,
         Clk           => Clk,
         SpiClk        => SpiClk,
-        Reset_n       => Reset_n,
+        Reset_n       => Reset_Reg,
         SO            => SO, 
         SI            => SI,
         CS            => CS,
@@ -81,98 +86,94 @@ begin
         lockedloop  => SpiPllLocked
     );
 
-    process(Clk, Reset_n, SpiPllLocked) is
+    process(Clk, Reset_Reg, SpiPllLocked) is
     begin
-        if (Reset_n = '1') then
+        if (Reset_Reg = '1') then
 		    StartSpi <= '0';
 			counter <= 0;
         	SpiHandlerState <= IDLE_STATE;
         	SpiReady <= '0';
 		    Leds <= "11111111";
+			DelayMax <= 0;
+			SpiHandlerNextState <= IDLE_STATE;
+			successBits <= (others => '0');
+			failbits <= (others => '0');
+			bitIndex <= (others => '0');
+			CompareReg <= (others => '0');
         elsif rising_edge(Clk) and SpiPllLocked = '1' then
           case SpiHandlerState is
             when IDLE_STATE =>
+					Leds <= "00011100";
               	StartSpi <= '1';
               	SpiHandlerState <= ACTIVATE_SPI;
               	ReadAddress <= (others => '0');
 
             when ACTIVATE_SPI =>
-                SpiHandlerState <= RUN_STATE;
-			    SpiReady <= '1';
+				if (successBits >= x"C8") then
+					SpiHandlerState <= SUCCESS;
+				else
+					SpiHandlerState <= RUN_STATE;
+					SpiReady <= '1';
+				end if;
             
             when RUN_STATE =>
-	            -- Set SpiReady to avoid the uC to send Data
+	            -- Set SpiReady to false to avoid the uC to send Data
 				if EndSpi = '0' then
-				   Leds <= "11110000";
-				    SpiReady <= '0';
+				   SpiReady <= '0';
 				    StartSpi <= '0';
 				    SpiHandlerState <= END_STATE;
 				end if;
 
 			when END_STATE =>
               	if (EndSpi = '1') then
-					SpiReady <= '1';
               	  	Leds <= "00000000";
 					ReadAddress <= (others => '0');
-				    if (counter = 100000000) then
-				    	Leds <= ReadDataWord(8 to 15);
-				    	SpiHandlerState<= DELAY_ONESEC1;
-				    	counter <= 0;
-				    else
-				    	counter <= counter + 1;
-				    end if;
+				    SpiHandlerNextState <= EVAL_STATE;
+					SpiHandlerState <= DELAY;
+					DelayMax <= 50000000;
+					CompareReg <= ReadDataWord;
+					ReadAddress <= std_logic_vector(unsigned(ReadAddress) + 1);
               	end if;
 				  
-			when DELAY_ONESEC1 =>
-				if (counter = 100000000) then
-					Leds <= ReadDataWord(0 to 7);
-					SpiHandlerState<= DELAY_ONESEC2;
+			when DELAY =>
+				if (counter = DelayMax) then
+					SpiHandlerState<= SpiHandlerNextState;
 					counter <= 0;
 				else
 					counter <= counter + 1;
-				end if;
-					
-			when DELAY_ONESEC2 =>
-				if (counter = 100000000) then
-					Leds <= ReadDataWord(8 to 15);
-					SpiHandlerState<= DELAY_ONESEC3;
-					ReadAddress <= b"00000001";
-					counter <= 0;
-				else
-					counter <= counter + 1;
-					ReadAddress <= b"00000001";
-				end if;
-					
-			when DELAY_ONESEC3 =>
-				if (counter = 100000000) then
-					Leds <= ReadDataWord(0 to 7);
-					SpiHandlerState<= DELAY_ONESEC4;
-					counter <= 0;
-				else
-					counter <= counter + 1;
-				end if;
-					
-					
-			when DELAY_ONESEC4 =>
-				if (counter = 100000000) then
-					Leds <= ReadDataWord(8 to 15);
-					SpiHandlerState<= DELAY_ONESEC5;
-					counter <= 0;
-				else
-					counter <= counter + 1;
-					ReadAddress <= b"00000010";
+					SpiHandlerState <= DELAY;
 				end if;
 
-			when DELAY_ONESEC5 =>
-				if (counter = 100000000) then
-					Leds <= ReadDataWord(0 to 7);
-					SpiHandlerState<= END_STATE;
-					counter <= 0;
+			when EVAL_STATE =>
+				if (ReadAddress = "00000011") then
+					SpiHandlerNextState <= ACTIVATE_SPI;
+					SpiHandlerState <= DELAY;
+					Leds <= std_logic_vector(successBits);
+					bitIndex <= "00";
+					StartSpi <= '1';
+					ReadAddress <= "00000000";
 				else
-					counter <= counter + 1;
+					if (CompareReg = SuccessArray(to_integer(bitIndex))) then
+						CompareReg <= ReadDataWord;
+						bitIndex <= bitIndex + 1;
+						successBits <= successBits + 1;
+						ReadAddress <= std_logic_vector(unsigned(ReadAddress) + 1);
+						SpiHandlerState <= EVAL_STATE;
+					else
+						CompareReg <= ReadDataWord;
+						bitIndex <= bitIndex + 1;
+						failbits <= failbits + 1;
+						ReadAddress <= std_logic_vector(unsigned(ReadAddress) + 1);
+						SpiHandlerState <= EVAL_STATE;
+					end if;
 				end if;
-					
-					
+
+			when SUCCESS =>
+				if (failbits = x"00") then
+					Leds <= std_logic_vector(successBits);
+				else
+					Leds <= std_logic_vector(failbits);
+				end if;
 
             when others => NULL;
 
@@ -180,4 +181,14 @@ begin
             
 	end if;
     end process;
+
+	process(Clk, Reset_n, SpiPllLocked) is
+		begin
+			if (Reset_n = '1') then
+				Reset_reg <= '1';
+			elsif rising_edge(Clk) and SpiPllLocked = '1' then
+				Reset_reg <= '0';
+			end if;
+	end process;
+
 end architecture;

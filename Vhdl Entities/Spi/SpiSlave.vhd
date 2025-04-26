@@ -38,6 +38,7 @@ signal SpiClk_current : std_logic;
 signal Cs_prev : std_logic;
 signal Cs_current : std_logic;
 signal SI_reg : std_logic := '0';
+signal Store_En : std_logic := '0';
 
 signal SpiTxWord : SpiWord  := (others => '0');
 signal SpiRxWord : SpiWord  := (others => '0');
@@ -53,7 +54,6 @@ begin
             SpiSlaveState <= IDLE_STATE;
             WriteAddress <= (others => '0');
             SO <= '0';
-            WrEn <= '0';
             Words <= 0;
 			SpiClk_current <= '0';
 			SpiClk_prev <= '0';
@@ -61,6 +61,7 @@ begin
             Cs_prev <= '1';
 			EndSpi <= '1';
             SI_reg <= '0';
+            Store_En <= '0';
 
         elsif rising_edge(Clk) and lockedloop = '1' then
             SpiClk_prev <= SpiClk_current;
@@ -71,6 +72,7 @@ begin
 
             case SpiSlaveState is
                 when IDLE_STATE =>
+                    Store_En <= '0';
                     if ( StartSpi = '1' and (Cs_prev = '1' and Cs_current = '0') )  then
                         SpiSlaveState <= RISE_DETECT_START;
                         SpiBitCnt <= (others => '0');
@@ -91,7 +93,6 @@ begin
                     end if;
 
                 when RISE_DETECT =>
-                    WrEn <= '0';
                     if (Cs_prev = '0' and Cs_current = '1') then
                         SpiSlaveState <= END_STATE;
                     elsif (SpiClk_current = '1' and SpiClk_prev = '0') then
@@ -118,6 +119,15 @@ begin
                     if (Cs_prev = '0' and Cs_current = '1') then
                         SpiSlaveState <= END_STATE;
                     elsif (SpiClk_current = '0' and SpiClk_prev = '1') then
+                        if (SpiBitCnt = SpiBits) then
+                            Store_En <= '1';
+                            Words <= to_integer(SpiWordCounter);
+                            SpiWordCounter <= SpiWordCounter + 1;
+                            SpiTxWord <= SpiRxWord;
+                            SpiBitCnt <= (others => '0');
+			            else
+			                SpiBitCnt <= SpiBitCnt + 1;
+                        end if;
                         SpiSlaveState <= CLOCK_LOW;
                     end if;
 
@@ -125,25 +135,15 @@ begin
                     if (Cs_prev = '0' and Cs_current = '1') then
                         SpiSlaveState <= END_STATE;
                     elsif (SpiClk_current = '0' and SpiClk_prev = '0') then
-                        if (SpiBitCnt = SpiBits) then
-							WrEn <= '1';
-                            SpiWordCounter <= SpiWordCounter + 1;
-                            WriteDataWord <= SpiRxWord;
-                            SpiTxWord <= SpiRxWord;
-                            SpiBitCnt <= (others => '0');
-			            else
-			                SpiBitCnt <= SpiBitCnt + 1;
-                        end if;
                         SpiSlaveState <= RISE_DETECT;
                     end if;
+                    Store_En <= '0';
 
 
                 when END_STATE =>
+                    Store_En <= '1';
 					WriteAddress <= (others => '0');
                     SO <= '0';
-                    WrEn <= '0';
-                    WriteDataWord <= SpiRxWord;
-                    SpiTxWord <= SpiRxWord;
                     Words <= to_integer(SpiWordCounter);
                     SpiWordCounter <= (others => '0');
                     EndSpi <= '1';
@@ -153,4 +153,21 @@ begin
             end case;
 	end if;
     end process;
+
+    process(Clk, Reset_n, lockedloop , Store_En) is
+        begin
+            if (Reset_n = '1') then
+                WrEn <= '0';
+            elsif rising_edge(Clk) and lockedloop = '1' then
+                if Store_En = '1' then
+                    WrEn <= '1';
+                    -- MSB FIRST
+                    for i in 0 to 15 loop
+                        WriteDataWord(15 - i) <= SpiRxWord(i);
+                    end loop;
+                else
+                    WrEn <= '0';
+                end if;
+        end if;
+	end process;
 end architecture;

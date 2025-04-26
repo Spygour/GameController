@@ -4,6 +4,8 @@ use ieee.std_logic_signed.all;
 
 package SpiSlaveTypes is
     subtype SpiWord is std_logic_vector(0 to 15);
+    subtype SpiCorrected is std_logic_vector(15 downto 0);
+    type Success_Arr is array (0 to 1) of SpiCorrected;
 	 
 	 type Spi_State is
     (IDLE_STATE,
@@ -19,10 +21,9 @@ package SpiSlaveTypes is
      ACTIVATE_SPI,
      RUN_STATE,
      END_STATE,
-	  DELAY_ONESEC1,
-	  DELAY_ONESEC2,
-	  DELAY_ONESEC3,
-	  DELAY_ONESEC4,
-      DELAY_ONESEC5
+	   DELAY,
+	   EVAL_STATE,
+     SUCCESS,
+     FAIL
     );
 end SpiSlaveTypes;

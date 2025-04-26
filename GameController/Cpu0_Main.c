@@ -58,10 +58,11 @@ int core0_main(void)
     IfxCpu_emitEvent(&g_cpuSyncEvent);
     IfxCpu_waitEvent(&g_cpuSyncEvent, 1);
     PixelSend_Init();
-    PixelSend_SendSpi(5);
-
+    Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
     while(1)
     {
+      PixelSend_SendSpi(2);
+      wait(time100ms);
     }
     return (1);
 }
