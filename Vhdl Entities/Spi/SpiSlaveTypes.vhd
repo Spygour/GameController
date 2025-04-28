@@ -10,10 +10,10 @@ package SpiSlaveTypes is
 	 type Spi_State is
     (IDLE_STATE,
      RISE_DETECT_START,
-	 RISE_DETECT,
-     CLOCK_HIGH,
-     FALL_DETECT,
+	 CLOCK_HIGH,
      CLOCK_LOW,
+     RISE_DETECT,
+     FALL_DETECT,
      END_STATE);
 
      type Spi_Handler_State is

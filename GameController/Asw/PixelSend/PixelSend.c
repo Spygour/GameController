@@ -39,10 +39,10 @@
 #define PIXELSEND_READY MODULE_P00,3
 #define QSPI_FREQUENCY 10000000
 #define PIXELSEND_MAXSIZE 512U
-#define PIXELSEND_MOSI1                       1u
-#define PIXELSEND_MOSI2                       2u
-#define PIXELSEND_MOSI3                       3u
-#define PIXELSEND_CHIP_SELECT                 0u
+#define PIXELSEND_MOSI1                       0u
+#define PIXELSEND_MOSI2                       1u
+#define PIXELSEND_MOSI3                       2u
+#define PIXELSEND_CHIP_SELECT                 3u
 #define PIXELSEND_CLOCK                       4u
 #define PIXELSEND_MASTERCLOCK                 &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT
 #define PIXELSEND_RESET MODULE_P00,4
@@ -52,11 +52,11 @@
 /* SPI Configuration Registers */
 IfxGtm_Atom_ToutMapP PixelSend_SpiSignals[5] =
 {
-    [PIXELSEND_CHIP_SELECT] = &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
-    [PIXELSEND_MOSI1] = &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
-    [PIXELSEND_MOSI2] = &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
-    [PIXELSEND_MOSI3] = &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
-    [PIXELSEND_CLOCK] = &IfxGtm_ATOM1_1_TOUT11_P00_2_OUT
+    [PIXELSEND_MOSI1] = &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
+    [PIXELSEND_MOSI2] = &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
+    [PIXELSEND_MOSI3] = &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
+    [PIXELSEND_CHIP_SELECT] = &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
+    [PIXELSEND_CLOCK] = &IfxGtm_ATOM0_5_TOUT41_P23_0_OUT
 };
 
 static uint16 PixelSend_SpiData1[PIXELSEND_MAXSIZE];

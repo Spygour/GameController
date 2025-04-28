@@ -37,8 +37,9 @@ signal SpiHandlerState : Spi_Handler_State := IDLE_STATE;
 signal SpiHandlerNextState : Spi_Handler_State := IDLE_STATE;
 signal counter : integer := 0;
 signal DelayMax : integer :=0;
-signal successBits : unsigned (7 DOWNTO 0) := (others => '0');
+signal successbits : unsigned (7 DOWNTO 0) := (others => '0');
 signal failbits : unsigned (7 DOWNTO 0) := (others => '0');
+signal failIndex :unsigned (7 DOWNTO 0) := "00000011";
 signal bitIndex : unsigned(1 DOWNTO 0) := (others => '0');
 constant SuccessArray : Success_Arr := (x"ABCD", x"2321");
 signal Reset_Reg :std_logic := '1';
@@ -96,20 +97,21 @@ begin
 		    Leds <= "11111111";
 			DelayMax <= 0;
 			SpiHandlerNextState <= IDLE_STATE;
-			successBits <= (others => '0');
+			successbits <= (others => '0');
 			failbits <= (others => '0');
 			bitIndex <= (others => '0');
 			CompareReg <= (others => '0');
+			failIndex <= "00000011";
         elsif rising_edge(Clk) and SpiPllLocked = '1' then
           case SpiHandlerState is
             when IDLE_STATE =>
-					Leds <= "00011100";
+				Leds <= "00011100";
               	StartSpi <= '1';
               	SpiHandlerState <= ACTIVATE_SPI;
               	ReadAddress <= (others => '0');
 
             when ACTIVATE_SPI =>
-				if (successBits >= x"C8") then
+				if (successbits >= x"C8") then
 					SpiHandlerState <= SUCCESS;
 				else
 					SpiHandlerState <= RUN_STATE;
@@ -125,7 +127,7 @@ begin
 				end if;
 
 			when END_STATE =>
-              	if (EndSpi = '1') then
+              	if (EndSpi = '1' and WrEn = '0') then
               	  	Leds <= "00000000";
 					ReadAddress <= (others => '0');
 				    SpiHandlerNextState <= EVAL_STATE;
@@ -148,7 +150,12 @@ begin
 				if (ReadAddress = "00000011") then
 					SpiHandlerNextState <= ACTIVATE_SPI;
 					SpiHandlerState <= DELAY;
-					Leds <= std_logic_vector(successBits);
+					if (failIndex = "00000011") then
+						Leds <= std_logic_vector(successbits);
+					else
+						Leds <= std_logic_vector(failIndex);
+					end if;
+					failIndex <= "00000011";
 					bitIndex <= "00";
 					StartSpi <= '1';
 					ReadAddress <= "00000000";
@@ -156,10 +163,11 @@ begin
 					if (CompareReg = SuccessArray(to_integer(bitIndex))) then
 						CompareReg <= ReadDataWord;
 						bitIndex <= bitIndex + 1;
-						successBits <= successBits + 1;
+						successbits <= successbits + 1;
 						ReadAddress <= std_logic_vector(unsigned(ReadAddress) + 1);
 						SpiHandlerState <= EVAL_STATE;
 					else
+						failIndex <= unsigned(CompareReg(15 downto 8));
 						CompareReg <= ReadDataWord;
 						bitIndex <= bitIndex + 1;
 						failbits <= failbits + 1;
@@ -170,7 +178,7 @@ begin
 
 			when SUCCESS =>
 				if (failbits = x"00") then
-					Leds <= std_logic_vector(successBits);
+					Leds <= std_logic_vector(successbits);
 				else
 					Leds <= std_logic_vector(failbits);
 				end if;
