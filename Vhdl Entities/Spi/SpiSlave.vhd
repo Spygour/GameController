@@ -97,29 +97,21 @@ begin
                             SpiBitCnt <= SpiBitCnt - 1;
                         end if;
 
-                when CLOCK_LOW =>
+                when RISE_DETECT =>
                     if (CS_current ='1') then
                         -- MSB FIRST
                         WriteDataWord <= SpiRxWord;
                         WrEn <= '1';
                         SpiSlaveState <= END_STATE;
-                    elsif (SpiClk_current = '0') then
-                        if SpiWordCounter = SpiWords then
-                            -- MSB FIRST
-                            WriteDataWord <= SpiRxWord;
-                            WrEn <= '1';
-                            SpiSlaveState <= END_STATE;
-                        elsif SpiBitCnt = SpiBits then
-                            -- MSB FIRST
-                            WriteDataWord <= SpiRxWord;
-                            WrEn <= '1';
-                            Words <= to_integer(SpiWordCounter);
-                            SpiWordCounter <= SpiWordCounter + 1;
-                            SpiTxWord <= SpiRxWord;
-                            SpiSlaveState <= RISE_DETECT;
-                        else
-                            SpiSlaveState <= RISE_DETECT;
-                        end if;
+                    elsif (SpiClk_current = '1' and SpiClk_prev = '0') then
+                        SpiRxWord(to_integer(SpiBitCnt)) <= SI_reg;
+                        WrEn <= '0';
+						SO <= SpiTxWord(to_integer(SpiBitCnt));
+                        IF (SpiBitCnt = SpiBits) then
+                            WriteAddress <= std_logic_vector(unsigned(WriteAddress) + 1);
+                        END IF;
+                        SpiSlaveState <= CLOCK_HIGH;
+                        SpiBitCnt <= SpiBitCnt - 1;
                     end if;
 
                 when CLOCK_HIGH =>
@@ -147,23 +139,6 @@ begin
                         end if;
                     end if;
 
-                when RISE_DETECT =>
-                    if (CS_current ='1') then
-                        -- MSB FIRST
-                        WriteDataWord <= SpiRxWord;
-                        WrEn <= '1';
-                        SpiSlaveState <= END_STATE;
-                    elsif (SpiClk_current = '1' and SpiClk_prev = '0') then
-                        SpiRxWord(to_integer(SpiBitCnt)) <= SI_reg;
-                        WrEn <= '0';
-						SO <= SpiTxWord(to_integer(SpiBitCnt));
-                        IF (SpiBitCnt = SpiBits) then
-                            WriteAddress <= std_logic_vector(unsigned(WriteAddress) + 1);
-                        END IF;
-                        SpiSlaveState <= CLOCK_HIGH;
-                        SpiBitCnt <= SpiBitCnt - 1;
-                    end if;
-
                 when FALL_DETECT =>
                     if (CS_current ='1') then
                         -- MSB FIRST
@@ -179,6 +154,31 @@ begin
                         END IF;
                         SpiSlaveState <= CLOCK_LOW;
                         SpiBitCnt <= SpiBitCnt - 1;
+                    end if;
+
+                when CLOCK_LOW =>
+                    if (CS_current ='1') then
+                        -- MSB FIRST
+                        WriteDataWord <= SpiRxWord;
+                        WrEn <= '1';
+                        SpiSlaveState <= END_STATE;
+                    elsif (SpiClk_current = '0') then
+                        if SpiWordCounter = SpiWords then
+                            -- MSB FIRST
+                            WriteDataWord <= SpiRxWord;
+                            WrEn <= '1';
+                            SpiSlaveState <= END_STATE;
+                        elsif SpiBitCnt = SpiBits then
+                            -- MSB FIRST
+                            WriteDataWord <= SpiRxWord;
+                            WrEn <= '1';
+                            Words <= to_integer(SpiWordCounter);
+                            SpiWordCounter <= SpiWordCounter + 1;
+                            SpiTxWord <= SpiRxWord;
+                            SpiSlaveState <= RISE_DETECT;
+                        else
+                            SpiSlaveState <= RISE_DETECT;
+                        end if;
                     end if;
 
                 

@@ -76,7 +76,7 @@ QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-
+void PixeSend_SetData(void);
 /*********************************************************************************************************************/
 /*---------------------------------------------Function Implementations----------------------------------------------*/
 /*********************************************************************************************************************/
@@ -96,6 +96,7 @@ void PixelSend_Init(void)
   /* Start the fpga */
   Ports_SetPinOutputFalse(&PIXELSEND_RESET);
   wait(time100ms);
+  PixeSend_SetData();
 
   SpiReady = Ports_GetPinState(&PIXELSEND_READY);
   /* Wait till the port becomes true */
@@ -106,16 +107,21 @@ void PixelSend_Init(void)
 }
 
 
+void PixeSend_SetData(void)
+{
+  for (uint8 i = 0 ; i < 100; i++)
+  {
+    PixelSend_SpiData[0][i] = i+1;
+    PixelSend_SpiData[1][i] = i+1;
+    PixelSend_SpiData[2][i] = i+1;
+  }
+}
+
+
 
 void PixelSend_SendSpi(uint16 size)
 {
   boolean SpiReady;
-  PixelSend_SpiData[0][0] = 0xabcd;
-  PixelSend_SpiData[0][1] = 0x2321;
-  PixelSend_SpiData[1][0] = 0x4543;
-  PixelSend_SpiData[1][1] = 0x3423;
-  PixelSend_SpiData[2][0] = 0xfecd;
-  PixelSend_SpiData[2][1] = 0xcdfe;
   /* Wait till the port becomes high */
   SpiReady = Ports_GetPinState(&PIXELSEND_READY);
   if (SpiReady == TRUE)
