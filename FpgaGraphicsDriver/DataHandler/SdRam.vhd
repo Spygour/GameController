@@ -8,7 +8,7 @@ use work.SdRamTypes.all;
 entity SdRam is 
     port(SdRam_ActlClk : in std_logic := '0';
 		 SdRam_Reset_n : in std_logic := '1';
-         SdRam_SDRAM_CLKOUT : out std_logic := '0';
+         SdRam_ClkOut : out std_logic := '0';
          SdRam_SdRamClk : in std_logic := '0';
          SdRam_GlobalClk : in std_logic := '0';
 		 SdRam_PllLocked : inout std_logic := '0';

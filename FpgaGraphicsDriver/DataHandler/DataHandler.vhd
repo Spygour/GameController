@@ -3,11 +3,12 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 library work;
 use work.SdRamTypes.all;
+use work.SpiSlaveTypes.all;
 
 entity DataHandler is 
     port(DataHandler_Reset_n : in std_logic := '1';
          DataHandler_ActlClk : in std_logic := '0';
-         DataHandler_SDRAM_CLKOUT : out std_logic;
+         DataHandler_SdRamClkOut : out std_logic;
          DataHandler_Address : out std_logic_vector (12 downto 0) := (others => '0');
          DataHandler_Bank : out std_logic_vector (1 downto 0) := (others => '0');
          DataHandler_CAS : out std_logic := '0';
@@ -88,7 +89,7 @@ begin
     (
         SdRam_ActlClk     => DataHandler_ActlClk,
         SdRam_Reset_n     => DataHandler_Reset_Sync,
-        SdRam_SDRAM_CLKOUT => DataHandler_SDRAM_CLKOUT,
+        SdRam_ClkOut      => DataHandler_SdRamClkOut,
 		SdRam_SdRamClk    => DataHandler_SdRamClk,
         SdRam_GlobalClk  => DataHandler_GlobalClk,
         SdRam_PllLocked   => DataHandler_PllLocked,
@@ -111,6 +112,39 @@ begin
         SdRam_SdRamState => DataHandler_SdRamState,
         SdRam_BankSwitch => DataHandler_BankSwitch
     );
+
+    -- TBD PORT THE SPI ENTITIES
+    --SpiSlave:entity work.SpiSlave(rtl)
+    --port map
+    --(
+    --    ActlClk       => ActlClk,
+    --    Clk           => Clk,
+    --    SpiClk        => SpiClk,
+    --    Reset_n       => Reset_Reg,
+    --    SO            => SO, 
+    --    SI            => SI,
+    --    CS            => CS,
+    --    StartSpi      => StartSpi,
+    --    EndSpi        => EndSpi,
+    --    Words         => Words,
+    --    WrEn          => WrEn,
+	--	WriteDataWord => WriteDataWord,
+	--	ReadDataWord  => ReadDataWord,
+    --    WriteAddress   => WriteAddress,
+    --    ReadAddress   => ReadAddress,
+    --    lockedloop  => SpiPllLocked
+    --);
+
+    --SpiRam:entity work.SpiRam(SYN)
+    --port map
+    --(
+    --  clock		=> Clk,
+    --  data		=> WriteDataWord,
+    --  rdaddress	=> ReadAddress,
+    --  wraddress	=> WriteAddress,
+    --  wren		=> WrEn,
+    --  q		    => ReadDataWord
+    --);
     
     process(DataHandler_SdRamClk ,DataHandler_Reset_Sync, DataHandler_PllLocked) is
     begin

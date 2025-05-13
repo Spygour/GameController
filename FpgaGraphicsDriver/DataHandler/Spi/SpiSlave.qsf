@@ -1,0 +1,85 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2024  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and any partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details, at
+# https://fpgasoftware.intel.com/eula.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 23.1std.1 Build 993 05/14/2024 SC Lite Edition
+# Date created = 01:06:06  January 24, 2025
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		SpiSlave_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Intel recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE22F17C6
+set_global_assignment -name TOP_LEVEL_ENTITY SpiSlaveHandler
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 23.1STD.1
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "01:06:06  JANUARY 24, 2025"
+set_global_assignment -name LAST_QUARTUS_VERSION "23.1std.1 Lite Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name EDA_SIMULATION_TOOL "Questa Intel FPGA (VHDL)"
+set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT VHDL -section_id eda_simulation
+set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_timing
+set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_symbol
+set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_signal_integrity
+set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_boundary_scan
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ActlClk
+set_location_assignment PIN_R8 -to ActlClk
+set_location_assignment PIN_P14 -to CS
+set_location_assignment PIN_M10 -to SI
+set_location_assignment PIN_K15 -to SO
+set_location_assignment PIN_L13 -to SpiClk
+set_location_assignment PIN_M1 -to Reset_n
+set_location_assignment PIN_A15 -to Leds[0]
+set_location_assignment PIN_A13 -to Leds[1]
+set_location_assignment PIN_B13 -to Leds[2]
+set_location_assignment PIN_A11 -to Leds[3]
+set_location_assignment PIN_D1 -to Leds[4]
+set_location_assignment PIN_F3 -to Leds[5]
+set_location_assignment PIN_B1 -to Leds[6]
+set_location_assignment PIN_L3 -to Leds[7]
+set_location_assignment PIN_J14 -to SpiReady
+set_global_assignment -name VHDL_FILE SpiSlaveHandler.vhd
+set_global_assignment -name SOURCE_FILE SpiRam.cmp
+set_global_assignment -name SOURCE_FILE SpiPll.cmp
+set_global_assignment -name VHDL_FILE SpiSlaveTypes.vhd
+set_global_assignment -name VHDL_FILE SpiSlave.vhd
+set_global_assignment -name QIP_FILE SpiPll.qip
+set_global_assignment -name QIP_FILE SpiRam.qip
+set_global_assignment -name SOURCE_FILE db/SpiSlave.cmp.rdb
+set_global_assignment -name SDC_FILE SDC1.sdc
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
