@@ -11,14 +11,14 @@ entity SpiSlave is
          Spi_SpiClk   : in std_logic;
          Spi_Reset_n  : in std_logic := '1';
          Spi_So     : out std_logic := '0';
-         Spi_Si     : in  std_logic;
+         Spi_Si     : in  std_logic_vector(0 to 3);
          Spi_Cs       : in std_logiC;
          Spi_StartSpi : in  std_logic := '0';
          Spi_EndSpi   : inout std_logic := '1';
          Spi_Words : out integer := 0;
          Spi_WrEn : inout std_logic := '0';
-		 Spi_WriteDataWord : inout Spi_SpiWord := (others => '0');
-		 Spi_ReadDataWord : in Spi_SpiWord := (others => '0');
+		 Spi_WriteDataWord : inout Spi_QSpiWord := (others => (others => '0');
+		 Spi_ReadDataWord : in Spi_QSpiWord := (others => (others => '0') );
          Spi_WriteAddress  : inout std_logic_vector (7 DOWNTO 0);
          Spi_ReadAddress : in std_logic_vector (7 DOWNTO 0);
          Spi_lockedloop : in std_logic := '0');
@@ -36,17 +36,17 @@ signal Spi_SpiSlaveState : Spi_State := IDLE_STATE;
 signal Spi_SpiClkPrev : std_logic;
 signal Spi_SpiClkCurrent : std_logic;
 signal Spi_CsCurrent : std_logic;
-signal Spi_SiReg : std_logic := '0';
+signal Spi_SiReg : std_logic_vector(0 to 3):= (others => '0');
 
-signal Spi_SpiTxWord : Spi_SpiWord  := (others => '0');
-signal Spi_SpiRxWord : Spi_SpiWord  := (others => '0');
+signal Spi_SpiTxWord : Spi_SpiWord  := (others => (others => '0') );
+signal Spi_SpiRxWord : Spi_QSpiWord  := (others => (others => '0') );
 
 begin
     process(Spi_Clk, Spi_Reset_n, Spi_lockedloop) is
     begin
         if (Spi_Reset_n = '1') then
 			Spi_SpiTxWord <= (others => '0');
-			Spi_SpiRxWord <= (others => '0');
+			Spi_SpiRxWord <= (others => (others => '0'));
             Spi_SpiWordCounter <= (others => '0');
             Spi_SpiBitCnt <= Spi_SpiBits;
             Spi_SpiSlaveState <= IDLE_STATE;
@@ -55,7 +55,7 @@ begin
             Spi_WrEn <= '1';
             Spi_Words <= 0;
 			Spi_EndSpi <= '1';
-            Spi_SiReg <= '0';
+            Spi_SiReg <= (others => '0');
             Spi_CsCurrent <= '1';
             Spi_SpiClkPrev <= '0';
             Spi_SpiClkCurrent <= '0';
@@ -67,7 +67,11 @@ begin
                         Spi_Words <= 0;
                         Spi_EndSpi <= '0';
                         if (Spi_SpiClkCurrent = '1') then
-                            Spi_SpiRxWord(to_integer(Spi_SpiBitCnt)) <= Spi_SiReg;
+                            -- MISO READ 
+                            Spi_SpiRxWord(0)(to_integer(SpiBitCnt)) <= Spi_SiReg(0);
+                            Spi_SpiRxWord(1)(to_integer(SpiBitCnt)) <= Spi_SiReg(1);
+                            Spi_SpiRxWord(2)(to_integer(SpiBitCnt)) <= Spi_SiReg(2);
+                            -- BRAM DISABLE 
                             Spi_WrEn <= '0';
                             Spi_SpiBitCnt <= Spi_SpiBitCnt - 1;
                             Spi_SpiSlaveState <= FALL_DETECT;
@@ -91,7 +95,11 @@ begin
                             Spi_WrEn <= '1';
                             Spi_SpiSlaveState <= END_STATE;
                         elsif (SpiClkCurrent = '1' and SpiClkPrev = '0') then
-                            Spi_SpiRxWord(to_integer(SpiBitCnt)) <= Spi_SiReg;
+                            -- MISO READ 
+                            Spi_SpiRxWord(0)(to_integer(SpiBitCnt)) <= Spi_SiReg(0);
+                            Spi_SpiRxWord(1)(to_integer(SpiBitCnt)) <= Spi_SiReg(1);
+                            Spi_SpiRxWord(2)(to_integer(SpiBitCnt)) <= Spi_SiReg(2);
+                             --BRAM DISABLE
                             Spi_WrEn <= '0';
                             Spi_So <= SpiTxWord(to_integer(SpiBitCnt));
                             Spi_SpiSlaveState <= CLOCK_HIGH;
@@ -105,7 +113,11 @@ begin
                         Spi_WrEn <= '1';
                         Spi_SpiSlaveState <= END_STATE;
                     elsif (Spi_SpiClkCurrent = '1' and Spi_SpiClkPrev = '0') then
-                        Spi_SpiRxWord(to_integer(SpiBitCnt)) <= Spi_SiReg;
+                         -- MISO READ 
+                        Spi_SpiRxWord(0)(to_integer(SpiBitCnt)) <= Spi_SiReg(0);
+                        Spi_SpiRxWord(1)(to_integer(SpiBitCnt)) <= Spi_SiReg(1);
+                        Spi_SpiRxWord(2)(to_integer(SpiBitCnt)) <= Spi_SiReg(2);
+                        --BRAM DISABLE
                         Spi_WrEn <= '0';
 						Spi_So <= Spi_SpiTxWord(to_integer(Spi_SpiBitCnt));
                         IF (Spi_SpiBitCnt = Spi_SpiBits) then
@@ -133,7 +145,7 @@ begin
                             Spi_WrEn <= '1';
                             Spi_Words <= to_integer(Spi_SpiWordCounter + 1);
                             Spi_SpiWordCounter <= Spi_SpiWordCounter + 1;
-                            Spi_SpiTxWord <= Spi_SpiRxWord;
+                            Spi_SpiTxWord <= Spi_SpiRxWord(0);
                             Spi_SpiSlaveState <= FALL_DETECT;
                         else
                             Spi_SpiSlaveState <= FALL_DETECT;
@@ -143,11 +155,15 @@ begin
                 when FALL_DETECT =>
                     if (Spi_CsCurrent ='1') then
                         -- MSB FIRST
-                        Spi_WriteDataWord <= SSpi_piRxWord;
+                        Spi_WriteDataWord <= Spi_SpiRxWord;
                         Spi_WrEn <= '1';
                         Spi_SpiSlaveState <= END_STATE;
                     elsif (Spi_SpiClkCurrent = '0' and Spi_SpiClkPrev = '1') then
-                        Spi_SpiRxWord(to_integer(Spi_SpiBitCnt)) <= Spi_SiReg;
+                         -- MISO READ 
+                        Spi_SpiRxWord(0)(to_integer(SpiBitCnt)) <= Spi_SiReg(0);
+                        Spi_SpiRxWord(1)(to_integer(SpiBitCnt)) <= Spi_SiReg(1);
+                        Spi_SpiRxWord(2)(to_integer(SpiBitCnt)) <= Spi_SiReg(2);
+                        -- BRAM DISABLE
                         Spi_WrEn <= '0';
                         Spi_So <= Spi_SpiTxWord(to_integer(Spi_SpiBitCnt));
                         IF (Spi_SpiBitCnt = Spi_SpiBits) then
@@ -175,7 +191,7 @@ begin
                             Spi_WrEn <= '1';
                             Spi_Words <= to_integer(Spi_SpiWordCounter);
                             Spi_SpiWordCounter <= Spi_SpiWordCounter + 1;
-                            Spi_SpiTxWord <= Spi_SpiRxWord;
+                            Spi_SpiTxWord <= Spi_SpiRxWord(0);
                             Spi_SpiSlaveState <= RISE_DETECT;
                         else
                             Spi_SpiSlaveState <= RISE_DETECT;

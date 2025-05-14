@@ -8,6 +8,7 @@ use work.SpiSlaveTypes.all;
 entity DataHandler is 
     port(DataHandler_Reset_n : in std_logic := '1';
          DataHandler_ActlClk : in std_logic := '0';
+         -- SDRAM PINS
          DataHandler_SdRamClkOut : out std_logic;
          DataHandler_Address : out std_logic_vector (12 downto 0) := (others => '0');
          DataHandler_Bank : out std_logic_vector (1 downto 0) := (others => '0');
@@ -18,7 +19,13 @@ entity DataHandler is
          DataHandler_DQ : inout std_logic_vector (15 downto 0) := (others => '0');
          DataHandler_RAS : out std_logic := '0';
          DataHandler_WE : out std_logic := '0';
-		 DataHandler_DebugLeds : out std_logic_vector (7 downto 0) := (others => '0')
+		 DataHandler_DebugLeds : out std_logic_vector (7 downto 0) := (others => '0');
+         -- SPI PINS
+         DataHandler_SpiClk   : in std_logic;
+         DataHandler_So     : out std_logic := '0';
+         DataHandler_Si     : in  std_logic;
+         DataHandler_Cs       : in std_logic;
+         DataHandler_SpiReady : out std_logic := '0'
          );
 
 end DataHandler;
@@ -73,6 +80,17 @@ architecture rtl of DataHandler is
                 ("0101010110111111", "1111111100000000"));
     signal DataHandler_WriteDataBufferIdx : integer := 0;
 
+    -- QSPI SIGNALS
+    signal DataHandler_StartSpi : std_logic := '0';
+    signal DataHandler_WrEn     : std_logic := '0';
+    signal DataHandler_WriteDataWord : QSpiCorrected := (others => (others => '0') );
+    signal DataHandler_ReadDataWord  : QSpiCorrected;
+    signal DataHandler_WriteAddress : std_logic_vector (7 DOWNTO 0) := (others => '0');
+    signal DataHandler_ReadAddress : std_logic_vector (7 DOWNTO 0) := (others => '0');
+    signal DataHandler_SpiPllLocked : std_logic := '0';
+    signal DataHandler_Words : integer := 0;
+    signal DataHandler_EndSpi : std_logic := '1';
+
 begin
     SdRamPll:entity work.SdRamPll(SYN)
     port map
@@ -113,38 +131,59 @@ begin
         SdRam_BankSwitch => DataHandler_BankSwitch
     );
 
-    -- TBD PORT THE SPI ENTITIES
-    --SpiSlave:entity work.SpiSlave(rtl)
-    --port map
-    --(
-    --    ActlClk       => ActlClk,
-    --    Clk           => Clk,
-    --    SpiClk        => SpiClk,
-    --    Reset_n       => Reset_Reg,
-    --    SO            => SO, 
-    --    SI            => SI,
-    --    CS            => CS,
-    --    StartSpi      => StartSpi,
-    --    EndSpi        => EndSpi,
-    --    Words         => Words,
-    --    WrEn          => WrEn,
-	--	WriteDataWord => WriteDataWord,
-	--	ReadDataWord  => ReadDataWord,
-    --    WriteAddress   => WriteAddress,
-    --    ReadAddress   => ReadAddress,
-    --    lockedloop  => SpiPllLocked
-    --);
+    SpiSlave:entity work.SpiSlave(rtl)
+    port map
+    (
+        Spi_ActlClk       => DataHanlder_ActlClk,
+        Spi_Clk           => DataHandler_SdRamClk,
+        Spi_SpiClk        => DataHanlder_SpiClk,
+        Spi_Reset_n       => DataHandler_Reset_Sync,
+        Spi_So            => DataHanlder_So, 
+        Spi_Si            => DataHanlder_Si,
+        Spi_Cs            => DataHanlder_Cs,
+        Spi_StartSpi      => DataHanlder_StartSpi,
+        Spi_EndSpi        => DataHanlder_EndSpi,
+        Spi_Words         => DataHanlder_Words,
+        Spi_WrEn          => DataHanlder_WrEn,
+		Spi_WriteDataWord => DataHandler_WriteDataWord,
+		Spi_ReadDataWord  => DataHandler_ReadDataWord,
+        Spi_WriteAddress   => DataHandler_WriteAddress,
+        Spi_ReadAddress   => DataHandler_ReadAddress,
+        Spi_lockedloop  => DataHandler_PllLocked
+    );
 
-    --SpiRam:entity work.SpiRam(SYN)
-    --port map
-    --(
-    --  clock		=> Clk,
-    --  data		=> WriteDataWord,
-    --  rdaddress	=> ReadAddress,
-    --  wraddress	=> WriteAddress,
-    --  wren		=> WrEn,
-    --  q		    => ReadDataWord
-    --);
+    SpiRam:entity work.SpiRam(SYN)
+    port map
+    (
+      clock		=> DataHandler_SdRamClk,
+      data		=> DataHandler_WriteDataWord(0),
+      rdaddress	=> DataHandler_ReadAddress,
+      wraddress	=> DataHandler_WriteAddress,
+      wren		=> DataHandler_WrEn,
+      q		    => DataHandler_ReadDataWord(0)
+    );
+
+    SpiRam_1:entity work.SpiRam_1(SYN)
+    port map
+    (
+      clock		=> DataHandler_SdRamClk,
+      data		=> DataHandler_WriteDataWord(1),
+      rdaddress	=> DataHandler_ReadAddress,
+      wraddress	=> DataHandler_WriteAddress,
+      wren		=> DataHandler_WrEn,
+      q		    => DataHandler_ReadDataWord(1)
+    );
+
+    SpiRam_2:entity work.SpiRam_2(SYN)
+    port map
+    (
+      clock		=> DataHandler_SdRamClk,
+      data		=> DataHandler_WriteDataWord(2),
+      rdaddress	=> DataHandler_ReadAddress,
+      wraddress	=> DataHandler_WriteAddress,
+      wren		=> DataHandler_WrEn,
+      q		    => DataHandler_ReadDataWord(2)
+    );
     
     process(DataHandler_SdRamClk ,DataHandler_Reset_Sync, DataHandler_PllLocked) is
     begin
@@ -158,6 +197,11 @@ begin
 			DataHandler_ColsAddress <= to_unsigned(0,9);
 			DataHandler_DebugLeds <= b"00000000";
             DataHandler_WriteDataBufferIdx <= 0;
+            -- SPI PART
+            DataHandler_SpiReady <= '0';
+            DataHandler_StartSpi <= '0';
+            DataHandler_ReadAddress <= (others => '0');
+            -- SDRAM STORE ARRAY
             DataHandler_WriteDataBuffer <= (("0000000000000000", "0000000000000000"), ("1000000000000000", "0000000000000000"), ("0000000010000000", "0000000000000000"), ("1000000010000000", "0000000000000000"), ("0000000000000000", "1000000000000000"), ("1000000000000000", "1000000000000000"), 
                 ("0000000010000000", "1000000000000000"), ("1100000011000000", "1100000000000000"), ("1100000011011100", "1100000000000000"), ("1010011011001010", "1111000000000000"), ("0010101000111111", "1010101000000000"), ("0010101000111111", "1111111100000000"), ("0010101001011111", "0000000000000000"), ("0010101001011111", "0101010100000000"), ("0010101001011111", "1010101000000000"), ("0010101001011111", "1111111100000000"), ("0010101001111111", "0000000000000000"), ("0010101001111111", "0101010100000000"), ("0010101001111111", "1010101000000000"), ("0010101001111111", "1111111100000000"), ("0010101010011111", "0000000000000000"),
                 ("0010101010011111", "0101010100000000"), ("0010101010011111", "1010101000000000"), ("0010101010011111", "1111111100000000"), ("0010101010111111", "0000000000000000"), ("0010101010111111", "0101010100000000"), ("0010101010111111", "1010101000000000"), ("0010101010111111", "1111111100000000"), ("0010101011011111", "0000000000000000"), ("0010101011011111", "0101010100000000"), ("0010101011011111", "1010101000000000"), ("0010101011011111", "1111111100000000"), ("0010101011111111", "0000000000000000"), ("0010101011111111", "0101010100000000"), ("0010101011111111", "1010101000000000"), ("0010101011111111", "1111111100000000"), ("0101010100000000", "0000000000000000"), ("0101010100000000", "0101010100000000"), ("0101010100000000", "1010101000000000"), ("0101010100000000", "1111111100000000"), ("0101010100011111", "0000000000000000"), ("0101010100011111", "0101010100000000"),
