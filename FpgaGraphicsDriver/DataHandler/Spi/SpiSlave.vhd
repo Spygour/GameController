@@ -27,10 +27,10 @@ end SpiSlave;
 
 architecture rtl of SpiSlave is
 
-constant Spi_SpiBits : unsigned (3 downto 0)   := b"1111";
+constant Spi_SpiBits : unsigned (4 downto 0)   := b"11111";
 constant Spi_SpiWords : unsigned (7 downto 0)  := b"11111111";
 
-signal Spi_SpiBitCnt  : unsigned (3 downto 0) := SpiBits;
+signal Spi_SpiBitCnt  : unsigned (4 downto 0) := SpiBits;
 signal Spi_SpiWordCounter : unsigned (7 downto 0) := (others => '0');
 signal Spi_SpiSlaveState : Spi_State := IDLE_STATE;
 signal Spi_SpiClkPrev : std_logic;
@@ -189,7 +189,7 @@ begin
                             -- MSB FIRST
                             Spi_WriteDataWord <= Spi_SpiRxWord;
                             Spi_WrEn <= '1';
-                            Spi_Words <= to_integer(Spi_SpiWordCounter);
+                            Spi_Words <= to_integer(Spi_SpiWordCounter + 1);
                             Spi_SpiWordCounter <= Spi_SpiWordCounter + 1;
                             Spi_SpiTxWord <= Spi_SpiRxWord(0);
                             Spi_SpiSlaveState <= RISE_DETECT;
