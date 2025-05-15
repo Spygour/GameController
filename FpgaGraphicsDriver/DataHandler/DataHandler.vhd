@@ -19,7 +19,7 @@ entity DataHandler is
          DataHandler_DQ : inout std_logic_vector (15 downto 0) := (others => '0');
          DataHandler_RAS : out std_logic := '0';
          DataHandler_WE : out std_logic := '0';
-		 DataHandler_DebugLeds : out std_logic_vector (7 downto 0) := (others => '0');
+	 DataHandler_DebugLeds : out std_logic_vector (7 downto 0) := (others => '0');
          -- SPI PINS
          DataHandler_SpiClk   : in std_logic;
          DataHandler_So     : out std_logic := '0';
@@ -53,21 +53,21 @@ architecture rtl of DataHandler is
         WAIT_INDEX_0
     );
     signal DataHandler_SdRamHandlerState : SDRAMHANDLER_STATE := START_WRITE;
-	signal DataHandler_SdRamStoreState : SDRAMHANDLERSTORE_STATE := DATA_1;
+    signal DataHandler_SdRamStoreState : SDRAMHANDLERSTORE_STATE := DATA_1;
     signal DataHandler_SdRamStoreNextState : SDRAMHANDLERSTORE_STATE := DATA_1;
     signal DataHandler_Wren : std_logic := '0';
-	signal DataHandler_RdEn : std_logic := '0';
+    signal DataHandler_RdEn : std_logic := '0';
     signal DataHandler_RdFinish : std_logic := '1';
     signal DataHandler_WrFinish : std_logic := '1';
     signal DataHandler_DataColsOutput : DataCols_t := (others => (others => '0'));
-	signal DataHandler_DataColsInput : DataCols_t := (others => (others => '0'));
+    signal DataHandler_DataColsInput : DataCols_t := (others => (others => '0'));
     signal DataHandler_RowsAddress : unsigned (12 downto 0) := (others => '0');
     signal DataHandler_ColsAddress : unsigned (8 downto 0) := (others => '0');
     signal DataHandler_PllLocked : std_logic := '0';
     signal DataHandler_Reset_Sync : std_logic := '1';
-	signal DataHandler_SdRamClk : std_logic := '0';
+    signal DataHandler_SdRamClk : std_logic := '0';
     signal DataHandler_GlobalClk : std_logic := '0';
-	signal DataHandler_SdRamEnd : std_logic := '0';
+    signal DataHandler_SdRamEnd : std_logic := '0';
     signal DataHandler_SdRamState : SDRAM_STATE;
     signal DataHandler_BankSwitch : std_logic;
     signal DataHandler_WriteDataBuffer : DataCols_ary := (("0000000000000000", "0000000000000000"), ("1000000000000000", "0000000000000000"), ("0000000010000000", "0000000000000000"), ("1000000010000000", "0000000000000000"), ("0000000000000000", "1000000000000000"), ("1000000000000000", "1000000000000000"), 
