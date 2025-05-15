@@ -6,6 +6,7 @@ package SdRamTypes is
     -- 8 bits per color (We hope)
     type DataCols_t is array (1 downto 0) of std_logic_vector(15 downto 0);
     type DataCols_ary is array (63 downto 0) of DataCols_t; --64 data X 4 256 COLORS
+    type Address_t is array (0 to 2) of std_logic_vector(8 downto 0);
 
     type SDRAM_STATE is
         (
