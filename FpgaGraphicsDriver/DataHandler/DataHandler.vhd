@@ -264,7 +264,7 @@ begin
                 
                 when CHECK_DATA_AVAILABLE =>
                     if DataHandler_SpiWordsReg < DataHandler_Words then
-                        DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(DataHandler_MisoIndex)(7 downto 0)) << 1);
+                        DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndex))(7 downto 0)) << 1);
 			-- Here we have to store the rest of the data
 
                         DataHandler_RdEn <= '1';
@@ -281,8 +281,8 @@ begin
 				DataHandler_MisoIndex <= "00";
 				DataHandler_SdRamHandlerState <= READ_DATA_NEW;
 			else
-				DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(DataHandler_MisoIndex + 1)(7 downto 0)) << 1);							    
-				DataHandler_ReadAddress(DataHandler_MisoIndex) <= std_logic_vector(unsigned(DataHandler_ReadAddress(DataHandler_MisoIndex)) + 1);
+				DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndex) + 1)(7 downto 0)) << 1);							    
+				DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex))) + 1);
 				DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
                         	DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
                         	DataHandler_SdRamHandlerState <= READ_DATA;
@@ -293,7 +293,7 @@ begin
                     if DataHandler_SdRamState = ACTIVE_STATE then
                         -- Store the data
 			
-			DataHandler_ReadAddress(DataHandler_MisoIndexReg) <= std_logic_vector(unsigned(DataHandler_ReadAddress(DataHandler_MisoIndexReg)) + 1);
+			DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg))) + 1);
                         DataHandler_SdRamHandlerState <= WAIT_READ;
                     end if;
 
@@ -318,7 +318,7 @@ begin
 		    if DataHandler_SdRamState = ACTIVE_STATE then
                         -- Store the data
 			
-			DataHandler_ReadAddress(DataHandler_MisoIndexReg) <= std_logic_vector(unsigned(DataHandler_ReadAddress(DataHandler_MisoIndexReg)) + 1);
+			DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg))) + 1);
 			if DataHandler_SpiWordsReg < DataHandler_Words then
                         	DataHandler_SdRamHandlerState <= WAIT_READ;
 			else
