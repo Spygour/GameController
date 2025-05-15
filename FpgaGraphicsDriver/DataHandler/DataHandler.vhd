@@ -88,22 +88,23 @@ architecture rtl of DataHandler is
     signal DataHandler_WriteDataWord : QSpiCorrected := (others => (others => '0') );
     signal DataHandler_ReadDataWord  : QSpiCorrected;
     signal DataHandler_WriteAddress : std_logic_vector (7 DOWNTO 0) := (others => '0');
-    signal DataHandler_ReadAddress : std_logic_vector (7 DOWNTO 0) := (others => '0');
+    signal DataHandler_ReadAddress : Address_t := (others => (others => '0'));
     signal DataHandler_SpiPllLocked : std_logic := '0';
     signal DataHandler_Words : integer := 0;
     signal DataHandler_EndSpi : std_logic := '1';
     signal DataHandler_SpiWordsReg : integer := 0;
     signal DataHandler_MisoIndex : unsigned (1 downto 0) := (others => '0');
+    signal DataHandler_MisoIndexReg: unsigned (1 downto 0) := (others => '0');
 
 begin
     SdRamPll:entity work.SdRamPll(SYN)
     port map
     (
        areset => DataHandler_Reset_n,
-	   inclk0 => DataHandler_ActlClk,	
-	   c0     => DataHandler_SdRamClk,
+       inclk0 => DataHandler_ActlClk,	
+       c0     => DataHandler_SdRamClk,
        c1     => DataHandler_GlobalClk,
-	   locked => DataHandler_PllLocked
+       locked => DataHandler_PllLocked
     );
 
     SdRam:entity work.SdRam(SYN)
@@ -112,7 +113,7 @@ begin
         SdRam_ActlClk     => DataHandler_ActlClk,
         SdRam_Reset_n     => DataHandler_Reset_Sync,
         SdRam_ClkOut      => DataHandler_SdRamClkOut,
-		SdRam_SdRamClk    => DataHandler_SdRamClk,
+	SdRam_SdRamClk    => DataHandler_SdRamClk,
         SdRam_GlobalClk  => DataHandler_GlobalClk,
         SdRam_PllLocked   => DataHandler_PllLocked,
         SdRam_Address     => DataHandler_Address,
@@ -128,7 +129,7 @@ begin
         SdRam_RdFinish    => DataHandler_RdFinish,
         SdRam_WrFinish    => DataHandler_WrFinish,
         SdRam_DataColsInput => DataHandler_DataColsOutput,
-		SdRam_DataColsOutput => DataHandler_DataColsInput,
+	SdRam_DataColsOutput => DataHandler_DataColsInput,
         SdRam_RowsAddress => DataHandler_RowsAddress,
         SdRam_ColsAddress => DataHandler_ColsAddress,
         SdRam_SdRamState => DataHandler_SdRamState,
@@ -149,8 +150,8 @@ begin
         Spi_EndSpi        => DataHanlder_EndSpi,
         Spi_Words         => DataHanlder_Words,
         Spi_WrEn          => DataHanlder_WrEn,
-		Spi_WriteDataWord => DataHandler_WriteDataWord,
-		Spi_ReadDataWord  => DataHandler_ReadDataWord,
+	Spi_WriteDataWord => DataHandler_WriteDataWord,
+	Spi_ReadDataWord  => DataHandler_ReadDataWord,
         Spi_WriteAddress   => DataHandler_WriteAddress,
         Spi_ReadAddress   => DataHandler_ReadAddress,
         Spi_lockedloop  => DataHandler_PllLocked
@@ -161,7 +162,7 @@ begin
     (
       clock		=> DataHandler_SdRamClk,
       data		=> DataHandler_WriteDataWord(0),
-      rdaddress	=> DataHandler_ReadAddress,
+      rdaddress	=> DataHandler_ReadAddress(0),
       wraddress	=> DataHandler_WriteAddress,
       wren		=> DataHandler_WrEn,
       q		    => DataHandler_ReadDataWord(0)
@@ -172,7 +173,7 @@ begin
     (
       clock		=> DataHandler_SdRamClk,
       data		=> DataHandler_WriteDataWord(1),
-      rdaddress	=> DataHandler_ReadAddress,
+      rdaddress	=> DataHandler_ReadAddress(1),
       wraddress	=> DataHandler_WriteAddress,
       wren		=> DataHandler_WrEn,
       q		    => DataHandler_ReadDataWord(1)
@@ -183,7 +184,7 @@ begin
     (
       clock		=> DataHandler_SdRamClk,
       data		=> DataHandler_WriteDataWord(2),
-      rdaddress	=> DataHandler_ReadAddress,
+      rdaddress	=> DataHandler_ReadAddress(2),
       wraddress	=> DataHandler_WriteAddress,
       wren		=> DataHandler_WrEn,
       q		    => DataHandler_ReadDataWord(2)
@@ -193,19 +194,20 @@ begin
     begin
         if (DataHandler_Reset_Sync = '1') then
             DataHandler_SdRamHandlerState <= WAIT_WRITE;
-			DataHandler_RdEn <= '0';
+	    DataHandler_RdEn <= '0';
             DataHandler_WrEn <= '0';
-			DataHandler_DataColsOutput <= (others => (others => '0'));
-			DataHandler_SdRamEnd <= '0';
-			DataHandler_RowsAddress <= to_unsigned(0,13);
-			DataHandler_ColsAddress <= to_unsigned(0,9);
-			DataHandler_DebugLeds <= b"00000000";
+	    DataHandler_DataColsOutput <= (others => (others => '0'));
+	    DataHandler_SdRamEnd <= '0';
+	    DataHandler_RowsAddress <= to_unsigned(0,13);
+	    DataHandler_ColsAddress <= to_unsigned(0,9);
+	    DataHandler_DebugLeds <= b"00000000";
             DataHandler_WriteDataBufferIdx <= 0;
-            DataHandler_MisoIndex <= "00"
+            DataHandler_MisoIndex <= "00";
+	    DataHandler_MisoIndexReg <= "00";
             -- SPI PART
             DataHandler_SpiReady <= '0';
             DataHandler_StartSpi <= '0';
-            DataHandler_ReadAddress <= (others => '0');
+            DataHandler_ReadAddress <=(others => (others => '0'));
             DataHandler_SpiWordsReg <= 0;
             -- SDRAM STORE ARRAY
             DataHandler_WriteDataBuffer <= (("0000000000000000", "0000000000000000"), ("1000000000000000", "0000000000000000"), ("0000000010000000", "0000000000000000"), ("1000000010000000", "0000000000000000"), ("0000000000000000", "1000000000000000"), ("1000000000000000", "1000000000000000"), 
@@ -263,27 +265,35 @@ begin
                 when CHECK_DATA_AVAILABLE =>
                     if DataHandler_SpiWordsReg < DataHandler_Words then
                         DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(DataHandler_MisoIndex)(7 downto 0)) << 1);
-                        DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
+			-- Here we have to store the rest of the data
+
                         DataHandler_RdEn <= '1';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
                     end if;
 
                 when WAIT_READ =>
-                    if DataHandler_SdRamState = READ_STATE and DataHandler_MisoIndex < "11" then
-                        DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(DataHandler_MisoIndex)(7 downto 0)) << 1);
-                        DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
-                        DataHandler_SdRamHandlerState <= READ_DATA;
-                    elsif DataHandler_SdRamState = READ_STATE and DataHandler_MisoIndex = "11" then
-                        DataHandler_MisoIndex <= 0;
-                        DataHandler_ReadAddress <= std_logic(unsigned(DataHandler_ReadAddress) + 1);
-                        DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 1;
-                        DataHandler_SdRamHandlerState <= READ_DATA_NEW;
-                    end if;
+                    if DataHandler_SdRamState = READ_STATE then
+			if (MisoIndex = "10") then
+				DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(0)(7 downto 0)) << 1);
+                        	DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 1;
+				DataHandler_ReadAddress(0) <= std_logic_vector(unsigned(DataHandler_ReadAddress(0)) + 1);
+				DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
+				DataHandler_MisoIndex <= "00";
+				DataHandler_SdRamHandlerState <= READ_DATA_NEW;
+			else
+				DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(DataHandler_MisoIndex + 1)(7 downto 0)) << 1);							    
+				DataHandler_ReadAddress(DataHandler_MisoIndex) <= std_logic_vector(unsigned(DataHandler_ReadAddress(DataHandler_MisoIndex)) + 1);
+				DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
+                        	DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
+                        	DataHandler_SdRamHandlerState <= READ_DATA;
+			end if;
+		    end if;
                 
                 when READ_DATA =>
                     if DataHandler_SdRamState = ACTIVE_STATE then
                         -- Store the data
-
+			
+			DataHandler_ReadAddress(DataHandler_MisoIndexReg) <= std_logic_vector(unsigned(DataHandler_ReadAddress(DataHandler_MisoIndexReg)) + 1);
                         DataHandler_SdRamHandlerState <= WAIT_READ;
                     end if;
 
@@ -294,13 +304,34 @@ begin
                         -- increase the double buffer index
 
                         -- Go back to read state
-                        DataHandler_SdRamHandlerState <= PREPARE_READ;
-                    elsif DataHandler_SdRamState = WAIT_STORE then
-                        DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(DataHandler_MisoIndex)(7 downto 0)) << 1);
-                        DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
+                        DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
+                    elsif DataHandler_SdRamState = WAIT_STORE and DataHandler_SpiWordsReg < DataHandler_Words then -- NEW DATA HAS BEEN ARRIVED
+			
                         -- Go back to read data in order to store the data for vga
                         DataHandler_SdRamHandlerState <= READ_DATA;
+		    elsif DataHandler_SdRamState = WAIT_STORE then
+			DataHandler_RdEn <= '0';
+			DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
                     end if;
+
+		when READ_DATA_AND_WAIT =>
+		    if DataHandler_SdRamState = ACTIVE_STATE then
+                        -- Store the data
+			
+			DataHandler_ReadAddress(DataHandler_MisoIndexReg) <= std_logic_vector(unsigned(DataHandler_ReadAddress(DataHandler_MisoIndexReg)) + 1);
+			if DataHandler_SpiWordsReg < DataHandler_Words then
+                        	DataHandler_SdRamHandlerState <= WAIT_READ;
+			else
+				DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
+			end if;
+		    else
+			if DataHandler_SpiWordsReg < DataHandler_Words then
+                        	DataHandler_SdRamHandlerState <= WAIT_READ;
+			else
+				DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
+			end if; 
+                    end if;
+
 
                 
                 when others => null;
