@@ -314,7 +314,7 @@ begin
                         -- Go back to RESTART state
                         DataHandler_SdRamHandlerState <= DATA_READ_RESTART;
                     elsif DataHandler_SdRamState = WAIT_STORE and DataHandler_SpiWordsReg < DataHandler_Words then -- NEW DATA HAS BEEN ARRIVED
-						-- read data from bram and increase address
+             		    -- read data from bram and increase address     			         	
 
                         -- Go back to read data in order to store the data for vga
                         DataHandler_SdRamHandlerState <= READ_DATA;
@@ -353,7 +353,7 @@ begin
 			end if;
 
 
-                when others => null;
+        when others => null;
 
             end case;
         end if;
