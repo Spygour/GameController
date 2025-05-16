@@ -265,7 +265,8 @@ begin
                 when CHECK_DATA_AVAILABLE =>
                     if DataHandler_SpiWordsReg < DataHandler_Words then
                         DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndex))(7 downto 0)) << 1);
-			-- Here we have to store the rest of the data
+			        	-- Here we have to store the rest of the data
+						
 
                         DataHandler_RdEn <= '1';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
@@ -273,67 +274,65 @@ begin
 
                 when WAIT_READ =>
                     if DataHandler_SdRamState = READ_STATE then
-			if (MisoIndex = "10") then
-				DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(0)(7 downto 0)) << 1);
-                        	DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 1;
-				DataHandler_ReadAddress(0) <= std_logic_vector(unsigned(DataHandler_ReadAddress(0)) + 1);
-				DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
-				DataHandler_MisoIndex <= "00";
-				DataHandler_SdRamHandlerState <= READ_DATA_NEW;
-			else
-				DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndex) + 1)(7 downto 0)) << 1);							    
-				DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex))) + 1);
-				DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
-                        	DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
-                        	DataHandler_SdRamHandlerState <= READ_DATA;
-			end if;
-		    end if;
+						if (MisoIndex = "10") then
+							DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(0)(7 downto 0)) << 1);
+            			    DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 1;
+							DataHandler_ReadAddress(2) <= std_logic_vector(unsigned(DataHandler_ReadAddress(2)) + 1);
+							DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
+							DataHandler_MisoIndex <= "00";
+							DataHandler_SdRamHandlerState <= READ_DATA_NEW;
+						else
+							DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndex) + 1)(7 downto 0)) << 1);							    
+							DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex))) + 1);
+							DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
+            			    DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
+            			    DataHandler_SdRamHandlerState <= READ_DATA;
+						end if;
+		    		end if;
                 
                 when READ_DATA =>
                     if DataHandler_SdRamState = ACTIVE_STATE then
                         -- Store the data
 			
-			DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg))) + 1);
+						-- read data from bram and increase address
+
+						DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg))) + 1);
                         DataHandler_SdRamHandlerState <= WAIT_READ;
                     end if;
 
                 when READ_DATA_NEW =>
                     -- If we increase and overflows data is maximum
-                    if DataHandler_SdRamState = WAIT_STORE and DataHandler_SpiWordsReg = b"00000000" then
+                    if DataHandler_SdRamState = WAIT_STORE and DataHandler_SpiWordsReg = b"11111111" then
                         DataHandler_RdEn <= '0';
-                        -- increase the double buffer index
-
+                        -- Here this will be needed for the handler part of the application
+						-- DataHandler_Finish <= '1';
                         -- Go back to read state
                         DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
                     elsif DataHandler_SdRamState = WAIT_STORE and DataHandler_SpiWordsReg < DataHandler_Words then -- NEW DATA HAS BEEN ARRIVED
-			
+						-- read data from bram and increase address
+
                         -- Go back to read data in order to store the data for vga
                         DataHandler_SdRamHandlerState <= READ_DATA;
-		    elsif DataHandler_SdRamState = WAIT_STORE then
-			DataHandler_RdEn <= '0';
-			DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
+		   			elsif DataHandler_SdRamState = WAIT_STORE then
+						DataHandler_RdEn <= '0';
+						-- here we wait to restart
+						DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
                     end if;
 
 		when READ_DATA_AND_WAIT =>
-		    if DataHandler_SdRamState = ACTIVE_STATE then
-                        -- Store the data
-			
-			DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg))) + 1);
-			if DataHandler_SpiWordsReg < DataHandler_Words then
-                        	DataHandler_SdRamHandlerState <= WAIT_READ;
-			else
-				DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
+		    if DataHandler_SdRamState = ACTIVE_STATE and DataHandler_SpiWordsReg < DataHandler_Words then
+            	-- Store the data for the last data that you took
+
+				DataHandler_SdRamHandlerState <= WAIT_READ;
+		    elsif DataHandler_SdRamState = ACTIVE_STATE
+				-- Store the data for the last data that you took
+
+				-- DEACTIVATE THE SDRAM
+				DataHandler_RdEn <= '0';
+				DataHandler_SdRamHandlerState <= CHECK_DATA_AVAILABLE;
 			end if;
-		    else
-			if DataHandler_SpiWordsReg < DataHandler_Words then
-                        	DataHandler_SdRamHandlerState <= WAIT_READ;
-			else
-				DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
-			end if; 
-                    end if;
 
 
-                
                 when others => null;
 
             end case;
