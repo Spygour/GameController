@@ -294,10 +294,29 @@ begin
             			    DataHandler_SdRamHandlerState <= READ_DATA;
 						end if;
 		    		end if;
+						if (MisoIndex = "10") then
+							DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(0)(7 downto 0)) << 1);
+            			    DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 1;
+							DataHandler_ReadAddress(2) <= std_logic_vector(unsigned(DataHandler_ReadAddress(2)) + 1);
+							DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
+							DataHandler_MisoIndex <= "00";
+							DataHandler_SdRamHandlerState <= READ_DATA_NEW;
+						else
+							DataHandler_ColsAddress <= (unsigned(0 & DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndex) + 1)(7 downto 0)) << 1);							    
+							DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex))) + 1);
+							DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
+            			    DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
+            			    DataHandler_SdRamHandlerState <= READ_DATA;
+						end if;
+		    		end if;
                 
                 when READ_DATA =>
                     if DataHandler_SdRamState = ACTIVE_STATE then
                         -- Store the data
+			
+						-- read data from bram and increase address
+
+						DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg)) <= std_logic_vector(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndexReg))) + 1);
 			
 						-- read data from bram and increase address
 
@@ -316,8 +335,14 @@ begin
                     elsif DataHandler_SdRamState = WAIT_STORE and DataHandler_SpiWordsReg < DataHandler_Words then -- NEW DATA HAS BEEN ARRIVED
 						-- read data from bram and increase address
 
+						-- read data from bram and increase address
+
                         -- Go back to read data in order to store the data for vga
                         DataHandler_SdRamHandlerState <= READ_DATA;
+		   			elsif DataHandler_SdRamState = WAIT_STORE then
+						DataHandler_RdEn <= '0';
+						-- here we wait to restart
+						DataHandler_SdRamHandlerState <= READ_DATA_AND_WAIT;
 		   			elsif DataHandler_SdRamState = WAIT_STORE then
 						DataHandler_RdEn <= '0';
 						-- here we wait to restart
