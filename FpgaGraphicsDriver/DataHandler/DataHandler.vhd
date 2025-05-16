@@ -28,6 +28,10 @@ entity DataHandler is
          DataHandler_SpiReady : out std_logic := '0'
 		 DataHandler_Finish : out std_logic := '1'
 		 DataHandler_Start : in std_logic;
+         DataHandler_Xaxis : out std_logic_vector(7 downto 0) := (others => '0');
+         DataHandler_Yaxis : out std_logic_vector(7 downto 0) := (others => '0');
+         DataHandler_Resolution : out std_logic_vector(7 downto 0) := (others => '0');
+         DataHandler_Color : inout std_logic_vector(24 down to 0) := (others => '0');
          );
 
 end DataHandler;
