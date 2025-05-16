@@ -131,36 +131,6 @@ void QSpiAtom_Isr(void)
     QSpiAtom_Timer->IRQ_NOTIFY.U = 0x1;
 }
 
-/* IfxGtm_Atom_Agc_enableChannels(driver->agc, driver->channelsMask, 0, TRUE);
-value = IfxGtm_Atom_Agc_buildFeature(enableMask, disableMask, IFX_GTM_ATOM_AGC_ENDIS_CTRL_ENDIS_CTRL0_OFF);
-IfxGtm_Atom_Agc_buildFeature(uint16 enableMask, uint16 disableMask, uint8 bitfieldOffset)
-IfxGtm_Atom_Agc_enableChannels(Ifx_GTM_ATOM_AGC *agc, uint16 enableMask, uint16 disableMask, boolean immediate)
-
-    uint8  i;
-    uint32 reg  = 0;
-    uint32 mask = enableMask | (disableMask << 16);
-
-    for (i = 0; i < IFXGTM_ATOM_NUM_AGC_CHANNELS; i++)
-    {
-        uint8 shift = (i * 2) + bitfieldOffset;
-
-        if (mask & 0x1)
-        {
-            reg |= IfxGtm_FeatureControl_enable << shift;
-        }
-
-        if (mask & 0x10000)
-        {
-            reg |= IfxGtm_FeatureControl_disable << shift;
-        }
-
-        mask = mask >> 1;
-    }
-
-    return reg;
-
-*/
-
 /*This function sets default pwm signals for every phase*/
 IFX_STATIC void IfxGtmAtomSerialUpdateOff(IfxGtm_Atom_PwmHl *driver, Ifx_TimerValue *tOn)
 {
