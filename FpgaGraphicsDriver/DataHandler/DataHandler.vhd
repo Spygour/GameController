@@ -8,14 +8,18 @@ use work.SpiSlaveTypes.all;
 
 entity DataHandler is 
     port(DataHandler_Reset_n : in std_logic := '1';
+         -- Clocks
          DataHandler_ActlClk : in std_logic := '0';
+         DataHandler_SdRamClk : in std_logic := '0';
+         DataHandler_GlobalClk : in std_logic := '0';
+         DataHandler_PllLocked : inout std_logic := '0';
          -- SDRAM PINS
          DataHandler_SdRamClkOut : out std_logic;
          DataHandler_Address : out std_logic_vector (12 downto 0) := (others => '0');
          DataHandler_Bank : out std_logic_vector (1 downto 0) := (others => '0');
          DataHandler_CAS : out std_logic := '0';
          DataHandler_CKE : out std_logic := '0';
-         DataHandler_CS : out std_logic := '1';
+         DataHandler_SdRamCS : out std_logic := '1';
          DataHandler_DQM : out std_logic_vector (0 to 1) := (others => '0');
          DataHandler_DQ : inout std_logic_vector (15 downto 0) := (others => '0');
          DataHandler_RAS : out std_logic := '0';
@@ -34,7 +38,7 @@ entity DataHandler is
          DataHandler_Resolution : out DataPart_t := (others => (others => '0'));
          DataHandler_Color : inout DataColor_t := (others => (others => '0'));
          DataHandler_SpiWordsReg : inout integer := 0;
-         DataHandler_DataAvailble : out std_logic := '0'
+         DataHandler_DataAvailable : out std_logic := '0'
          );
 
 end DataHandler;
@@ -73,10 +77,7 @@ architecture rtl of DataHandler is
     signal DataHandler_DataColsInput : DataCols_t := (others => (others => '0'));
     signal DataHandler_RowsAddress : unsigned (12 downto 0) := (others => '0');
     signal DataHandler_ColsAddress : unsigned (8 downto 0) := (others => '0');
-    signal DataHandler_PllLocked : std_logic := '0';
     signal DataHandler_Reset_Sync : std_logic := '1';
-    signal DataHandler_SdRamClk : std_logic := '0';
-    signal DataHandler_GlobalClk : std_logic := '0';
     signal DataHandler_SdRamEnd : std_logic := '0';
     signal DataHandler_SdRamState : SDRAM_STATE;
     signal DataHandler_BankSwitch : std_logic;
@@ -219,7 +220,7 @@ begin
             DataHandler_StartSpi <= '0';
             DataHandler_ReadAddress <=(others => (others => '0'));
             DataHandler_SpiWordsReg <= 0;
-            DataHandler_DataAvailble <= '0' ;
+            DataHandler_DataAvailable <= '0' ;
             -- SDRAM STORE ARRAY
             DataHandler_WriteDataBuffer <= (("0000000000000000", "0000000000000000"), ("1000000000000000", "0000000000000000"), ("0000000010000000", "0000000000000000"), ("1000000010000000", "0000000000000000"), ("0000000000000000", "1000000000000000"), ("1000000000000000", "1000000000000000"), 
                 ("0000000010000000", "1000000000000000"), ("1100000011000000", "1100000000000000"), ("1100000011011100", "1100000000000000"), ("1010011011001010", "1111000000000000"), ("0010101000111111", "1010101000000000"), ("0010101000111111", "1111111100000000"), ("0010101001011111", "0000000000000000"), ("0010101001011111", "0101010100000000"), ("0010101001011111", "1010101000000000"), ("0010101001011111", "1111111100000000"), ("0010101001111111", "0000000000000000"), ("0010101001111111", "0101010100000000"), ("0010101001111111", "1010101000000000"), ("0010101001111111", "1111111100000000"), ("0010101010011111", "0000000000000000"),
@@ -313,7 +314,7 @@ begin
                         If DataHandler_MisoIndex = "00" then
                             DataHandler_DataAvailable <= '1'; 
                         else
-                            DataHandler_DataAvailble <= '0';
+                            DataHandler_DataAvailable <= '0';
                         end if;
 						-- read data from bram and increase address
 
@@ -458,13 +459,13 @@ begin
     begin
         if (DataHandler_Reset_n = '1') then
             DataHandler_Reset_Sync <= '1';
-            DataHandler_CS <= '1';
+            DataHandler_SdRamCS <= '1';
         elsif DataHandler_PllLocked='1' then
-            DataHandler_CS <= '0';
+            DataHandler_SdRamCS <= '0';
             DataHandler_Reset_Sync <= '0';
 		  else
 			DataHandler_Reset_Sync <= '1';
-			DataHandler_CS <= '0';
+			DataHandler_SdRamCS <= '0';
         end if;
     end process;
 
