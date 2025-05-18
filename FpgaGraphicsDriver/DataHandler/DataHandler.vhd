@@ -2,6 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 library work;
+use work.DataHandlerTypes.all
 use work.SdRamTypes.all;
 use work.SpiSlaveTypes.all;
 
@@ -28,10 +29,10 @@ entity DataHandler is
          DataHandler_SpiReady : out std_logic := '0'
 		 DataHandler_Finish : out std_logic := '1'
 		 DataHandler_Start : in std_logic;
-         DataHandler_Xaxis : out std_logic_vector(7 downto 0) := (others => '0');
-         DataHandler_Yaxis : out std_logic_vector(7 downto 0) := (others => '0');
-         DataHandler_Resolution : out std_logic_vector(7 downto 0) := (others => '0');
-         DataHandler_Color : inout std_logic_vector(24 downto 0) := (others => '0');
+         DataHandler_Xaxis : out DataPart_t := (others => (others => '0'));
+         DataHandler_Yaxis : out DataPart_t := (others => (others => '0'));
+         DataHandler_Resolution : out DataPart_t := (others => (others => '0'));
+         DataHandler_Color : inout DataColor_t := (others => (others => '0'));
          DataHandler_SpiWordsReg : inout integer := 0;
          DataHandler_DataAvailble : out std_logic := '0'
          );
@@ -304,12 +305,11 @@ begin
                 when READ_DATA =>
                     if DataHandler_SdRamState = ACTIVE_STATE then
                         -- Store the color
-                        DataHandler_Color(23 downto 8) <= DataHandler_DataColsInput(0);
-                        DataHandler_Color(7 downto 0) <= DataHandler_DataColsInput(1);
+                        DataHandler_Color(DataHandler_MisoIndexReg)(23 downto 8) <= DataHandler_DataColsInput(0);
+                        DataHandler_Color(DataHandler_MisoIndexReg)(7 downto 0) <= DataHandler_DataColsInput(1);
                         -- Store the data
-                        DataHandler_Xaxis <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(15 downto 8);
-                        DataHandler_Yaxis <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(7 downto 0);
-                        DataHandler_DataColsInput
+                        DataHandler_Xaxis(DataHandler_MisoIndexReg) <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(15 downto 8);
+                        DataHandler_Yaxis(DataHandler_MisoIndexReg) <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(7 downto 0);
                         If DataHandler_MisoIndex = "00" then
                             DataHandler_DataAvailable <= '1'; 
                         else
@@ -343,31 +343,31 @@ begin
 		        when READ_DATA_AND_WAIT =>
 		            if DataHandler_SdRamState = ACTIVE_STATE and DataHandler_SpiWordsReg < DataHandler_Words then
                         -- Store the color
-                        DataHandler_Color(23 downto 8) <= DataHandler_DataColsInput(0);
-                        DataHandler_Color(7 downto 0) <= DataHandler_DataColsInput(1);
+                        DataHandler_Color(DataHandler_MisoIndexReg)(23 downto 8) <= DataHandler_DataColsInput(0);
+                        DataHandler_Color(DataHandler_MisoIndexReg)(7 downto 0) <= DataHandler_DataColsInput(1);
                         -- Store the data
-                        DataHandler_Xaxis <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(15 downto 8);
-                        DataHandler_Yaxis <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(7 downto 0);
+                        DataHandler_Xaxis(DataHandler_MisoIndexReg) <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(15 downto 8);
+                        DataHandler_Yaxis(DataHandler_MisoIndexReg) <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(7 downto 0);
                         DataHandler_DataAvailable <= '1'; 
 		        		DataHandler_SdRamHandlerState <= WAIT_READ;
 		            elsif DataHandler_SdRamState = ACTIVE_STATE and DataHanlder_EndSpi = '0'
                         -- Store the color
-                        DataHandler_Color(23 downto 8) <= DataHandler_DataColsInput(0);
-                        DataHandler_Color(7 downto 0) <= DataHandler_DataColsInput(1);
+                        DataHandler_Color(DataHandler_MisoIndexReg)(23 downto 8) <= DataHandler_DataColsInput(0);
+                        DataHandler_Color(DataHandler_MisoIndexReg)(7 downto 0) <= DataHandler_DataColsInput(1);
                         -- Store the data
-                        DataHandler_Xaxis <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(15 downto 8);
-                        DataHandler_Yaxis <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(7 downto 0);
+                        DataHandler_Xaxis(DataHandler_MisoIndexReg) <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(15 downto 8);
+                        DataHandler_Yaxis(DataHandler_MisoIndexReg) <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(7 downto 0);
                         DataHandler_DataAvailable <= '1'; 
 		        		-- DEACTIVATE THE SDRAM
 		        		DataHandler_RdEn <= '0';
 		        		DataHandler_SdRamHandlerState <= CHECK_DATA_AVAILABLE;
 		        	elsif DataHandler_SdRamState = ACTIVE_STATE and DataHanlder_EndSpi = '1'
                         -- Store the color
-                        DataHandler_Color(23 downto 8) <= DataHandler_DataColsInput(0);
-                        DataHandler_Color(7 downto 0) <= DataHandler_DataColsInput(1);
+                        DataHandler_Color(DataHandler_MisoIndexReg)(23 downto 8) <= DataHandler_DataColsInput(0);
+                        DataHandler_Color(DataHandler_MisoIndexReg)(7 downto 0) <= DataHandler_DataColsInput(1);
                         -- Store the data
-                        DataHandler_Xaxis <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(15 downto 8);
-                        DataHandler_Yaxis <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(7 downto 0);
+                        DataHandler_Xaxis(DataHandler_MisoIndexReg) <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(15 downto 8);
+                        DataHandler_Yaxis(DataHandler_MisoIndexReg) <= DataHandler_ReadDataWord(to_integer(DataHandler_MisoIndexReg))(7 downto 0);
                         DataHandler_DataAvailable <= '1'; 
 		        		DataHandler_Finish <= '1';
 		        		-- DEACTIVATE THE SDRAM
