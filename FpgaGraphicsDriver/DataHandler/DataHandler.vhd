@@ -199,7 +199,7 @@ BEGIN
     BEGIN
         IF (DataHandler_Reset_Sync = '1') THEN
             DataHandler_Finish <= '1';
-            DataHandler_SdRamHandlerState <= WAIT_WRITE;
+            DataHandler_SdRamHandlerState <= START_WRITE;
             DataHandler_RdEn <= '0';
             DataHandler_WrEn <= '0';
             DataHandler_DataColsOutput <= (OTHERS => (OTHERS => '0'));
@@ -224,6 +224,7 @@ BEGIN
         ELSIF rising_edge(DataHandler_SdRamClk) AND DataHandler_PllLocked = '1' THEN
             CASE DataHandler_SdRamHandlerState IS
                 WHEN START_WRITE =>
+                    DataHandler_DebugLeds <= "01010101";
                     DataHandler_WrEn <= '1';
                     DataHandler_DataColsOutput <= DataHandler_WriteDataBuffer(DataHandler_WriteDataBufferIdx);
                     DataHandler_WriteDataBufferIdx <= DataHandler_WriteDataBufferIdx + 1;
@@ -261,6 +262,7 @@ BEGIN
 
                 WHEN START_READ =>
                     IF (DataHandler_EndSpi = '0') THEN
+                        DataHandler_DebugLeds <= "11110000";
                         DataHandler_Finish <= '0';
                         -- AVOID EXTRA WRONG DATA SEND
                         DataHandler_SpiReady <= '0';
@@ -280,9 +282,9 @@ BEGIN
                         DataHandler_Resolution(0) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
                         DataHandler_Resolution(1) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
                         DataHandler_Resolution(2) <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
-
                         DataHandler_RdEn <= '1';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
+                        DataHandler_DebugLeds <= "11111111";
                     END IF;
 
                 WHEN WAIT_READ =>
@@ -292,12 +294,14 @@ BEGIN
                             DataHandler_MisoIndex <= "00";
                             DataHandler_ReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(2)) + 1);
                             DataHandler_SdRamHandlerState <= STORE_DATA;
+                            DataHandler_DebugLeds <= "11000100";
                         ELSE
                             DataHandler_ColsAddress <= unsigned(DataHandler_SdRamReadAddress(to_integer(DataHandler_MisoIndex + 1)));
                             DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex)) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(to_integer(DataHandler_MisoIndex))) + 1);
                             DataHandler_MisoIndexReg <= DataHandler_MisoIndex;
                             DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
                             DataHandler_SdRamHandlerState <= READ_DATA;
+                            DataHandler_DebugLeds <= "11001000";
                         END IF;
                     END IF;
 
@@ -308,12 +312,14 @@ BEGIN
                         DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(7 DOWNTO 0) <= DataHandler_DataColsInput(1)(15 DOWNTO 8);
                         DataHandler_Finish <= '0';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
+                        DataHandler_DebugLeds <= "11001100";
                     END IF;
 
                 WHEN STORE_DATA =>
                     -- If we increase and overflows data is maximum
                     IF DataHandler_SdRamState = READ_STORE AND (DataHandler_SpiWordsReg = 255 OR DataHandler_SpiWordsReg = DataHandler_Words OR DataHandler_Start = '0') THEN
                         DataHandler_SdRamHandlerState <= READ_DATA_RESTART;
+                        DataHandler_DebugLeds <= "11110100";
                     ELSIF DataHandler_SdRamState = READ_STORE AND DataHandler_SpiWordsReg < DataHandler_Words THEN -- NEW DATA HAS BEEN ARRIVED
                         DataHandler_Xaxis(0) <= DataHandler_ReadDataWord(0)(15 DOWNTO 8);
                         DataHandler_Xaxis(1) <= DataHandler_ReadDataWord(1)(15 DOWNTO 8);
@@ -328,6 +334,7 @@ BEGIN
                         DataHandler_ReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(2)) + 1);
                         -- Go back to read data in order to store the data for vga
                         DataHandler_SdRamHandlerState <= READ_DATA_RESTART;
+                        DataHandler_DebugLeds <= "11111000";
                     END IF;
                     DataHandler_RdEn <= '0';
 
@@ -338,6 +345,7 @@ BEGIN
                         DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(7 DOWNTO 0) <= DataHandler_DataColsInput(1)(15 DOWNTO 8);
                         DataHandler_Finish <= '1';
                         DataHandler_SdRamHandlerState <= READ_DATA_IDLE;
+                        DataHandler_DebugLeds <= "11111100";
                     END IF;
 
                 WHEN READ_DATA_IDLE =>
@@ -353,6 +361,7 @@ BEGIN
                         DataHandler_Finish <= '0';
                         DataHandler_RdEn <= '1';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
+                        DataHandler_DebugLeds <= "11110011";
                     END IF;
 
                 WHEN OTHERS => NULL;

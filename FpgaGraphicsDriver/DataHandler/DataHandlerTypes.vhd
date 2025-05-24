@@ -1,9 +1,9 @@
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
 
-package DataHandlerTypes is 
+PACKAGE DataHandlerTypes IS
     -- 8 bits per color (We hope)
-    type DataColor_t is array (0 to 2) of std_logic_vector(23 downto 0);
-    type DataPart_t is array (0 to 2) of std_logic_vector(7 downto 0);
-end DataHandlerTypes;
+    TYPE DataColor_t IS ARRAY (0 TO 2) OF STD_LOGIC_VECTOR(23 DOWNTO 0);
+    TYPE DataPart_t IS ARRAY (0 TO 2) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+END DataHandlerTypes;

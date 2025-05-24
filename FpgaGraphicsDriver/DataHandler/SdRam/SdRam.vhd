@@ -34,13 +34,14 @@ ENTITY SdRam IS
 END SdRam;
 
 ARCHITECTURE SYN OF SdRam IS
-
+    CONSTANT SdRam_MaxReadsWrites : unsigned (5 DOWNTO 0) := "110010";
     SIGNAL SdRam_SdRamNextState : SDRAM_STATE := POWERON;
     SIGNAL SdRam_NopCounter : INTEGER := 0;
     SIGNAL SdRam_NopThreshold : INTEGER := 0;
     SIGNAL SdRam_DatacolsIndex : INTEGER := 0;
     SIGNAL SdRam_RowsAddress_reg : unsigned (12 DOWNTO 0) := (OTHERS => '0');
     SIGNAL SdRam_ColsAddress_reg : unsigned (8 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL SdRam_AutoNumOfReadsWrites : unsigned (5 DOWNTO 0) := (OTHERS => '0');
 
 BEGIN
 
@@ -67,7 +68,7 @@ BEGIN
             SdRam_DataColsOutput <= (OTHERS => (OTHERS => '0'));
             SdRam_ColsAddress_reg <= (OTHERS => '0');
             SdRam_RowsAddress_reg <= (OTHERS => '0');
-
+            SdRam_AutoNumOfReadsWrites <= (OTHERS => '0');
             SdRam_BankSwitch <= '0';
         ELSIF rising_edge(SdRam_SdRamClk) AND SdRam_PllLocked = '1' THEN
             CASE SdRam_SdRamState IS
@@ -132,15 +133,18 @@ BEGIN
                     SdRam_SdRamNextState <= IDLE;
 
                 WHEN IDLE =>
-                    IF SdRam_RdEn = '0' AND SdRam_WrEn = '0' THEN
-                        -- SEND SELF REFRESH
-                        SdRam_CKE <= '0';
+                    IF (SdRam_RdEn = '0' AND SdRam_WrEn = '0') OR (SdRam_AutoNumOfReadsWrites >= SdRam_MaxReadsWrites) THEN
+                        SdRam_Address(10) <= '0';
+                        -- Send auto refresh command
+                        SdRam_CKE <= '1';
                         SdRam_RAS <= '0';
                         SdRam_CAS <= '0';
                         SdRam_WE <= '1';
-                        SdRam_Address(12 DOWNTO 0) <= b"0000000000000";
-                        SdRam_NopThreshold <= 9;
-                        SdRam_SdRamState <= SELF_REFRESH_EXIT;
+                        SdRam_NopCounter <= 0;
+                        SdRam_NopThreshold <= 1;
+                        SdRam_AutoNumOfReadsWrites <= (OTHERS => '0');
+                        SdRam_SdRamNextState <= AUTO_REFRESH_EXIT;
+                        SdRam_SdRamState <= NOP;
                     ELSE
                         -- SEND ACTIVE 
                         SdRam_CKE <= '1';
@@ -153,22 +157,22 @@ BEGIN
                         SdRam_ColsAddress_reg <= SdRam_ColsAddress;
                         SdRam_SdRamState <= ACTIVE_STATE;
                     END IF;
-                WHEN SELF_REFRESH_EXIT =>
-                    IF (SdRam_NopCounter = 10) THEN
-                        SdRam_NopCounter <= 1;
-                        SdRam_NopThreshold <= 1;
-                        -- SEND NOP 
-                        SdRam_CKE <= '1';
-                        SdRam_RAS <= '1';
-                        SdRam_CAS <= '1';
-                        SdRam_WE <= '1';
+
+                WHEN AUTO_REFRESH_EXIT =>
+                    SdRam_Address(10) <= '0';
+                    -- Send auto refresh command
+                    SdRam_CKE <= '1';
+                    SdRam_RAS <= '0';
+                    SdRam_CAS <= '0';
+                    SdRam_WE <= '1';
+                    -- Move to noP
+                    SdRam_SdRamState <= NOP;
+                    IF (SdRam_NopCounter = SdRam_NopThreshold) THEN
+                        SdRam_NopCounter <= 0;
+                        -- AutoRefresh -> NOP -> AutoRefresh -> NOP -> MODE_REGISTER_SET
                         SdRam_SdRamNextState <= IDLE;
-                        SdRam_SdRamState <= NOP_WITH_COUNTER;
                     ELSE
-                        SdRam_DQM <= b"11";
-                        SdRam_Address(12 DOWNTO 0) <= b"0000000000000";
-                        SdRam_NopCounter <= SdRam_NopCounter + 1;
-                        SdRam_SdRamState <= SELF_REFRESH_EXIT;
+                        SdRam_SdRamNextState <= AUTO_REFRESH_EXIT;
                     END IF;
 
                 WHEN ACTIVE_STATE =>
@@ -184,6 +188,7 @@ BEGIN
                     SdRam_DQ <= (OTHERS => 'Z');
                     -- DQM is '11' cause we don't want to get feedback now
                     SdRam_DQM <= b"11";
+                    SdRam_AutoNumOfReadsWrites <= SdRam_AutoNumOfReadsWrites + 1;
                     IF (SdRam_RdEn = '1') THEN
                         -- This will be used to update the next rows once this happens
                         SdRam_RdFinish <= '0';
@@ -227,7 +232,7 @@ BEGIN
                     IF (SdRam_DataColsIndex = 1) THEN
                         SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
                         SdRam_DataColsIndex <= 0;
-                        IF SdRam_RdEn = '1' THEN
+                        IF SdRam_RdEn = '1' AND (SdRam_AutoNumOfReadsWrites < SdRam_MaxReadsWrites) THEN
                             -- SEND ACTIVE
                             SdRam_CKE <= '1';
                             SdRam_RAS <= '0';
@@ -244,14 +249,18 @@ BEGIN
                         ELSE
                             SdRam_Bank(0) <= '0';
                             SdRam_BankSwitch <= '0';
-                            -- SEND SELF REFRESH
-                            SdRam_CKE <= '0';
+                            SdRam_Address(10) <= '0';
+                            -- Send auto refresh command
+                            SdRam_CKE <= '1';
                             SdRam_RAS <= '0';
                             SdRam_CAS <= '0';
                             SdRam_WE <= '1';
-                            SdRam_NopThreshold <= 9;
+                            SdRam_NopCounter <= 0;
+                            SdRam_NopThreshold <= 1;
                             SdRam_RdFinish <= '1';
-                            SdRam_SdRamState <= SELF_REFRESH_EXIT;
+                            SdRam_AutoNumOfReadsWrites <= (OTHERS => '0');
+                            SdRam_SdRamNextState <= AUTO_REFRESH_EXIT;
+                            SdRam_SdRamState <= NOP;
                         END IF;
                     ELSE
                         SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
@@ -311,7 +320,7 @@ BEGIN
                         SdRam_Address(12 DOWNTO 0) <= STD_LOGIC_VECTOR(SdRam_RowsAddress_reg);
                         SdRam_NopThreshold <= 0;
                         SdRam_SdRamState <= ACTIVE_STATE;
-                    ELSIF SdRam_WrEn = '1' THEN
+                    ELSIF SdRam_WrEn = '1' AND (SdRam_AutoNumOfReadsWrites < SdRam_MaxReadsWrites) THEN
                         -- SEND ACTIVE
                         SdRam_CKE <= '1';
                         SdRam_RAS <= '0';
@@ -328,21 +337,23 @@ BEGIN
                         END IF;
                         SdRam_NopThreshold <= 0;
                         SdRam_SdRamState <= ACTIVE_STATE;
-                    ELSIF SdRam_WrEn = '0' THEN
+                    ELSE
                         SdRam_RowsAddress_reg <= SdRam_RowsAddress_reg + 1;
                         SdRam_ColsAddress_reg <= SdRam_ColsAddress_reg + 1;
                         SdRam_Bank(0) <= '0';
                         SdRam_BankSwitch <= '0';
-                        -- SEND SELF REFRESH
-                        SdRam_CKE <= '0';
+                        SdRam_Address(10) <= '0';
+                        -- Send auto refresh command
+                        SdRam_CKE <= '1';
                         SdRam_RAS <= '0';
                         SdRam_CAS <= '0';
                         SdRam_WE <= '1';
-                        -- DEFAULT ADDRESS VALUE
-                        SdRam_Address(9 DOWNTO 0) <= b"0000000000";
-                        SdRam_NopThreshold <= 9;
+                        SdRam_NopCounter <= 0;
+                        SdRam_NopThreshold <= 1;
+                        SdRam_AutoNumOfReadsWrites <= (OTHERS => '0');
                         SdRam_WrFinish <= '1';
-                        SdRam_SdRamState <= SELF_REFRESH_EXIT;
+                        SdRam_SdRamNextState <= AUTO_REFRESH_EXIT;
+                        SdRam_SdRamState <= NOP;
                     END IF;
 
                 WHEN NOP_WITH_COUNTER =>

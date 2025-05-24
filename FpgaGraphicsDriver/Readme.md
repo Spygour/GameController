@@ -4,14 +4,15 @@ To keep the repository clean and avoid committing temporary or tool-generated fi
 
 ```gitignore
 # Ignore common Quartus/EDA tool output directories
+.gitignore
 db/
 greybox_tmp/
 incremental_db/
 output_files/
 simulation/
-
-# Ignore common temporary or auto-generated files
 *.bak
 *.ipregen.rpt
 *.txt
-qmegawiz_errors_log.txt
+*.rpt
+*.qws
+qmegawiz_errors_log.txts
