@@ -1,140 +1,139 @@
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-library work;
-use work.DataHandlerTypes.all
-use work.SdRamTypes.all;
-use work.SpiSlaveTypes.all;
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+LIBRARY work;
+USE work.DataHandlerTypes.ALL;
+USE work.SdRamTypes.ALL;
 
-entity VideoCtlr is 
-    port(VideoCtlr_Reset_n : in std_logic := '1';
-         -- Clocks
-         VideoCtlr_ActlClk : in std_logic := '0';
-         -- SDRAM PINS
-         VideoCtlr_SdRamClkOut : out std_logic;
-         VideoCtlr_Address : out std_logic_vector (12 downto 0) := (others => '0');
-         VideoCtlr_Bank : out std_logic_vector (1 downto 0) := (others => '0');
-         VideoCtlr_CAS : out std_logic := '0';
-         VideoCtlr_CKE : out std_logic := '0';
-         VideoCtlr_SdRamCS : out std_logic := '1';
-         VideoCtlr_DQM : out std_logic_vector (0 to 1) := (others => '0');
-         VideoCtlr_DQ : inout std_logic_vector (15 downto 0) := (others => '0');
-         VideoCtlr_RAS : out std_logic := '0';
-         VideoCtlr_WE : out std_logic := '0';
-	     VideoCtlr_DebugLeds : out std_logic_vector (7 downto 0) := (others => '0');
-         -- SPI PINS
-        VideoCtlr_SpiClk   : in std_logic;
-        VideoCtlr_So     : out std_logic := '0';
-        VideoCtlr_Si     : in  std_logic;
-        VideoCtlr_Cs       : in std_logic;
-        VideoCtlr_SpiReady : out std_logic := '0'
-         );
-
-end VideoCtlr;
-
-architecture rtl of VideoCtlr is
-
-    type VideoCtlr_STATE is
-    (
-        START_WRITE,
-        WAIT_START,
-        WAIT_WRITE,
-        WRITE_SDRAM,
-        START_READ,
-        CHECK_DATA_AVAILABLE,
-        READ_DATA,
-        READ_DATA_NEW,
-		DATA_READ_RESTART
-    );
-
-    signal VideoCtlr_SdRamClk : std_logic := '0';
-    signal VideoCtlr_GlobalClk : std_logic := '0';
-    signal VideoCtlr_PllLocked : std_logic := '0';
-
-
-    signal VideoCtlr_Finish :  std_logic := '1'
-	signal VideoCtlr_Start :  std_logic;
-    signal VideoCtlr_Xaxis :  DataPart_t := (others => (others => '0'));
-    signal VideoCtlr_Yaxis :  DataPart_t := (others => (others => '0'));
-    signal VideoCtlr_Resolution :  DataPart_t := (others => (others => '0'));
-    signal VideoCtlr_Color :  DataColor_t := (others => (others => '0'));
-    signal VideoCtlr_SpiWordsReg :  integer := 0;
-    signal VideoCtlr_DataAvailable :  std_logic := '0'
-begin
-    SdRamPll:entity work.SdRamPll(SYN)
-    port map
-    (
-       areset => VideoCtlr_Reset_n,
-       inclk0 => VideoCtlr_ActlClk,	
-       c0     => VideoCtlr_SdRamClk,
-       c1     => VideoCtlr_GlobalClk,
-       locked => VideoCtlr_PllLocked
-    );
-
-    DataHandler:entity work.DataHandler(rtl)
-    port map
-    (
-        DataHandler_Reset_n  => VideoCtlr_Reset_Sync
+ENTITY VideoCtrl IS
+    PORT (
+        VideoCtrl_Reset_n : IN STD_LOGIC := '1';
         -- Clocks
-        DataHandler_ActlClk  => VideoCtlr_ActlClk
-        DataHandler_SdRamClk => VideoCtlr_SdRamClk
-        DataHandler_GlobalClk  => VideoCtlr_GlobalClk
-        DataHandler_PllLocked  => VideoCtlr_PllLocked
+        VideoCtrl_ActlClk : IN STD_LOGIC := '0';
         -- SDRAM PINS
-        DataHandler_SdRamClkOut => VideoCtlr_SdRamClkOut
-        DataHandler_Address => VideoCtlr_Address
-        DataHandler_Bank    => VideoCtlr_Bank
-        DataHandler_CAS =>  VideoCtlr_CAS
-        DataHandler_CKE =>  VideoCtlr_CKE
-        DataHandler_SdRamCS =>  VideoCtlr_SdRamCS
-        DataHandler_DQM =>  VideoCtlr_DQM
-        DataHandler_DQ  =>  VideoCtlr_DQ
-        DataHandler_RAS =>  VideoCtlr_RAS
-        DataHandler_WE  =>  VideoCtlr_WE
-        DataHandler_DebugLeds => VideoCtlr_DebugLeds
+        VideoCtrl_SdRamClkOut : OUT STD_LOGIC;
+        VideoCtrl_Address : OUT STD_LOGIC_VECTOR (12 DOWNTO 0) := (OTHERS => '0');
+        VideoCtrl_Bank : OUT STD_LOGIC_VECTOR (1 DOWNTO 0) := (OTHERS => '0');
+        VideoCtrl_CAS : OUT STD_LOGIC := '0';
+        VideoCtrl_CKE : OUT STD_LOGIC := '0';
+        VideoCtrl_SdRamCS : OUT STD_LOGIC := '1';
+        VideoCtrl_DQM : OUT STD_LOGIC_VECTOR (0 TO 1) := (OTHERS => '0');
+        VideoCtrl_DQ : INOUT STD_LOGIC_VECTOR (15 DOWNTO 0) := (OTHERS => '0');
+        VideoCtrl_RAS : OUT STD_LOGIC := '0';
+        VideoCtrl_WE : OUT STD_LOGIC := '0';
+        VideoCtrl_DebugLeds : OUT STD_LOGIC_VECTOR (7 DOWNTO 0) := (OTHERS => '0');
         -- SPI PINS
-        DataHandler_SpiClk => VideoCtlr_SpiClk
-        DataHandler_So => VideoCtlr_So
-        DataHandler_Si => VideoCtlr_Si
-        DataHandler_Cs => VideoCtlr_Cs
-        DataHandler_SpiReady => VideoCtlr_SpiReady
-        DataHandler_Finish  => VideoCtlr_Finish
-        DataHandler_Start => VideoCtlr_Start
-        DataHandler_Xaxis => VideoCtlr_Xaxis
-        DataHandler_Yaxis => VideoCtlr_Yaxis
-        DataHandler_Resolution => VideoCtlr_Resolution
-        DataHandler_Color => VideoCtlr_Color
-        DataHandler_SpiWordsReg => VideoCtlr_SpiWordsReg
-        DataHandler_DataAvailable => VideoCtlr_DataAvailable
+        VideoCtrl_SpiClk : IN STD_LOGIC;
+        VideoCtrl_So : OUT STD_LOGIC := '0';
+        VideoCtrl_Si : IN STD_LOGIC_VECTOR(0 TO 2);
+        VideoCtrl_Cs : IN STD_LOGIC;
+        VideoCtrl_SpiReady : OUT STD_LOGIC
     );
-    
-    process(VideoCtlr_SdRamClk ,VideoCtlr_Reset_Sync, VideoCtlr_PllLocked) is
-    begin
-        if (VideoCtlr_Reset_Sync = '1') then
 
-        elsif rising_edge(VideoCtlr_SdRamClk) and VideoCtlr_PllLocked = '1' then
- 
-        end if;
-    end process;
+END VideoCtrl;
 
-    process(VideoCtlr_Reset_Sync, VideoCtlr_SdRamClk, VideoCtlr_PllLocked) is
-    begin
-        if (VideoCtlr_Reset_Sync = '1') then
-       
-        elsif rising_edge(VideoCtlr_SdRamClk) and VideoCtlr_PllLocked = '1' then
+ARCHITECTURE rtl OF VideoCtrl IS
 
-        end if;
-	end process;
+    TYPE VideoCtrl_STATE IS
+    (
+    START_WRITE,
+    WAIT_START,
+    WAIT_WRITE,
+    WRITE_SDRAM,
+    START_READ,
+    CHECK_DATA_AVAILABLE,
+    READ_DATA,
+    READ_DATA_NEW,
+    DATA_READ_RESTART
+    );
 
-    process (VideoCtlr_Reset_n, VideoCtlr_PllLocked) is
-    begin
-        if (VideoCtlr_Reset_n = '1') then
-            VideoCtlr_Reset_Sync <= '1';
-        elsif VideoCtlr_PllLocked='1' then
-            VideoCtlr_Reset_Sync <= '0';
-		  else
-			VideoCtlr_Reset_Sync <= '1';
-        end if;
-    end process;
+    SIGNAL VideoCtrl_SdRamClk : STD_LOGIC := '0';
+    SIGNAL VideoCtrl_GlobalClk : STD_LOGIC := '0';
+    SIGNAL VideoCtrl_PllLocked : STD_LOGIC := '0';
+    SIGNAL VideoCtrl_Finish : STD_LOGIC := '1';
+    SIGNAL VideoCtrl_Start : STD_LOGIC;
+    SIGNAL VideoCtrl_Xaxis : DataPart_t := (OTHERS => (OTHERS => '0'));
+    SIGNAL VideoCtrl_Yaxis : DataPart_t := (OTHERS => (OTHERS => '0'));
+    SIGNAL VideoCtrl_Resolution : DataPart_t := (OTHERS => (OTHERS => '0'));
+    SIGNAL VideoCtrl_Color : DataColor_t := (OTHERS => (OTHERS => '0'));
+    SIGNAL VideoCtrl_SpiWordsReg : INTEGER := 0;
+    SIGNAL VideoCtrl_DataAvailable : STD_LOGIC := '0';
+    SIGNAL VideoCtrl_Reset_Sync : STD_LOGIC := '0';
 
-end architecture;
+BEGIN
+    SdRamPll : ENTITY work.SdRamPll(SYN)
+        PORT MAP
+        (
+            areset => VideoCtrl_Reset_n,
+            inclk0 => VideoCtrl_ActlClk,
+            c0 => VideoCtrl_SdRamClk,
+            c1 => VideoCtrl_GlobalClk,
+            locked => VideoCtrl_PllLocked
+        );
+
+    DataHandler : ENTITY work.DataHandler(rtl)
+        PORT MAP
+        (
+            DataHandler_Reset_n => VideoCtrl_Reset_Sync,
+            -- Clocks
+            DataHandler_ActlClk => VideoCtrl_ActlClk,
+            DataHandler_SdRamClk => VideoCtrl_SdRamClk,
+            DataHandler_GlobalClk => VideoCtrl_GlobalClk,
+            DataHandler_PllLocked => VideoCtrl_PllLocked,
+            -- SDRAM PINS
+            DataHandler_SdRamClkOut => VideoCtrl_SdRamClkOut,
+            DataHandler_Address => VideoCtrl_Address,
+            DataHandler_Bank => VideoCtrl_Bank,
+            DataHandler_CAS => VideoCtrl_CAS,
+            DataHandler_CKE => VideoCtrl_CKE,
+            DataHandler_SdRamCS => VideoCtrl_SdRamCS,
+            DataHandler_DQM => VideoCtrl_DQM,
+            DataHandler_DQ => VideoCtrl_DQ,
+            DataHandler_RAS => VideoCtrl_RAS,
+            DataHandler_WE => VideoCtrl_WE,
+            DataHandler_DebugLeds => VideoCtrl_DebugLeds,
+            -- SPI PINS
+            DataHandler_SpiClk => VideoCtrl_SpiClk,
+            DataHandler_So => VideoCtrl_So,
+            DataHandler_Si => VideoCtrl_Si,
+            DataHandler_Cs => VideoCtrl_Cs,
+            DataHandler_Start => VideoCtrl_Start,
+            DataHandler_Xaxis => VideoCtrl_Xaxis,
+            DataHandler_Yaxis => VideoCtrl_Yaxis,
+            DataHandler_Resolution => VideoCtrl_Resolution,
+            DataHandler_Color => VideoCtrl_Color,
+            DataHandler_SpiWordsReg => VideoCtrl_SpiWordsReg,
+            DataHandler_SpiReady => VideoCtrl_SpiReady,
+            DataHandler_Finish => VideoCtrl_Finish
+        );
+
+    PROCESS (VideoCtrl_SdRamClk, VideoCtrl_Reset_Sync, VideoCtrl_PllLocked) IS
+    BEGIN
+        IF (VideoCtrl_Reset_Sync = '1') THEN
+
+        ELSIF rising_edge(VideoCtrl_SdRamClk) AND VideoCtrl_PllLocked = '1' THEN
+
+        END IF;
+    END PROCESS;
+
+    PROCESS (VideoCtrl_Reset_Sync, VideoCtrl_SdRamClk, VideoCtrl_PllLocked) IS
+    BEGIN
+        IF (VideoCtrl_Reset_Sync = '1') THEN
+
+        ELSIF rising_edge(VideoCtrl_SdRamClk) AND VideoCtrl_PllLocked = '1' THEN
+
+        END IF;
+    END PROCESS;
+
+    PROCESS (VideoCtrl_Reset_n, VideoCtrl_PllLocked) IS
+    BEGIN
+        IF (VideoCtrl_Reset_n = '1') THEN
+            VideoCtrl_Reset_Sync <= '1';
+        ELSIF VideoCtrl_PllLocked = '1' THEN
+            VideoCtrl_Reset_Sync <= '0';
+        ELSE
+            VideoCtrl_Reset_Sync <= '1';
+        END IF;
+    END PROCESS;
+
+END ARCHITECTURE;
