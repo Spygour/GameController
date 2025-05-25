@@ -250,17 +250,16 @@ BEGIN
                             SdRam_Bank(0) <= '0';
                             SdRam_BankSwitch <= '0';
                             SdRam_Address(10) <= '0';
-                            -- Send auto refresh command
+                            -- SEND NOP
                             SdRam_CKE <= '1';
-                            SdRam_RAS <= '0';
-                            SdRam_CAS <= '0';
+                            SdRam_RAS <= '1';
+                            SdRam_CAS <= '1';
                             SdRam_WE <= '1';
                             SdRam_NopCounter <= 0;
-                            SdRam_NopThreshold <= 1;
+                            SdRam_NopThreshold <= 0;
                             SdRam_RdFinish <= '1';
-                            SdRam_AutoNumOfReadsWrites <= (OTHERS => '0');
-                            SdRam_SdRamNextState <= AUTO_REFRESH_EXIT;
-                            SdRam_SdRamState <= NOP;
+                            SdRam_SdRamNextState <= IDLE;
+                            SdRam_SdRamState <= NOP_WITH_COUNTER;
                         END IF;
                     ELSE
                         SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
@@ -291,25 +290,20 @@ BEGIN
                 WHEN WRITE_STORE =>
                     -- SEND THE DATA
                     SdRam_DQ <= SdRam_DatacolsInput(SdRam_DataColsIndex);
+                    -- SEND NOP HERE
+                    SdRam_CKE <= '1';
+                    SdRam_RAS <= '1';
+                    SdRam_CAS <= '1';
+                    SdRam_WE <= '1';
                     IF (SdRam_DataColsIndex = 1) THEN
                         SdRam_DataColsIndex <= 0;
-                        -- SEND BURST TERMINATE
-                        SdRam_CKE <= '1';
-                        SdRam_RAS <= '1';
-                        SdRam_CAS <= '1';
-                        SdRam_WE <= '0';
-                        SdRam_SdRamState <= BURST_TERMINATE_WRITE;
+                        SdRam_SdRamState <= WRITE_FINISH;
                     ELSE
-                        -- SEND NOP HERE
-                        SdRam_CKE <= '1';
-                        SdRam_RAS <= '1';
-                        SdRam_CAS <= '1';
-                        SdRam_WE <= '1';
                         SdRam_DatacolsIndex <= SdRam_DatacolsIndex + 1;
                         SdRam_SdRamState <= WRITE_STORE;
                     END IF;
 
-                WHEN BURST_TERMINATE_WRITE =>
+                WHEN WRITE_FINISH =>
                     IF SdRam_BankSwitch = '1' THEN
                         -- SEND ACTIVE
                         SdRam_CKE <= '1';
@@ -343,17 +337,16 @@ BEGIN
                         SdRam_Bank(0) <= '0';
                         SdRam_BankSwitch <= '0';
                         SdRam_Address(10) <= '0';
-                        -- Send auto refresh command
+                        -- SEND NOP
                         SdRam_CKE <= '1';
-                        SdRam_RAS <= '0';
-                        SdRam_CAS <= '0';
+                        SdRam_RAS <= '1';
+                        SdRam_CAS <= '1';
                         SdRam_WE <= '1';
                         SdRam_NopCounter <= 0;
-                        SdRam_NopThreshold <= 1;
-                        SdRam_AutoNumOfReadsWrites <= (OTHERS => '0');
+                        SdRam_NopThreshold <= 0;
                         SdRam_WrFinish <= '1';
-                        SdRam_SdRamNextState <= AUTO_REFRESH_EXIT;
-                        SdRam_SdRamState <= NOP;
+                        SdRam_SdRamNextState <= IDLE;
+                        SdRam_SdRamState <= NOP_WITH_COUNTER;
                     END IF;
 
                 WHEN NOP_WITH_COUNTER =>
