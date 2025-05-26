@@ -34,7 +34,7 @@ ENTITY DataHandler IS
         DataHandler_SpiReady : OUT STD_LOGIC := '0';
         DataHandler_Xaxis : OUT DataPart_t := (OTHERS => (OTHERS => '0'));
         DataHandler_Yaxis : OUT DataPart_t := (OTHERS => (OTHERS => '0'));
-        DataHandler_Resolution : OUT DataPart_t := (OTHERS => (OTHERS => '0'));
+        DataHandler_Resolution : INOUT DataPart_t := (OTHERS => (OTHERS => '0'));
         DataHandler_Color : INOUT DataColor_t := (OTHERS => (OTHERS => '0'));
         -- DATA HANDLER CONTROL PINS
         DataHandler_Finish : OUT STD_LOGIC := '1';
@@ -238,7 +238,7 @@ BEGIN
                     END IF;
 
                 WHEN WAIT_WRITE =>
-                    IF (DataHandler_BankSwitch = '0' AND DataHandler_SdRamState = BURST_TERMINATE_WRITE) THEN
+                    IF (DataHandler_BankSwitch = '0' AND DataHandler_SdRamState = WRITE_FINISH) THEN
                         IF DataHandler_SdRamStoreState = END_STORE_DATA AND DataHandler_WriteDataBufferIdx = 64 THEN --write has been finished
                             -- DEACTIVATE THE WRITE COMMAND
                             DataHandler_WrEn <= '0';
@@ -273,7 +273,7 @@ BEGIN
                     END IF;
 
                 WHEN CHECK_DATA_AVAILABLE =>
-                    IF DataHandler_SpiWordsReg < DataHandler_Words THEN
+                    IF (DataHandler_SpiWordsReg + 1) < DataHandler_Words THEN
                         DataHandler_ColsAddress <= unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8)) & '0';
                         DataHandler_SdRamReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8)) & '0');
                         DataHandler_SdRamReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8)) & '0');
@@ -317,10 +317,9 @@ BEGIN
 
                 WHEN STORE_DATA =>
                     -- If we increase and overflows data is maximum
-                    IF DataHandler_SdRamState = READ_STORE AND (DataHandler_SpiWordsReg = 255 OR DataHandler_SpiWordsReg = DataHandler_Words OR DataHandler_Start = '0') THEN
-                        DataHandler_SdRamHandlerState <= READ_DATA_RESTART;
+                    IF DataHandler_SdRamState = READ_STORE AND (DataHandler_SpiWordsReg = 255 OR DataHandler_SpiWordsReg = DataHandler_Words) THEN
                         DataHandler_DebugLeds <= "11110100";
-                    ELSIF DataHandler_SdRamState = READ_STORE AND DataHandler_SpiWordsReg < DataHandler_Words THEN -- NEW DATA HAS BEEN ARRIVED
+                    ELSIF DataHandler_SdRamState = READ_STORE AND (DataHandler_SpiWordsReg + 1) < DataHandler_Words THEN -- NEW DATA HAS BEEN ARRIVED
                         DataHandler_Xaxis(0) <= DataHandler_ReadDataWord(0)(15 DOWNTO 8);
                         DataHandler_Xaxis(1) <= DataHandler_ReadDataWord(1)(15 DOWNTO 8);
                         DataHandler_Xaxis(2) <= DataHandler_ReadDataWord(2)(15 DOWNTO 8);
@@ -332,11 +331,12 @@ BEGIN
                         DataHandler_ReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(0)) + 1);
                         DataHandler_ReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(1)) + 1);
                         DataHandler_ReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(2)) + 1);
-                        -- Go back to read data in order to store the data for vga
-                        DataHandler_SdRamHandlerState <= READ_DATA_RESTART;
-                        DataHandler_DebugLeds <= "11111000";
+                        DataHandler_DebugLeds <= DataHandler_Resolution(to_integer(DataHandler_MisoIndexReg));
                     END IF;
+                    DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 2;
                     DataHandler_RdEn <= '0';
+                    -- Go back to read data in order to store the data for vga
+                    DataHandler_SdRamHandlerState <= READ_DATA_RESTART;
 
                 WHEN READ_DATA_RESTART =>
                     IF DataHandler_SdRamState = ACTIVE_STATE THEN
@@ -345,11 +345,11 @@ BEGIN
                         DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(7 DOWNTO 0) <= DataHandler_DataColsInput(1)(15 DOWNTO 8);
                         DataHandler_Finish <= '1';
                         DataHandler_SdRamHandlerState <= READ_DATA_IDLE;
-                        DataHandler_DebugLeds <= "11111100";
+                        DataHandler_DebugLeds <= DataHandler_Resolution(to_integer(0));
                     END IF;
 
                 WHEN READ_DATA_IDLE =>
-                    IF (DataHandler_Start = '1' AND DataHandler_SpiWordsReg < DataHandler_Words) THEN
+                    IF (DataHandler_Start = '1' AND (DataHandler_SpiWordsReg + 1) < DataHandler_Words) THEN
                         DataHandler_ColsAddress(8 DOWNTO 0) <= unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8)) & '0';
                         DataHandler_SdRamReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8)) & '0');
                         DataHandler_SdRamReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8)) & '0');
@@ -358,10 +358,18 @@ BEGIN
                         DataHandler_Resolution(0) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
                         DataHandler_Resolution(1) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
                         DataHandler_Resolution(2) <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
+
                         DataHandler_Finish <= '0';
                         DataHandler_RdEn <= '1';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
                         DataHandler_DebugLeds <= "11110011";
+                    ELSIF ((DataHandler_Start = '1') AND (DataHandler_SpiWordsReg = DataHandler_Words) AND (DataHandler_EndSpi = '1')) THEN
+                        -- START THE SPI and prepare the spi ready
+                        DataHandler_SpiWordsReg <= 0;
+                        DataHandler_StartSpi <= '1';
+                        DataHandler_SpiReady <= '1';
+                        DataHandler_DebugLeds <= "00000011";
+                        DataHandler_SdRamHandlerState <= START_READ;
                     END IF;
 
                 WHEN OTHERS => NULL;
