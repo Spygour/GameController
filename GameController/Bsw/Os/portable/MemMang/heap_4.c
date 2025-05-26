@@ -39,14 +39,14 @@
  * task.h is included from an application file. */
 #define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
-#include "FreeRTOS.h"
-#include "task.h"
+#include "../Bsw/Os/include/FreeRTOS.h"
+#include "../Bsw/Os/include/task.h"
 
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
 #if ( configSUPPORT_DYNAMIC_ALLOCATION == 0 )
-    #error This file must not be used if configSUPPORT_DYNAMIC_ALLOCATION is 0
-#endif
+    /* Return from there */
+#else
 
 /* Block sizes must not get too small. */
 #define heapMINIMUM_BLOCK_SIZE    ( ( size_t ) ( xHeapStructSize << 1 ) )
@@ -500,3 +500,4 @@ void vPortGetHeapStats( HeapStats_t * pxHeapStats )
     }
     taskEXIT_CRITICAL();
 }
+#endif

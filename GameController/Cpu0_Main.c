@@ -61,7 +61,7 @@ int core0_main(void)
     Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
     while(1)
     {
-      PixelSend_SendSpi(100);
+      PixelSend_SendSpi(20);
       wait(time100ms);
     }
     return (1);

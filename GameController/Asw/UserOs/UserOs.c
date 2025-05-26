@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file PixelSend.c
+ * \file UserOs.c
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -29,53 +29,26 @@
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "../Bsw/QuadSpi/QSpiAtom.h"
-#include "../Bsw/Ports/Ports.h"
-#include "PixelSend.h"
+#include "UserOs.h"
 
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define PIXELSEND_READY MODULE_P00,3
-#define QSPI_FREQUENCY 10000000
-#define PIXELSEND_MAXSIZE 512U
-#define PIXELSEND_MOSI1                       0u
-#define PIXELSEND_MOSI2                       1u
-#define PIXELSEND_MOSI3                       2u
-#define PIXELSEND_CHIP_SELECT                 3u
-#define PIXELSEND_CLOCK                       4u
-#define PIXELSEND_MASTERCLOCK                 &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT
-#define PIXELSEND_RESET MODULE_P00,4
+#define TASK_1_MS_STACK_SIZE 1024
+
+#define TASK_500_MS_STACK_SIZE 1024
+
+#define TASK_1_MS_PRIORITY 2
+
+#define TASK_500_MS_PRIORITY 1
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-/* SPI Configuration Registers */
-IfxGtm_Atom_ToutMapP PixelSend_SpiSignals[5] =
-{
-    [PIXELSEND_MOSI1] = &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
-    [PIXELSEND_MOSI2] = &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
-    [PIXELSEND_MOSI3] = &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
-    [PIXELSEND_CHIP_SELECT] = &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
-    [PIXELSEND_CLOCK] = &IfxGtm_ATOM0_5_TOUT41_P23_0_OUT
-};
+StaticTask_t xTaskBuffer[2];
 
-static uint16 PixelSend_SpiData1[PIXELSEND_MAXSIZE];
-static uint16 PixelSend_SpiData2[PIXELSEND_MAXSIZE];
-static uint16 PixelSend_SpiData3[PIXELSEND_MAXSIZE];
+StackType_t xStack_1ms[TASK_1_MS_STACK_SIZE];
 
-QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
-{
-  PixelSend_SpiData1,
-  PixelSend_SpiData2,
-  PixelSend_SpiData3
-};
-
-PIXELSEND_WALL PixelSend_Wall = {
-1u,
-0xA2u,
-0x10u,
-0x2u
-};
+StackType_t xStack_500ms[TASK_500_MS_STACK_SIZE];
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -83,58 +56,110 @@ PIXELSEND_WALL PixelSend_Wall = {
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-void PixeSend_SetData(void);
+
 /*********************************************************************************************************************/
 /*---------------------------------------------Function Implementations----------------------------------------------*/
 /*********************************************************************************************************************/
-
-void PixelSend_Init(void)
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
+                                    StackType_t **ppxIdleTaskStackBuffer,
+                                    uint32_t *pulIdleTaskStackSize )
 {
-  boolean SpiReady;
-  Ports_SetPinInputNoPull(&PIXELSEND_READY);
+/* If the buffers to be provided to the Idle task are declared inside this
+function then they must be declared static - otherwise they will be allocated on
+the stack and so not exists after this function exits. */
+static StaticTask_t xIdleTaskTCB;
+static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
 
-  /* Initialize the fpga reset pin */
-  Ports_SetPinOutputPullup(&PIXELSEND_RESET);
-  /* Initialize the Spi Pin */
-  QSpiAtom_Init(QSPI_FREQUENCY,  PIXELSEND_MASTERCLOCK, PixelSend_SpiSignals, PixelSend_SpiData);
+    /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
+    state will be stored. */
+    *ppxIdleTaskTCBBuffer = &xIdleTaskTCB;
 
-  Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
-  wait(time100ms);
-  /* Start the fpga */
-  Ports_SetPinOutputFalse(&PIXELSEND_RESET);
-  wait(time100ms);
-  PixeSend_SetData();
+    /* Pass out the array that will be used as the Idle task's stack. */
+    *ppxIdleTaskStackBuffer = &uxIdleTaskStack[0];
 
-  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  /* Wait till the port becomes true */
-  while (SpiReady == FALSE)
-  {
-    SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  }
+    /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
+    Note that, as the array is necessarily of type StackType_t,
+    configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer,
+StackType_t **ppxTimerTaskStackBuffer,
+configSTACK_DEPTH_TYPE *puxTimerTaskStackSize )
+{
+/* If the buffers to be provided to the Timer task are declared inside this
+function then they must be declared static - otherwise they will be allocated on
+the stack and so not exists after this function exits. */
+static StaticTask_t xTimerTaskTCB;
+static StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
+
+/* Pass out a pointer to the StaticTask_t structure in which the Timer
+task's state will be stored. */
+*ppxTimerTaskTCBBuffer = &xTimerTaskTCB;
+
+/* Pass out the array that will be used as the Timer task's stack. */
+*ppxTimerTaskStackBuffer = uxTimerTaskStack;
+
+/* Pass out the size of the array pointed to by *ppxTimerTaskStackBuffer.
+Note that, as the array is necessarily of type StackType_t,
+configTIMER_TASK_STACK_DEPTH is specified in words, not bytes. */
+*puxTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
+}
+
+void vApplicationIdleHook( void )
+{
+  /* Here the user can write in case reached a failure in the os */
 }
 
 
-void PixeSend_SetData(void)
+void OsTasks_setupTimerInterrupt(Ifx_STM *stm)
 {
-  for (uint8 i = 0u; i < 20u; i = i + 2u)
-  {
-    PixelSend_SpiData[0][i] = ((uint16)PixelSend_Wall.Color << 8) || (uint16)PixelSend_Wall.Resolution;
-    PixelSend_SpiData[0][i+1] = ((uint16)PixelSend_Wall.Xaxis << 8) || (uint16)PixelSend_Wall.Yaxis;
-  }
+    IfxStm_setCompareControl(stm,
+                             IfxStm_Comparator_0,
+                             IfxStm_ComparatorOffset_0,
+                             IfxStm_ComparatorSize_32Bits,
+                             IfxStm_ComparatorInterrupt_ir0);
+
+    IfxStm_clearCompareFlag(stm,
+                            IfxStm_Comparator_0);
+
+    {
+        volatile Ifx_SRC_SRCR *src;
+        src = IfxStm_getSrcPointer(stm, IfxStm_Comparator_0);
+        IfxSrc_init(src, (IfxSrc_Tos)IfxSrc_Tos_cpu0, configKERNEL_INTERRUPT_PRIORITY);
+        IfxSrc_enable(src);
+    }
+
+    {
+        uint32 stmCount= IfxStm_getLower(stm);
+        IfxStm_updateCompare(&MODULE_STM0,
+                             IfxStm_Comparator_0,
+                             stmCount + (configSTM_CLOCK_HZ/configTICK_RATE_HZ )* 100 );
+        IfxStm_enableComparatorInterrupt(stm, IfxStm_Comparator_0);
+    }
+}
+
+/**
+ * FreeRTOS Kernel Tick interrupt provider
+ * FreeRTOS needs kernel Tick through an interrupt occurring at configTICK_RATE_HZ rate.
+ * The ISR need to call the function vPortSystemTickHandler.
+ */
+IFX_INTERRUPT(OsTasks_TickProvider, 0, configKERNEL_INTERRUPT_PRIORITY)
+{
+  uint32 stmCount= IfxStm_getCompare(&MODULE_STM0, IfxStm_Comparator_0);
+  IfxStm_updateCompare(&MODULE_STM0,
+                               IfxStm_Comparator_0,
+                               stmCount + configSTM_CLOCK_HZ/configTICK_RATE_HZ );
+    vPortSystemTickHandler();
 }
 
 
-void PixelSend_SendSpi(uint16 size)
+
+
+
+void vTasksInit(void)
 {
-  boolean SpiReady;
-  /* Wait till the port becomes high */
-  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  if (SpiReady == TRUE)
-  {
-    QSpiAtom_StartQuadSpiTranscaction(size);
-  }
-  else
-  {
-    /* Do nothing */
-  }
+  OsTasks_setupTimerInterrupt(&MODULE_STM0);
+  /* Here we initialize the tasks there */
+  vTaskStartScheduler();
 }

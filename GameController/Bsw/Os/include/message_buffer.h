@@ -66,7 +66,7 @@
 #endif
 
 /* Message buffers are built onto of stream buffers. */
-#include "stream_buffer.h"
+#include "../Bsw/Os/include/stream_buffer.h"
 
 /* *INDENT-OFF* */
 #if defined( __cplusplus )

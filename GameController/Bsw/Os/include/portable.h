@@ -48,7 +48,7 @@
  * included here.  In this case the path to the correct portmacro.h header file
  * must be set in the compiler's include path. */
 #ifndef portENTER_CRITICAL
-    #include "portmacro.h"
+    #include "../Bsw/Os/portable/TriCore/portmacro.h"
 #endif
 
 #if portBYTE_ALIGNMENT == 32

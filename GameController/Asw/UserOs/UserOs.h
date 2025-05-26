@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file PixelSend.c
+ * \file AirConditionOs.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,57 +25,34 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
+#ifndef ASW_OSTASKS_AIRCONDITIONOS_H_
+#define ASW_OSTASKS_AIRCONDITIONOS_H_
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "../Bsw/QuadSpi/QSpiAtom.h"
-#include "../Bsw/Ports/Ports.h"
-#include "PixelSend.h"
-
+#include "Ifx_Types.h"
+#include "Compilers.h"
+#include "IfxStm.h"
+#include "../Bsw/Os/include/FreeRTOS.h"
+#include "../Bsw/Os/include/task.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define PIXELSEND_READY MODULE_P00,3
-#define QSPI_FREQUENCY 10000000
-#define PIXELSEND_MAXSIZE 512U
-#define PIXELSEND_MOSI1                       0u
-#define PIXELSEND_MOSI2                       1u
-#define PIXELSEND_MOSI3                       2u
-#define PIXELSEND_CHIP_SELECT                 3u
-#define PIXELSEND_CLOCK                       4u
-#define PIXELSEND_MASTERCLOCK                 &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT
-#define PIXELSEND_RESET MODULE_P00,4
+
+#define TASK_5MS_STACK    1024
+#define TASK_1000MS_STACK 1024
+
+#define TASK_5MS_PRIORITY     1
+#define TASK_1000MS_PRIORITY  2
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-/* SPI Configuration Registers */
-IfxGtm_Atom_ToutMapP PixelSend_SpiSignals[5] =
-{
-    [PIXELSEND_MOSI1] = &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
-    [PIXELSEND_MOSI2] = &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
-    [PIXELSEND_MOSI3] = &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
-    [PIXELSEND_CHIP_SELECT] = &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
-    [PIXELSEND_CLOCK] = &IfxGtm_ATOM0_5_TOUT41_P23_0_OUT
-};
 
-static uint16 PixelSend_SpiData1[PIXELSEND_MAXSIZE];
-static uint16 PixelSend_SpiData2[PIXELSEND_MAXSIZE];
-static uint16 PixelSend_SpiData3[PIXELSEND_MAXSIZE];
-
-QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
-{
-  PixelSend_SpiData1,
-  PixelSend_SpiData2,
-  PixelSend_SpiData3
-};
-
-PIXELSEND_WALL PixelSend_Wall = {
-1u,
-0xA2u,
-0x10u,
-0x2u
-};
+/*********************************************************************************************************************/
+/*-------------------------------------------------Data Structures---------------------------------------------------*/
+/*********************************************************************************************************************/
+ 
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -83,58 +60,6 @@ PIXELSEND_WALL PixelSend_Wall = {
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-void PixeSend_SetData(void);
-/*********************************************************************************************************************/
-/*---------------------------------------------Function Implementations----------------------------------------------*/
-/*********************************************************************************************************************/
-
-void PixelSend_Init(void)
-{
-  boolean SpiReady;
-  Ports_SetPinInputNoPull(&PIXELSEND_READY);
-
-  /* Initialize the fpga reset pin */
-  Ports_SetPinOutputPullup(&PIXELSEND_RESET);
-  /* Initialize the Spi Pin */
-  QSpiAtom_Init(QSPI_FREQUENCY,  PIXELSEND_MASTERCLOCK, PixelSend_SpiSignals, PixelSend_SpiData);
-
-  Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
-  wait(time100ms);
-  /* Start the fpga */
-  Ports_SetPinOutputFalse(&PIXELSEND_RESET);
-  wait(time100ms);
-  PixeSend_SetData();
-
-  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  /* Wait till the port becomes true */
-  while (SpiReady == FALSE)
-  {
-    SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  }
-}
 
 
-void PixeSend_SetData(void)
-{
-  for (uint8 i = 0u; i < 20u; i = i + 2u)
-  {
-    PixelSend_SpiData[0][i] = ((uint16)PixelSend_Wall.Color << 8) || (uint16)PixelSend_Wall.Resolution;
-    PixelSend_SpiData[0][i+1] = ((uint16)PixelSend_Wall.Xaxis << 8) || (uint16)PixelSend_Wall.Yaxis;
-  }
-}
-
-
-void PixelSend_SendSpi(uint16 size)
-{
-  boolean SpiReady;
-  /* Wait till the port becomes high */
-  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  if (SpiReady == TRUE)
-  {
-    QSpiAtom_StartQuadSpiTranscaction(size);
-  }
-  else
-  {
-    /* Do nothing */
-  }
-}
+#endif /* ASW_OSTASKS_AIRCONDITIONOS_H_ */

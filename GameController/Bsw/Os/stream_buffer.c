@@ -34,9 +34,9 @@
 #define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
 /* FreeRTOS includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "stream_buffer.h"
+#include "../Bsw/Os/include/FreeRTOS.h"
+#include "../Bsw/Os/include/task.h"
+#include "../Bsw/Os/include/stream_buffer.h"
 
 #if ( configUSE_TASK_NOTIFICATIONS != 1 )
     #error configUSE_TASK_NOTIFICATIONS must be set to 1 to build stream_buffer.c
