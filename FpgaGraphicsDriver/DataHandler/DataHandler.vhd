@@ -354,11 +354,11 @@ BEGIN
                         DataHandler_SdRamReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8)) & '0');
                         DataHandler_SdRamReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8)) & '0');
                         DataHandler_SdRamReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(2)(15 DOWNTO 8)) & '0');
-
+                        -- ReInit the new resolution data that the bram has
                         DataHandler_Resolution(0) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
                         DataHandler_Resolution(1) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
                         DataHandler_Resolution(2) <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
-
+                        -- DataHandler state machine restart
                         DataHandler_Finish <= '0';
                         DataHandler_RdEn <= '1';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
@@ -368,6 +368,7 @@ BEGIN
                         DataHandler_SpiWordsReg <= 0;
                         DataHandler_StartSpi <= '1';
                         DataHandler_SpiReady <= '1';
+                        DataHandler_Finish <= '0';
                         DataHandler_DebugLeds <= "00000011";
                         DataHandler_SdRamHandlerState <= START_READ;
                     END IF;
