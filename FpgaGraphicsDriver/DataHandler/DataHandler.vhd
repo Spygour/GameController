@@ -339,7 +339,8 @@ BEGIN
                     DataHandler_SdRamHandlerState <= READ_DATA_RESTART;
 
                 WHEN READ_DATA_RESTART =>
-                    IF DataHandler_SdRamState = ACTIVE_STATE THEN
+                    -- NOP_WITH_COUNTER IS THE NEXT STATE AFTER READ_STORE SINCE WE DISABLED THE RdEn, this helps to store the data and restart the data read before jump from idle to autorefresh
+                    IF DataHandler_SdRamState = NOP_WITH_COUNTER THEN
                         -- Store the color
                         DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(23 DOWNTO 8) <= DataHandler_DataColsInput(0);
                         DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(7 DOWNTO 0) <= DataHandler_DataColsInput(1)(15 DOWNTO 8);
