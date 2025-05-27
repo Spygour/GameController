@@ -37,8 +37,13 @@ ARCHITECTURE rtl OF VideoCtrl IS
     TYPE VIDEOCTRL_STATE_T IS
     (
     WAIT_SDRAM_WRITE,
-    WAIT_SPI_START,
-    READ_DATA
+    READ_DATA_X,
+    READ_DATA_Y,
+    READ_DATA_COLOR_G,
+    READ_DATA_COLOR_B,
+    READ_DATA_COLOR_R,
+    READ_DATA_RESOLUTION
+    DELAY_STATE
     );
 
     SIGNAL VideoCtrl_SdRamClk : STD_LOGIC := '0';
@@ -55,8 +60,10 @@ ARCHITECTURE rtl OF VideoCtrl IS
     SIGNAL VideoCtrl_DataAvailable : STD_LOGIC := '0';
     SIGNAL VideoCtrl_Reset_Sync : STD_LOGIC := '0';
     -- VideoCtlr state machine
+    SIGNAL VideoCtrl_Counter : integer :=0;
     SIGNAL VideoCtrl_State : VIDEOCTRL_STATE_T := WAIT_SDRAM_WRITE;
-    SIGNAL VideOCtrl_ActualColor : DataColor_t := (OTHERS => (OTHERS => '0'));
+    SIGNAL VideoCtrl_ActualColor : DataColor_t := (OTHERS => (OTHERS => '0'));
+    SIGNAL VideoCtrl_NextState : VIDEOCTRL_STATE_T := WAIT_SDRAM_WRITE;
 
 BEGIN
     SdRamPll : ENTITY work.SdRamPll(SYN)
@@ -109,35 +116,58 @@ BEGIN
     BEGIN
         IF (VideoCtrl_Reset_Sync = '1') THEN
             VideoCtrl_State <= WAIT_SDRAM_WRITE;
+            VideoCtrl_NextState <= WAIT_SDRAM_WRITE;
             VideoCtrl_Start <= '0';
+            VideoCtrl_Counter <= 0;
         ELSIF rising_edge(VideoCtrl_SdRamClk) AND VideoCtrl_PllLocked = '1' THEN
             CASE VideoCtrl_State IS
                 WHEN WAIT_SDRAM_WRITE =>
                     IF VideoCtrl_Finish = '0' THEN
                         VideoCtrl_Start <= '0';
-                        VideoCtrl_State <= WAIT_SPI_START;
+                        VideoCtrl_State <= READ_DATA_X;
                     END IF;
 
-                WHEN WAIT_SPI_START =>
+                WHEN READ_DATA_X =>
                     IF VideoCtrl_Finish = '1' THEN
-                        VideoCtrl_Idx <= VideoCtrl_Xaxis;
-                        VideoCtrl_State <= READ_DATA;
+                        VideoCtrl_DebugLeds <= VideoCtrl_Xaxis;
+                        VideoCtrl_NextState <= READ_DATA_Y;
+                        VideoCtrl_State <= DELAY_STATE;
                     END IF;
 
-                WHEN READ_DATA =>
-                    VideoCtrl_Idx <= VideoCtrl_Yaxis;
-                    VideoCtrl_State <= READ_DATA;
-                    VideoCtrl_ActualColor(0)(23 DOWNTO 16) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(0)(23 DOWNTO 16)) * unsigned(VideoCtrl_Resolution(0)) SRL 8, 8));
-                    VideoCtrl_ActualColor(1)(23 DOWNTO 16) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(1)(23 DOWNTO 16)) * unsigned(VideoCtrl_Resolution(1)) SRL 8, 8));
-                    VideoCtrl_ActualColor(2)(23 DOWNTO 16) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(2)(23 DOWNTO 16)) * unsigned(VideoCtrl_Resolution(2)) SRL 8, 8));
+                WHEN READ_DATA_Y =>
+                    VideoCtrl_DebugLeds <= VideoCtrl_Yaxis;
+                    VideoCtrl_NextState <= READ_DATA_COLOR_G;
+                    VideoCtrl_State <= DELAY_STATE;
 
-                    VideoCtrl_ActualColor(0)(15 DOWNTO 8) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(0)(15 DOWNTO 8)) * unsigned(VideoCtrl_Resolution(0)) SRL 8, 8));
-                    VideoCtrl_ActualColor(1)(15 DOWNTO 8) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(1)(15 DOWNTO 8)) * unsigned(VideoCtrl_Resolution(1)) SRL 8, 8));
-                    VideoCtrl_ActualColor(2)(15 DOWNTO 8) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(2)(15 DOWNTO 8)) * unsigned(VideoCtrl_Resolution(2)) SRL 8, 8));
+                WHEN READ_DATA_COLOR_G =>
+                    VideoCtrl_DebugLeds <= VideoCtrl_Color(23 downto 16);
+                    VideoCtrl_NextState <= READ_DATA_COLOR_B;
+                    VideoCtrl_State <= DELAY_STATE;
 
-                    VideoCtrl_ActualColor(0)(7 DOWNTO 0) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(0)(7 DOWNTO 0)) * unsigned(VideoCtrl_Resolution(0)) SRL 8, 8));
-                    VideoCtrl_ActualColor(1)(7 DOWNTO 0) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(1)(7 DOWNTO 0)) * unsigned(VideoCtrl_Resolution(1)) SRL 8, 8));
-                    VideoCtrl_ActualColor(2)(7 DOWNTO 0) <= STD_LOGIC_VECTOR(resize(unsigned(VideoCtrl_Color(2)(7 DOWNTO 0)) * unsigned(VideoCtrl_Resolution(2)) SRL 8, 8));
+                WHEN READ_DATA_COLOR_B =>
+                    VideoCtrl_DebugLeds <= VideoCtrl_Color(15 downto 8);
+                    VideoCtrl_NextState <= READ_DATA_COLOR_R;
+                    VideoCtrl_State <= DELAY_STATE;
+
+                WHEN READ_DATA_COLOR_G =>
+                    VideoCtrl_DebugLeds <= VideoCtrl_Color(7 downto 0);
+                    VideoCtrl_NextState <= READ_DATA_RESOLUTION;
+                    VideoCtrl_State <= DELAY_STATE;
+
+                WHEN READ_DATA_RESOLUTION =>
+                    VideoCtrl_DebugLeds <= VideoCtrl_Resolution;
+                    VideoCtrl_NextState <= END_STATE;
+                    VideoCtrl_State <= DELAY_STATE;
+
+                WHEN DELAY_STATE =>
+                    IF VideoCtrl_Counter = 100000000 THEN
+                        VideoCtrl_Counter <= 0;
+                        VideoCtrl_State <= VideoCtrl_NextState;
+                    ELSE
+                        VideoCtrl_Counter <= VideoCtrl_Counter + 1;
+                        VideoCtrl_State <= DELAY_STATE;
+                    END IF;
+                
                 WHEN OTHERS => NULL;
             END CASE;
 
