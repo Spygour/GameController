@@ -42,7 +42,7 @@ ARCHITECTURE rtl OF VideoCtrl IS
     READ_DATA_COLOR_G,
     READ_DATA_COLOR_B,
     READ_DATA_COLOR_R,
-    READ_DATA_RESOLUTION
+    READ_DATA_RESOLUTION,
     DELAY_STATE,
     END_STATE
     );
@@ -61,11 +61,11 @@ ARCHITECTURE rtl OF VideoCtrl IS
     SIGNAL VideoCtrl_DataAvailable : STD_LOGIC := '0';
     SIGNAL VideoCtrl_Reset_Sync : STD_LOGIC := '0';
     -- VideoCtlr state machine
-    SIGNAL VideoCtrl_Counter : integer :=0;
+    SIGNAL VideoCtrl_Counter : INTEGER := 0;
     SIGNAL VideoCtrl_State : VIDEOCTRL_STATE_T := WAIT_SDRAM_WRITE;
     SIGNAL VideoCtrl_ActualColor : DataColor_t := (OTHERS => (OTHERS => '0'));
     SIGNAL VideoCtrl_NextState : VIDEOCTRL_STATE_T := WAIT_SDRAM_WRITE;
-    SIGNAL VideoCtrl_MosiIndex: unsigned(1 DOWNTO 0) := "00";
+    SIGNAL VideoCtrl_MosiIndex : unsigned(1 DOWNTO 0) := "00";
 
 BEGIN
     SdRamPll : ENTITY work.SdRamPll(SYN)
@@ -98,20 +98,20 @@ BEGIN
             DataHandler_DQ => VideoCtrl_DQ,
             DataHandler_RAS => VideoCtrl_RAS,
             DataHandler_WE => VideoCtrl_WE,
-            DataHandler_DebugLeds => VideoCtrl_DebugLeds,
             -- SPI PINS
             DataHandler_SpiClk => VideoCtrl_SpiClk,
             DataHandler_So => VideoCtrl_So,
             DataHandler_Si => VideoCtrl_Si,
             DataHandler_Cs => VideoCtrl_Cs,
-            DataHandler_Start => VideoCtrl_Start,
+            DataHandler_SpiReady => VideoCtrl_SpiReady,
             DataHandler_Xaxis => VideoCtrl_Xaxis,
             DataHandler_Yaxis => VideoCtrl_Yaxis,
             DataHandler_Resolution => VideoCtrl_Resolution,
             DataHandler_Color => VideoCtrl_Color,
-            DataHandler_SpiWordsReg => VideoCtrl_SpiWordsReg,
-            DataHandler_SpiReady => VideoCtrl_SpiReady,
-            DataHandler_Finish => VideoCtrl_Finish
+            DataHandler_DebugLeds => VideoCtrl_DebugLeds,
+            DataHandler_Finish => VideoCtrl_Finish,
+            DataHandler_Start => VideoCtrl_Start,
+            DataHandler_SpiWordsReg => VideoCtrl_SpiWordsReg
         );
 
     PROCESS (VideoCtrl_SdRamClk, VideoCtrl_Reset_Sync, VideoCtrl_PllLocked) IS
@@ -122,61 +122,64 @@ BEGIN
             VideoCtrl_Start <= '0';
             VideoCtrl_Counter <= 0;
             VideoCtrl_MosiIndex <= "00";
+            --VideoCtrl_DebugLeds <= "00000000";
         ELSIF rising_edge(VideoCtrl_SdRamClk) AND VideoCtrl_PllLocked = '1' THEN
             CASE VideoCtrl_State IS
                 WHEN WAIT_SDRAM_WRITE =>
                     IF VideoCtrl_Finish = '0' THEN
                         VideoCtrl_Start <= '0';
                         VideoCtrl_State <= READ_DATA_X;
+                        --VideoCtrl_DebugLeds <= "00110011";
                     END IF;
 
                 WHEN READ_DATA_X =>
                     IF VideoCtrl_Finish = '1' THEN
-                        VideoCtrl_DebugLeds <= VideoCtrl_Xaxis(to_integer(VideoCtrl_MosiIndex));
-                        VideoCtrl_NextState <= READ_DATA_Y;
+                        VideoCtrl_NextState <= READ_DATA_X;
                         VideoCtrl_State <= DELAY_STATE;
+                    ELSE
+                        VideoCtrl_NextState <= READ_DATA_X;
                     END IF;
 
                 WHEN READ_DATA_Y =>
-                    VideoCtrl_DebugLeds <= VideoCtrl_Yaxis(to_integer(VideoCtrl_MosiIndex));
+                    --VideoCtrl_DebugLeds <= VideoCtrl_Yaxis(to_integer(VideoCtrl_MosiIndex));
                     VideoCtrl_NextState <= READ_DATA_COLOR_G;
                     VideoCtrl_State <= DELAY_STATE;
 
                 WHEN READ_DATA_COLOR_G =>
-                    VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(23 downto 16);
+                    --VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(23 DOWNTO 16);
                     VideoCtrl_NextState <= READ_DATA_COLOR_B;
                     VideoCtrl_State <= DELAY_STATE;
 
                 WHEN READ_DATA_COLOR_B =>
-                    VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(15 downto 8);
+                    --VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(15 DOWNTO 8);
                     VideoCtrl_NextState <= READ_DATA_COLOR_R;
                     VideoCtrl_State <= DELAY_STATE;
 
-                WHEN READ_DATA_COLOR_G =>
-                    VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(7 downto 0);
+                WHEN READ_DATA_COLOR_R =>
+                    --VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(7 DOWNTO 0);
                     VideoCtrl_NextState <= READ_DATA_RESOLUTION;
                     VideoCtrl_State <= DELAY_STATE;
 
                 WHEN READ_DATA_RESOLUTION =>
-                    VideoCtrl_DebugLeds <= VideoCtrl_Resolution(to_integer(VideoCtrl_MosiIndex));
+                    --VideoCtrl_DebugLeds <= VideoCtrl_Resolution(to_integer(VideoCtrl_MosiIndex));
                     VideoCtrl_State <= DELAY_STATE;
                     IF (VideoCtrl_MosiIndex = "10") THEN
                         VideoCtrl_NextState <= END_STATE;
-                        VideoCtrl_MosiIndex <= "00"
+                        VideoCtrl_MosiIndex <= "00";
                     ELSE
                         VideoCtrl_MosiIndex <= VideoCtrl_MosiIndex + 1;
                         VideoCtrl_NextState <= READ_DATA_X;
                     END IF;
 
                 WHEN DELAY_STATE =>
-                    IF VideoCtrl_Counter = 100000000 THEN
+                    IF VideoCtrl_Counter = 200000000 THEN
                         VideoCtrl_Counter <= 0;
                         VideoCtrl_State <= VideoCtrl_NextState;
                     ELSE
                         VideoCtrl_Counter <= VideoCtrl_Counter + 1;
                         VideoCtrl_State <= DELAY_STATE;
                     END IF;
-                
+
                 WHEN OTHERS => NULL;
             END CASE;
 
