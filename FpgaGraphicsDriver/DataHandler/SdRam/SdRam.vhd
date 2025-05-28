@@ -26,23 +26,23 @@ ENTITY SdRam IS
         SdRam_DataColsInput : IN DataCols_t := (OTHERS => (OTHERS => '0'));
         SdRam_DataColsOutput : OUT DataCols_t := (OTHERS => (OTHERS => '0'));
         SdRam_RowsAddress : IN unsigned (12 DOWNTO 0);
-        SdRam_ColsAddress : IN unsigned (8 DOWNTO 0);
-        SdRam_SdRamState : INOUT SDRAM_STATE := POWERON;
-        SdRam_BankSwitch : INOUT STD_LOGIC := '0'
+        SdRam_ColsAddress : IN unsigned (8 DOWNTO 0)
     );
 
 END SdRam;
 
 ARCHITECTURE SYN OF SdRam IS
-    CONSTANT SdRam_MaxCycles : unsigned(9 DOWNTO 0) := "1100001101";
+    CONSTANT SdRam_MaxCycles : unsigned(9 DOWNTO 0) := "1011101110";
     SIGNAL SdRam_SdRamNextState : SDRAM_STATE := POWERON;
     SIGNAL SdRam_NopCounter : INTEGER := 0;
     SIGNAL SdRam_NopThreshold : INTEGER := 0;
     SIGNAL SdRam_DatacolsIndex : INTEGER := 0;
     SIGNAL SdRam_RowsAddress_reg : unsigned (12 DOWNTO 0) := (OTHERS => '0');
     SIGNAL SdRam_ColsAddress_reg : unsigned (8 DOWNTO 0) := (OTHERS => '0');
-    SIGNAL SdRam_AutoNumOfCycles :  unsigned(9 DOWNTO 0) := "0000000000"; --This should be increased on all the cycles except on IDLE second process
+    SIGNAL SdRam_AutoNumOfCycles : unsigned(9 DOWNTO 0) := "0000000000"; --This should be increased on all the cycles except on IDLE second process
     SIGNAL SdRam_AutoRefreshStartup : unsigned(0 DOWNTO 0) := "0";
+    SIGNAL SdRam_SdRamState : SDRAM_STATE := POWERON;
+    SIGNAL SdRam_BankSwitch : STD_LOGIC := '0';
 BEGIN
 
     SDRAM_CLKOUT <= SdRam_GlobalClk;
@@ -69,7 +69,7 @@ BEGIN
             SdRam_ColsAddress_reg <= (OTHERS => '0');
             SdRam_RowsAddress_reg <= (OTHERS => '0');
             SdRam_BankSwitch <= '0';
-            SdRam_AutoNumOfCycles <= (others => '0');
+            SdRam_AutoNumOfCycles <= (OTHERS => '0');
         ELSIF rising_edge(SdRam_SdRamClk) AND SdRam_PllLocked = '1' THEN
             CASE SdRam_SdRamState IS
                 WHEN POWERON =>
@@ -111,18 +111,17 @@ BEGIN
                     SdRam_RAS <= '0';
                     SdRam_CAS <= '0';
                     SdRam_WE <= '1';
-                    -- Move to noP
-                    SdRam_NopThreshold <= 5; -- Number of repetitions is 2
-                    SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
                     IF SdRam_AutoRefreshStartup = "1" THEN
-                        SdRam_NopThreshold <= 5; -- Number of repetitions is 2
+                        SdRam_NopThreshold <= 5; -- Number of repetitions is 5
                         SdRam_SdRamState <= NOP_WITH_COUNTER;
                         SdRam_SdRamNextState <= MODE_REGISTER_SET;
                     ELSE
                         SdRam_AutoRefreshStartup <= SdRam_AutoRefreshStartup + 1;
+                        SdRam_NopThreshold <= 5; -- Number of repetitions is 5
                         SdRam_SdRamState <= NOP_WITH_COUNTER;
                         SdRam_SdRamNextState <= AUTO_REFRESH_STARTUP;
                     END IF;
+                    SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
 
                 WHEN MODE_REGISTER_SET =>
                     --SEND REGISTER MODE
@@ -139,7 +138,7 @@ BEGIN
                     SdRam_SdRamNextState <= IDLE;
 
                 WHEN IDLE =>
-                    IF (SdRam_RdEn = '0' AND SdRam_WrEn = '0') OR (SdRam_AutoNumOfCycles >= SdRam_MaxCycles) THEN
+                    IF (SdRam_AutoNumOfCycles >= SdRam_MaxCycles) THEN
                         SdRam_Address(10) <= '0';
                         -- Send auto refresh command
                         SdRam_CKE <= '1';
@@ -147,10 +146,18 @@ BEGIN
                         SdRam_CAS <= '0';
                         SdRam_WE <= '1';
                         SdRam_NopCounter <= 0;
-                        SdRam_NopThreshold <= 6;
-                        SdRam_AutoNumOfCycles <= (others => '0');
+                        SdRam_NopThreshold <= 5;
+                        SdRam_AutoNumOfCycles <= (OTHERS => '0');
                         SdRam_SdRamNextState <= IDLE;
                         SdRam_SdRamState <= NOP_WITH_COUNTER;
+                    ELSIF (SdRam_RdEn = '0' AND SdRam_WrEn = '0') THEN
+                        -- SEND NOP
+                        SdRam_CKE <= '1';
+                        SdRam_RAS <= '1';
+                        SdRam_CAS <= '1';
+                        SdRam_WE <= '1';
+                        SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
+                        SdRam_SdRamState <= IDLE;
                     ELSE
                         -- SEND ACTIVE 
                         SdRam_CKE <= '1';
@@ -176,7 +183,6 @@ BEGIN
                     SdRam_DQ <= (OTHERS => 'Z');
                     -- DQM is '11' cause we don't want to get feedback now
                     SdRam_DQM <= b"11";
-                    SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
                     IF (SdRam_RdEn = '1') THEN
                         -- This will be used to update the next rows once this happens
                         SdRam_RdFinish <= '0';
@@ -193,14 +199,8 @@ BEGIN
                         SdRam_NopThreshold <= 0;
                         SdRam_SdRamNextState <= WRITE_STATE;
                         SdRam_SdRamState <= NOP_WITH_COUNTER;
-                    ELSE
-                        -- This will be used to update the next rows once this happens
-                        SdRam_WrFinish <= '0';
-                        -- Go to nop for one cycle since we run at 100 mhz
-                        SdRam_NopThreshold <= 0;
-                        SdRam_SdRamNextState <= WRITE_STATE;
-                        SdRam_SdRamState <= NOP_WITH_COUNTER;
                     END IF;
+                    SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
 
                 WHEN READ_STATE =>
                     -- SEND READ COMMAND
@@ -210,46 +210,36 @@ BEGIN
                     SdRam_WE <= '1';
                     SdRam_DQM <= b"00";
                     -- Choose the collumns address
-                    SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
                     SdRam_DQ <= (OTHERS => 'Z');
-                    SdRam_Address(12 DOWNTO 9) <= b"0010";
-                    SdRam_Address(8 DOWNTO 0) <= STD_LOGIC_VECTOR(SdRam_ColsAddress_reg);
+                    SdRam_Address <= b"0010" & STD_LOGIC_VECTOR(SdRam_ColsAddress_reg);
                     SdRam_NopThreshold <= 1;
                     SdRam_SdRamNextState <= READ_STORE;
                     SdRam_SdRamState <= NOP_WITH_COUNTER;
+                    SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
 
                 WHEN READ_STORE =>
-                    SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
-                    IF (SdRam_DataColsIndex = 1) THEN
+                    IF (SdRam_DataColsIndex = 2) THEN
                         SdRam_DataColsIndex <= 0;
-                        IF SdRam_RdEn = '1' AND (SdRam_AutoNumOfCycles < SdRam_MaxCycles) THEN
-                            -- SEND ACTIVE
-                            SdRam_CKE <= '1';
-                            SdRam_RAS <= '0';
-                            SdRam_CAS <= '1';
-                            SdRam_WE <= '1';
-                            SdRam_Bank(0) <= SdRam_BankSwitch;
-                            SdRam_BankSwitch <= NOT SdRam_BankSwitch;
-                            SdRam_Address(12 DOWNTO 0) <= STD_LOGIC_VECTOR(SdRam_RowsAddress_reg);
-                            -- Wait extra time here thats why its zero (WAIT FOR PRECHARGE)
-                            SdRam_NopThreshold <= 0;
-                            SdRam_SdRamState <= ACTIVE_STATE;
-                        ELSE
-                            SdRam_Bank(0) <= '0';
-                            SdRam_BankSwitch <= '0';
-                            SdRam_Address(10) <= '0';
-                            -- SEND NOP
-                            SdRam_CKE <= '1';
-                            SdRam_RAS <= '1';
-                            SdRam_CAS <= '1';
-                            SdRam_WE <= '1';
-                            SdRam_NopCounter <= 0;
-                            SdRam_NopThreshold <= 1;
-                            SdRam_RdFinish <= '1';
-                            SdRam_SdRamNextState <= IDLE;
-                            SdRam_SdRamState <= NOP_WITH_COUNTER;
-                        END IF;
+                        -- SEND NOP
+                        SdRam_DQM <= b"11";
+                        SdRam_CKE <= '1';
+                        SdRam_RAS <= '1';
+                        SdRam_CAS <= '1';
+                        SdRam_WE <= '1';
+                        SdRam_NopThreshold <= 1;
+                        SdRam_SdRamNextState <= READ_FINISH;
+                        SdRam_SdRamState <= NOP_WITH_COUNTER;
+                    ELSIF SdRam_DataColsIndex = 0 THEN
+                        SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
+                        -- SEND BURST STOP
+                        SdRam_CKE <= '1';
+                        SdRam_RAS <= '1';
+                        SdRam_CAS <= '1';
+                        SdRam_WE <= '0';
+                        SdRam_DataColsIndex <= SdRam_DataColsIndex + 1;
+                        SdRam_SdRamState <= READ_STORE;
                     ELSE
+                        SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
                         -- SEND NOP
                         SdRam_CKE <= '1';
                         SdRam_RAS <= '1';
@@ -260,16 +250,44 @@ BEGIN
                     END IF;
                     SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
 
+                WHEN READ_FINISH =>
+                    IF SdRam_RdEn = '1' AND (SdRam_AutoNumOfCycles < SdRam_MaxCycles) THEN
+                        -- SEND ACTIVE
+                        SdRam_CKE <= '1';
+                        SdRam_RAS <= '0';
+                        SdRam_CAS <= '1';
+                        SdRam_WE <= '1';
+                        SdRam_Bank <= '0' & SdRam_BankSwitch;
+                        SdRam_BankSwitch <= NOT SdRam_BankSwitch;
+                        SdRam_Address(12 DOWNTO 0) <= STD_LOGIC_VECTOR(SdRam_RowsAddress_reg);
+                        -- Wait extra time here thats why its zero (WAIT FOR PRECHARGE)
+                        SdRam_NopThreshold <= 0;
+                        SdRam_SdRamState <= ACTIVE_STATE;
+                    ELSE
+                        -- SEND NOP
+                        SdRam_CKE <= '1';
+                        SdRam_RAS <= '1';
+                        SdRam_CAS <= '1';
+                        SdRam_WE <= '1';
+                        SdRam_Address(10) <= '0';
+                        SdRam_Bank <= '0' & SdRam_BankSwitch;
+                        SdRam_BankSwitch <= NOT SdRam_BankSwitch;
+                        SdRam_SdRamState <= IDLE;
+                    END IF;
+                    SdRam_RdFinish <= '1';
+                    SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
+
                 WHEN WRITE_STATE =>
+                    -- ENABLE AUTO PRECHARGE
+                    SdRam_Address <= b"0010" & STD_LOGIC_VECTOR(SdRam_ColsAddress_reg);
+                    -- SEND THE DATA
+                    SdRam_DQ <= SdRam_DatacolsInput(SdRam_DataColsIndex);
+                    SdRam_DQM <= b"00";
                     -- SEND WRITE HERE
                     SdRam_CKE <= '1';
                     SdRam_RAS <= '1';
                     SdRam_CAS <= '0';
                     SdRam_WE <= '0';
-                    -- ENABLE AUTO PRECHARGE
-                    SdRam_Address <= b"0010" & STD_LOGIC_VECTOR(SdRam_ColsAddress_reg);
-                    SdRam_DQM <= b"00";
-                    SdRam_DQ <= SdRam_DatacolsInput(SdRam_DataColsIndex);
                     SdRam_DatacolsIndex <= SdRam_DatacolsIndex + 1;
                     -- PREPARE TO WRITE DATA IN TWO BANKS
                     SdRam_BankSwitch <= NOT SdRam_BankSwitch;
@@ -277,17 +295,25 @@ BEGIN
                     SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
 
                 WHEN WRITE_STORE =>
-                    -- SEND THE DATA
-                    SdRam_DQ <= SdRam_DatacolsInput(SdRam_DataColsIndex);
-                    -- SEND NOP HERE
-                    SdRam_CKE <= '1';
-                    SdRam_RAS <= '1';
-                    SdRam_CAS <= '1';
-                    SdRam_WE <= '1';
-                    IF (SdRam_DataColsIndex = 1) THEN
+                    IF (SdRam_DataColsIndex = 2) THEN
+                        SdRam_DQM <= b"11";
+                        -- SEND BURST STOP
+                        SdRam_CKE <= '1';
+                        SdRam_RAS <= '1';
+                        SdRam_CAS <= '1';
+                        SdRam_WE <= '0';
                         SdRam_DataColsIndex <= 0;
-                        SdRam_SdRamState <= WRITE_FINISH;
+                        SdRam_NopThreshold <= 4;
+                        SdRam_SdRamState <= NOP_WITH_COUNTER;
+                        SdRam_SdRamNextState <= WRITE_FINISH;
                     ELSE
+                        -- SEND THE DATA
+                        SdRam_DQ <= SdRam_DatacolsInput(SdRam_DataColsIndex);
+                        -- SEND NOP HERE
+                        SdRam_CKE <= '1';
+                        SdRam_RAS <= '1';
+                        SdRam_CAS <= '1';
+                        SdRam_WE <= '1';
                         SdRam_DatacolsIndex <= SdRam_DatacolsIndex + 1;
                         SdRam_SdRamState <= WRITE_STORE;
                     END IF;
@@ -296,23 +322,22 @@ BEGIN
                 WHEN WRITE_FINISH =>
                     IF SdRam_BankSwitch = '1' THEN
                         -- SEND ACTIVE
+                        SdRam_Bank <= '0' & SdRam_BankSwitch;
                         SdRam_CKE <= '1';
                         SdRam_RAS <= '0';
                         SdRam_CAS <= '1';
                         SdRam_WE <= '1';
-                        SdRam_Bank(0) <= SdRam_BankSwitch;
                         SdRam_Address(12 DOWNTO 0) <= STD_LOGIC_VECTOR(SdRam_RowsAddress_reg);
-                        SdRam_NopThreshold <= 0;
                         SdRam_SdRamState <= ACTIVE_STATE;
                     ELSIF SdRam_WrEn = '1' AND (SdRam_AutoNumOfCycles < SdRam_MaxCycles) THEN
                         -- SEND ACTIVE
+                        SdRam_Bank <= '0' & SdRam_BankSwitch;
                         SdRam_CKE <= '1';
                         SdRam_RAS <= '0';
                         SdRam_CAS <= '1';
                         SdRam_WE <= '1';
-                        SdRam_Bank(0) <= SdRam_BankSwitch;
                         -- Since we store 2 data the index should be 510 instead of 511
-                        IF (SdRam_ColsAddress_reg = x"1FE") THEN
+                        IF (SdRam_ColsAddress_reg >= x"1FE") THEN
                             SdRam_Address(12 DOWNTO 0) <= STD_LOGIC_VECTOR(SdRam_RowsAddress_reg + 1);
                             SdRam_RowsAddress_reg <= SdRam_RowsAddress_reg + 1;
                             SdRam_ColsAddress_reg <= (OTHERS => '0');
@@ -321,12 +346,12 @@ BEGIN
                             -- we store 2 data not one
                             SdRam_ColsAddress_reg <= SdRam_ColsAddress_reg + 2;
                         END IF;
-                        SdRam_NopThreshold <= 0;
+                        SdRam_WrFinish <= '1';
                         SdRam_SdRamState <= ACTIVE_STATE;
                     ELSIF (SdRam_WrEn = '0') OR (SdRam_AutoNumOfCycles >= SdRam_MaxCycles) THEN
                         -- we store 2 data not one
                         SdRam_ColsAddress_reg <= SdRam_ColsAddress_reg + 2;
-                        SdRam_Bank(0) <= '0';
+                        SdRam_Bank <= "00";
                         SdRam_BankSwitch <= '0';
                         SdRam_Address(10) <= '0';
                         -- SEND NOP
@@ -334,11 +359,8 @@ BEGIN
                         SdRam_RAS <= '1';
                         SdRam_CAS <= '1';
                         SdRam_WE <= '1';
-                        SdRam_NopCounter <= 0;
-                        SdRam_NopThreshold <= 1;
                         SdRam_WrFinish <= '1';
-                        SdRam_SdRamNextState <= IDLE;
-                        SdRam_SdRamState <= NOP_WITH_COUNTER;
+                        SdRam_SdRamState <= IDLE;
                     END IF;
                     SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
 
