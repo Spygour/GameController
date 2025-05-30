@@ -13,12 +13,12 @@ ENTITY SdRam IS
         SdRam_PllLocked : IN STD_LOGIC := '0';
         SdRam_Address : OUT STD_LOGIC_VECTOR (12 DOWNTO 0) := (OTHERS => '0');
         SdRam_Bank : OUT STD_LOGIC_VECTOR (1 DOWNTO 0) := b"00";
-        SdRam_CAS : OUT STD_LOGIC := '0';
-        SdRam_CKE : OUT STD_LOGIC := '0';
-        SdRam_DQM : OUT STD_LOGIC_VECTOR (0 TO 1) := (OTHERS => '0');
+        SdRam_CAS : OUT STD_LOGIC := '1';
+        SdRam_CKE : OUT STD_LOGIC := '1';
+        SdRam_DQM : OUT STD_LOGIC_VECTOR (0 TO 1) := (OTHERS => '1');
         SdRam_DQ : INOUT STD_LOGIC_VECTOR (15 DOWNTO 0) := (OTHERS => 'Z');
-        SdRam_RAS : OUT STD_LOGIC := '0';
-        SdRam_WE : OUT STD_LOGIC := '0';
+        SdRam_RAS : OUT STD_LOGIC := '1';
+        SdRam_WE : OUT STD_LOGIC := '1';
         SdRam_RdEn : IN STD_LOGIC := '0';
         SdRam_WrEn : IN STD_LOGIC := '0';
         SdRam_RdFinish : OUT STD_LOGIC := '1';
@@ -55,21 +55,22 @@ BEGIN
             SdRam_NopThreshold <= 0;
             -- Start with 4 in order to set it to 0
             SdRam_Bank <= b"00";
-            SdRam_DQM <= b"00";
+            SdRam_DQM <= b"11";
             SdRam_DQ <= (OTHERS => 'Z');
             SdRam_RdFinish <= '1';
             SdRam_WrFinish <= '1';
             -- NOTHING HERE
-            SdRam_CKE <= '0';
-            SdRam_RAS <= '0';
-            SdRam_CAS <= '0';
-            SdRam_WE <= '0';
+            SdRam_CKE <= '1';
+            SdRam_RAS <= '1';
+            SdRam_CAS <= '1';
+            SdRam_WE <= '1';
             SdRam_Address <= b"0000000000000";
             SdRam_DataColsOutput <= (OTHERS => (OTHERS => '0'));
             SdRam_ColsAddress_reg <= (OTHERS => '0');
             SdRam_RowsAddress_reg <= (OTHERS => '0');
             SdRam_BankSwitch <= '0';
             SdRam_AutoNumOfCycles <= (OTHERS => '0');
+            SdRam_AutoRefreshStartup <= "0";
         ELSIF rising_edge(SdRam_SdRamClk) AND SdRam_PllLocked = '1' THEN
             CASE SdRam_SdRamState IS
                 WHEN POWERON =>
@@ -112,6 +113,7 @@ BEGIN
                     SdRam_CAS <= '0';
                     SdRam_WE <= '1';
                     IF SdRam_AutoRefreshStartup = "1" THEN
+                        SdRam_AutoRefreshStartup <= "0";
                         SdRam_NopThreshold <= 5; -- Number of repetitions is 5
                         SdRam_SdRamState <= NOP_WITH_COUNTER;
                         SdRam_SdRamNextState <= MODE_REGISTER_SET;
@@ -164,6 +166,9 @@ BEGIN
                         SdRam_RAS <= '0';
                         SdRam_CAS <= '1';
                         SdRam_WE <= '1';
+                        -- STORE THE BANK AND CHANGE THE REGISTER FOR THE SWITCH ON THE NEXT WRITE/READ
+                        SdRam_Bank <= '0' & SdRam_BankSwitch;
+                        SdRam_BankSwitch <= NOT SdRam_BankSwitch;
                         SdRam_Address(12 DOWNTO 0) <= STD_LOGIC_VECTOR(SdRam_RowsAddress);
                         SdRam_DQM <= b"11";
                         SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
@@ -212,32 +217,25 @@ BEGIN
                     -- Choose the collumns address
                     SdRam_DQ <= (OTHERS => 'Z');
                     SdRam_Address <= b"0010" & STD_LOGIC_VECTOR(SdRam_ColsAddress_reg);
-                    SdRam_NopThreshold <= 1;
+                    -- CAS LATENCY 1
+                    SdRam_NopThreshold <= 0;
                     SdRam_SdRamNextState <= READ_STORE;
                     SdRam_SdRamState <= NOP_WITH_COUNTER;
                     SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
 
                 WHEN READ_STORE =>
-                    IF (SdRam_DataColsIndex = 2) THEN
-                        SdRam_DataColsIndex <= 0;
+                    IF (SdRam_DataColsIndex = 1) THEN
+                        SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
                         -- SEND NOP
                         SdRam_DQM <= b"11";
                         SdRam_CKE <= '1';
                         SdRam_RAS <= '1';
                         SdRam_CAS <= '1';
                         SdRam_WE <= '1';
-                        SdRam_NopThreshold <= 1;
-                        SdRam_SdRamNextState <= READ_FINISH;
-                        SdRam_SdRamState <= NOP_WITH_COUNTER;
-                    ELSIF SdRam_DataColsIndex = 0 THEN
-                        SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
-                        -- SEND BURST STOP
-                        SdRam_CKE <= '1';
-                        SdRam_RAS <= '1';
-                        SdRam_CAS <= '1';
-                        SdRam_WE <= '0';
-                        SdRam_DataColsIndex <= SdRam_DataColsIndex + 1;
-                        SdRam_SdRamState <= READ_STORE;
+                        -- Delay time to input is 2 cycles (1 nop) we can set it already
+                        SdRam_DQM <= b"11";
+                        SdRam_DataColsIndex <= 0;
+                        SdRam_SdRamState <= READ_FINISH;
                     ELSE
                         SdRam_DataColsOutput(SdRam_DataColsIndex) <= SdRam_DQ;
                         -- SEND NOP
@@ -289,21 +287,20 @@ BEGIN
                     SdRam_CAS <= '0';
                     SdRam_WE <= '0';
                     SdRam_DatacolsIndex <= SdRam_DatacolsIndex + 1;
-                    -- PREPARE TO WRITE DATA IN TWO BANKS
-                    SdRam_BankSwitch <= NOT SdRam_BankSwitch;
                     SdRam_SdRamState <= WRITE_STORE;
                     SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
 
                 WHEN WRITE_STORE =>
-                    IF (SdRam_DataColsIndex = 2) THEN
-                        SdRam_DQM <= b"11";
-                        -- SEND BURST STOP
+                    IF (SdRam_DataColsIndex = 1) THEN
+                       -- SEND THE DATA
+                        SdRam_DQ <= SdRam_DatacolsInput(SdRam_DataColsIndex);
+                        -- SEND NOP
                         SdRam_CKE <= '1';
                         SdRam_RAS <= '1';
                         SdRam_CAS <= '1';
-                        SdRam_WE <= '0';
+                        SdRam_WE <= '1';
                         SdRam_DataColsIndex <= 0;
-                        SdRam_NopThreshold <= 4;
+                        SdRam_NopThreshold <= 2;
                         SdRam_SdRamState <= NOP_WITH_COUNTER;
                         SdRam_SdRamNextState <= WRITE_FINISH;
                     ELSE
@@ -323,6 +320,8 @@ BEGIN
                     IF SdRam_BankSwitch = '1' THEN
                         -- SEND ACTIVE
                         SdRam_Bank <= '0' & SdRam_BankSwitch;
+                        -- PREPARE TO WRITE DATA IN TWO BANKS
+                        SdRam_BankSwitch <= NOT SdRam_BankSwitch;
                         SdRam_CKE <= '1';
                         SdRam_RAS <= '0';
                         SdRam_CAS <= '1';
@@ -332,6 +331,7 @@ BEGIN
                     ELSIF SdRam_WrEn = '1' AND (SdRam_AutoNumOfCycles < SdRam_MaxCycles) THEN
                         -- SEND ACTIVE
                         SdRam_Bank <= '0' & SdRam_BankSwitch;
+                        SdRam_BankSwitch <= NOT SdRam_BankSwitch;
                         SdRam_CKE <= '1';
                         SdRam_RAS <= '0';
                         SdRam_CAS <= '1';
@@ -370,7 +370,9 @@ BEGIN
                     SdRam_RAS <= '1';
                     SdRam_CAS <= '1';
                     SdRam_WE <= '1';
-                    SdRam_Address(10) <= '0';
+                    -- On nop we always want the dq to be 'z'
+                    SdRam_DQM <= b"11";
+                    SdRam_Address <= "0000000000000";
                     IF (SdRam_NopCounter = SdRam_NopThreshold) THEN
                         SdRam_NopCounter <= 0;
                         SdRam_SdRamState <= SdRam_SdRamNextState;
@@ -385,6 +387,8 @@ BEGIN
                     SdRam_RAS <= '1';
                     SdRam_CAS <= '1';
                     SdRam_WE <= '1';
+                    -- On nop we always want the dq to be 'z'
+                    SdRam_DQM <= b"11";
                     SdRam_NopCounter <= SdRam_NopCounter + 1;
                     SdRam_SdRamState <= SdRam_SdRamNextState;
                     SdRam_AutoNumOfCycles <= SdRam_AutoNumOfCycles + 1;
