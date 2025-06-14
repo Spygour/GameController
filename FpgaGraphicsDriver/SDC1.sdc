@@ -66,4 +66,11 @@ set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_g
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_DebugLeds[6]}]
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_DebugLeds[7]}]
 set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[1]}] 0.1 [get_ports {VideoCtrl_SdRamClkOut}]
+set_input_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_SpiClk}]
+set_input_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_Cs}]
+set_input_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_Si[0]}]
+set_input_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_Si[1]}]
+set_input_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_Si[2]}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_So}]
+set_output_delay -add_delay -clock [get_clocks {SdRamPll|altpll_component|auto_generated|pll1|clk[0]}] 0.1 [get_ports {VideoCtrl_SpiReady}]
 

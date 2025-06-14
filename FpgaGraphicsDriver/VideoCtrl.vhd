@@ -50,7 +50,7 @@ ARCHITECTURE rtl OF VideoCtrl IS
     SIGNAL VideoCtrl_SdRamClk : STD_LOGIC := '0';
     SIGNAL VideoCtrl_GlobalClk : STD_LOGIC := '0';
     SIGNAL VideoCtrl_PllLocked : STD_LOGIC := '0';
-    SIGNAL VideoCtrl_Finish : STD_LOGIC := '1';
+    SIGNAL VideoCtrl_ReadDataFinish : STD_LOGIC := '1';
     SIGNAL VideoCtrl_Start : STD_LOGIC;
     SIGNAL VideoCtrl_Xaxis : DataPart_t := (OTHERS => (OTHERS => '0'));
     SIGNAL VideoCtrl_Yaxis : DataPart_t := (OTHERS => (OTHERS => '0'));
@@ -108,8 +108,7 @@ BEGIN
             DataHandler_Yaxis => VideoCtrl_Yaxis,
             DataHandler_Resolution => VideoCtrl_Resolution,
             DataHandler_Color => VideoCtrl_Color,
-            DataHandler_DebugLeds => VideoCtrl_DebugLeds,
-            DataHandler_Finish => VideoCtrl_Finish,
+            DataHandler_Finish => VideoCtrl_ReadDataFinish,
             DataHandler_Start => VideoCtrl_Start,
             DataHandler_SpiWordsReg => VideoCtrl_SpiWordsReg
         );
@@ -122,46 +121,47 @@ BEGIN
             VideoCtrl_Start <= '0';
             VideoCtrl_Counter <= 0;
             VideoCtrl_MosiIndex <= "00";
-            --VideoCtrl_DebugLeds <= "00000000";
+            VideoCtrl_DebugLeds <= "00000000";
         ELSIF rising_edge(VideoCtrl_SdRamClk) AND VideoCtrl_PllLocked = '1' THEN
             CASE VideoCtrl_State IS
                 WHEN WAIT_SDRAM_WRITE =>
-                    IF VideoCtrl_Finish = '0' THEN
+                    IF VideoCtrl_ReadDataFinish = '0' THEN
                         VideoCtrl_Start <= '0';
                         VideoCtrl_State <= READ_DATA_X;
-                        --VideoCtrl_DebugLeds <= "00110011";
+                        VideoCtrl_DebugLeds <= "00110011";
                     END IF;
 
                 WHEN READ_DATA_X =>
-                    IF VideoCtrl_Finish = '1' THEN
-                        VideoCtrl_NextState <= READ_DATA_X;
+                    IF VideoCtrl_ReadDataFinish = '1' THEN
+                        VideoCtrl_DebugLeds <= VideoCtrl_Xaxis(to_integer(VideoCtrl_MosiIndex));
+                        VideoCtrl_NextState <= READ_DATA_Y;
                         VideoCtrl_State <= DELAY_STATE;
                     ELSE
                         VideoCtrl_NextState <= READ_DATA_X;
                     END IF;
 
                 WHEN READ_DATA_Y =>
-                    --VideoCtrl_DebugLeds <= VideoCtrl_Yaxis(to_integer(VideoCtrl_MosiIndex));
+                    VideoCtrl_DebugLeds <= VideoCtrl_Yaxis(to_integer(VideoCtrl_MosiIndex));
                     VideoCtrl_NextState <= READ_DATA_COLOR_G;
                     VideoCtrl_State <= DELAY_STATE;
 
                 WHEN READ_DATA_COLOR_G =>
-                    --VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(23 DOWNTO 16);
+                    VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(23 DOWNTO 16);
                     VideoCtrl_NextState <= READ_DATA_COLOR_B;
                     VideoCtrl_State <= DELAY_STATE;
 
                 WHEN READ_DATA_COLOR_B =>
-                    --VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(15 DOWNTO 8);
+                    VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(15 DOWNTO 8);
                     VideoCtrl_NextState <= READ_DATA_COLOR_R;
                     VideoCtrl_State <= DELAY_STATE;
 
                 WHEN READ_DATA_COLOR_R =>
-                    --VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(7 DOWNTO 0);
+                    VideoCtrl_DebugLeds <= VideoCtrl_Color(to_integer(VideoCtrl_MosiIndex))(7 DOWNTO 0);
                     VideoCtrl_NextState <= READ_DATA_RESOLUTION;
                     VideoCtrl_State <= DELAY_STATE;
 
                 WHEN READ_DATA_RESOLUTION =>
-                    --VideoCtrl_DebugLeds <= VideoCtrl_Resolution(to_integer(VideoCtrl_MosiIndex));
+                    VideoCtrl_DebugLeds <= VideoCtrl_Resolution(to_integer(VideoCtrl_MosiIndex));
                     VideoCtrl_State <= DELAY_STATE;
                     IF (VideoCtrl_MosiIndex = "10") THEN
                         VideoCtrl_NextState <= END_STATE;
