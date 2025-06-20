@@ -1,4 +1,4 @@
-
+/* Pwm Init Function */
 void Pwm_InitChannel(uint32_t epwmBaseAddr,
                      uint32_t epwmCh,
                      uint32_t epwmFuncClk,
