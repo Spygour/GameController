@@ -1,4 +1,6 @@
-/* Pwm Init Function **/
+/* Pwm Init Function 
+ * Here lies the pwm Init function regarding the Arm Cortex R5 uC
+*/
 void Pwm_InitChannel(uint32_t epwmBaseAddr,
                      uint32_t epwmCh,
                      uint32_t epwmFuncClk,
