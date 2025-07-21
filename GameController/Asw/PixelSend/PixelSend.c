@@ -32,6 +32,8 @@
 #include "../Bsw/QuadSpi/QSpiAtom.h"
 #include "../Bsw/Ports/Ports.h"
 #include "PixelSend.h"
+#include "../Asw/Map/Map.h"
+#include "Bsp.h"
 
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
@@ -52,11 +54,11 @@
 /* SPI Configuration Registers */
 IfxGtm_Atom_ToutMapP PixelSend_SpiSignals[5] =
 {
-    [PIXELSEND_MOSI1] = &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
-    [PIXELSEND_MOSI2] = &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
-    [PIXELSEND_MOSI3] = &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
-    [PIXELSEND_CHIP_SELECT] = &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
-    [PIXELSEND_CLOCK] = &IfxGtm_ATOM0_5_TOUT41_P23_0_OUT
+  [PIXELSEND_MOSI1] = &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
+  [PIXELSEND_MOSI2] = &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
+  [PIXELSEND_MOSI3] = &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
+  [PIXELSEND_CHIP_SELECT] = &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
+  [PIXELSEND_CLOCK] = &IfxGtm_ATOM0_5_TOUT41_P23_0_OUT
 };
 
 static uint16 PixelSend_SpiData1[PIXELSEND_MAXSIZE];
@@ -70,12 +72,6 @@ QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
   PixelSend_SpiData3
 };
 
-PIXELSEND_WALL PixelSend_Wall = {
-1u,
-0xA2u,
-0x10u,
-0x2u
-};
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -83,7 +79,7 @@ PIXELSEND_WALL PixelSend_Wall = {
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-void PixeSend_SetData(void);
+
 /*********************************************************************************************************************/
 /*---------------------------------------------Function Implementations----------------------------------------------*/
 /*********************************************************************************************************************/
@@ -103,7 +99,6 @@ void PixelSend_Init(void)
   /* Start the fpga */
   Ports_SetPinOutputFalse(&PIXELSEND_RESET);
   wait(time100ms);
-  PixeSend_SetData();
 
   SpiReady = Ports_GetPinState(&PIXELSEND_READY);
   /* Wait till the port becomes true */
@@ -111,30 +106,32 @@ void PixelSend_Init(void)
   {
     SpiReady = Ports_GetPinState(&PIXELSEND_READY);
   }
+  /* Init the queue */
+  (void)Map_Init();
 }
 
 
-void PixeSend_SetData(void)
+uint8 PixelSend_SendSpi(uint16 size)
 {
-  for (uint8 i = 0u; i < 20u; i = i + 2u)
+  uint8 SendSpiEval = 0;
+  if (size <  PIXELSEND_MAXSIZE)
   {
-    PixelSend_SpiData[0][i] = ((uint16)PixelSend_Wall.Color << 8) || (uint16)PixelSend_Wall.Resolution;
-    PixelSend_SpiData[0][i+1] = ((uint16)PixelSend_Wall.Xaxis << 8) || (uint16)PixelSend_Wall.Yaxis;
+    boolean SpiReady;
+    /* Wait till the port becomes high */
+    SpiReady = Ports_GetPinState(&PIXELSEND_READY);
+    if (SpiReady == TRUE)
+    {
+      SendSpiEval = 1;
+      QSpiAtom_StartQuadSpiTranscaction(size);
+    }
+    else
+    {
+     SendSpiEval = 0;
+    }
   }
-}
-
-
-void PixelSend_SendSpi(uint16 size)
-{
-  boolean SpiReady;
-  /* Wait till the port becomes high */
-  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  if (SpiReady == TRUE)
+  else 
   {
-    QSpiAtom_StartQuadSpiTranscaction(size);
+    SendSpiEval = 2;
   }
-  else
-  {
-    /* Do nothing */
-  }
+  return SendSpiEval;
 }

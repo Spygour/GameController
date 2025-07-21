@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file std_int.c
+ * \file Player.c
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -29,15 +29,21 @@
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "std_int.h"
+#include "Player.h"
+#include "math.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-
+#define PI_1                        3.1415f
+#define PI_2                        1.6708f
+#define PI_4                        0.7853f
+#define DEGS_FORMULA1 0.2443f
+#define DEGS_FORMULA2 0.0668F
+#define PLAYER_COLORSEND_RDY        false
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-
+PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState = COLOR_PENDING;
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -49,161 +55,130 @@
 /*********************************************************************************************************************/
 /*---------------------------------------------Function Implementations----------------------------------------------*/
 /*********************************************************************************************************************/
-void memcpy_sp(void* src, void* dst, uint16 size)
+float32 Player_Atan2(float32 y_axis, float32 x_axis)
 {
-  uint32 src_addr = (uint32)src;
-  uint32 dst_addr = (uint32)dst;
-  uint16 count;
-  uint16 mod = size % 4;
-  if ( ( (src_addr % 4)==0) &&  ((dst_addr % 4) == 0))
-  {
-    uint32 *src32 = (uint32*)src;
-    uint32 *dst32 = (uint32*)dst;
-    count = size;
-    while(count--)
-    {
-      *dst32++ = *src32++;
-    }
-  }
-  else if ( ( (src_addr % 4)==2) && ( (dst_addr % 4)==2) && (mod == 2) )
-  {
-    if (mod == 0)
-    {
-      uint32 *src32 = (uint32*)src;
-      uint32 *dst32 = (uint32*)dst;
-      count = size >> 1;
-      while(count--)
-      {
-        *dst32++ = *src32++;
-      }
-    }
-    else
-    {
-      uint16 *src16 = (uint16*)src;
-      uint16 *dst16 = (uint16*)dst;
-      uint16 count = size;
-      while(count--)
-      {
-        *dst16++ = *src16++;
-      }
-    }
-  }
+  float32 arctan_approx = 0.0f;
+  float32 result;
 
-  else
-  {
-    if (mod == 0)
+    if (x_axis == 0.0f)
     {
-      uint32 *src32 = (uint32*)src;
-      uint32 *dst32 = (uint32*)dst;
-      count = size >> 2;
-      while(count--)
-      {
-        *dst32++ = *src32++;
-      }
-    }
-    else if (mod == 2)
-    {
-      uint16 *src16 = (uint16*)src;
-      uint16 *dst16 = (uint16*)dst;
-      uint16 count = size >> 1;
-      while(count--)
-      {
-        *dst16++ = *src16++;
-      }
+      result = (y_axis > 0.0f ) ? PI_2 : ((y_axis < 0.0f) ?  -PI_2 : 0.0f) ;
     }
     else
     {
-      uint8 *src8 = (uint8*)src;
-      uint8 *dst8 = (uint8*)dst;
-      uint16 count = size;
-      while(count--)
+      float32 z =fabsf(y_axis/x_axis);
+
+      arctan_approx = z * ( PI_4 - ( ( z - 1 ) * ( DEGS_FORMULA1 + DEGS_FORMULA2 * z ) ) );
+      if (x_axis > 0.0f)
       {
-        *dst8++ = *src8++;
+        result = (y_axis >= 0.0f) ? arctan_approx : -arctan_approx;
+      }
+      else
+      {
+        result = (y_axis >= 0.0f) ? (PI_1 - arctan_approx) : (-PI_1 + arctan_approx);
       }
     }
-  }
+
+  return result;
 }
 
-
-void memset_var(void* dst, void* val , uint16 size)
+/* This function evaluates and calculates the wall's starting pixel if the user sees it */
+static uint8 Player_CheckObjOnFov(PLAYER_MAIN* mainUser, MAP_OBJ* obj, float32 relative_angle_start, float32 relative_angle_end)
 {
-  uint32 src_addr = (uint32)dst;
-  uint32 dst_addr = (uint32)val;
-  uint16 count;
-  uint16 mod = size % 4;
-  if ((src_addr % 4)!=(dst_addr % 4))
+  uint8 result = 0;
+  float32 angle_to_wall;
+
+  bool startInFov;
+  bool endInFov;
+
+  /* Calculate start of wall - user position with looking center angle */
+  uint8 dxObjStart = mainUser->x_pos - obj->Xaxis;
+  uint8 dyObjStart = mainUser->y_pos - obj->Yaxis;
+
+  angle_to_wall = Player_Atan2((float32)dyObjStart, (float32)dxObjStart);
+  relative_angle_start = angle_to_wall - mainUser->angle;
+
+  while (relative_angle_start > PI_1) { relative_angle_start -= 2* PI_1; };
+  while (relative_angle_start < PI_1) { relative_angle_start += 2* PI_1; };
+
+  uint8 dxObjEnd = mainUser->x_pos - (uint8)((float32)obj->Xaxis + cosf(obj->Angle) * obj->Distance);
+  uint8 dyObjEnd = mainUser->y_pos - (uint8)((float32)obj->Yaxis + sinf(obj->Angle) * obj->Distance);
+  angle_to_wall =  Player_Atan2((float32)dyObjEnd, (float32)dxObjEnd);
+  relative_angle_end = angle_to_wall - mainUser->angle;
+
+  while (relative_angle_end > PI_1) { relative_angle_end -= 2* PI_1; };
+  while (relative_angle_end < PI_1) { relative_angle_end += 2* PI_1; };
+  startInFov = (fabsf(relative_angle_start) <  (mainUser->fov / 2));
+  endInFov = (fabsf(relative_angle_end) <  (mainUser->fov / 2));
+  if ( (startInFov == true)  && ( endInFov == true ))
   {
-    return;
+    result = 3;
+  }
+  else if (startInFov)
+  {
+    result = 1;
+  }
+  else if (endInFov)
+  {
+    result = 2;
   }
 
-  if ( ( (src_addr % 4)==0) &&  ((dst_addr % 4) == 0))
+  return result;
+}
+
+uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 pixel_start , uint8 pixel_end )
+{
+  float32 angle_start = 0.0f;
+  float32 angle_end = 0.0f;
+  uint8 result = Player_CheckObjOnFov(mainUser, obj, angle_start, angle_end);
+  if (result == 1)
   {
-    uint32 *dst32 = (uint32*)dst;
-    uint32 val32 = *(uint32*)val;
-    count = size;
-    while(count--)
+    pixel_start = (uint8)( SCREEN_WIDTH * (angle_start + (mainUser->fov / 2.0f)) / mainUser->fov );
+  }
+  else if (result == 2)
+  {
+    pixel_end = (uint8)( SCREEN_WIDTH * (angle_end + (mainUser->fov / 2.0f)) / mainUser->fov ) ;
+  }
+  else if (result == 3)
+  {
+    pixel_start = (uint8)( SCREEN_WIDTH * (angle_start + (mainUser->fov / 2.0f) ) / mainUser->fov);
+    pixel_end = (uint8)( SCREEN_WIDTH * (angle_end + (mainUser->fov / 2.0f)) / mainUser->fov);
+  }
+  else 
+  {
+    /* This is when the result is zero */
+    if ((angle_start < 0.0f) && (angle_end > 0.0f))
     {
-      *dst32++ = val32;
+      pixel_start = 0U;
+      pixel_end = SCREEN_WIDTH;
+      result = 4U;
+    }
+    else if ( (angle_start > 0.0f) && (angle_end < 0.0f))
+    {
+      pixel_start = 0U;
+      pixel_end = SCREEN_WIDTH;
+      result = 5U;
     }
   }
-  else if ( ( (src_addr % 4)==2) && ( (dst_addr % 4)==2) )
+  return result;
+}
+
+void Player_Task16ms(void)
+{
+  switch (Player_TransmitState)
   {
-    if (mod == 0)
+    case COLOR_PENDING:
     {
-      uint32 *dst32 = (uint32*)dst;
-      uint16 val16 = *(uint16*)val;
-      uint32 val32 = ((uint32)val16 << 16) | (uint32)val16;
-      count = size >> 1;
-      while(count--)
-      {
-        *dst32++ = val32;
-      }
+      /* Here we calculate the colors that the user sees */
+      
+      break;
     }
-    else
+
+    default:
     {
-      uint16 *dst16 = (uint16*)dst;
-      uint16 val16 = *(uint16*)val;
-      uint16 count = size;
-      while(count--)
-      {
-        *dst16++ = val16;
-      }
+
+      break;
     }
   }
 
-  else
-  {
-    if (mod == 0)
-    {
-      uint32 *dst32 = (uint32*)dst;
-      uint8 val8 = *(uint8*)val;
-      uint32 val32 = ((uint32)val8 << 24) | ((uint32)val8 << 16) | ((uint32)val8 << 8) | (uint32)val8;
-      count = size >> 2;
-      while(count--)
-      {
-        *dst32++ = val32++;
-      }
-    }
-    else if (mod == 2)
-    {
-      uint16 *dst16 = (uint16*)dst;
-      uint8 val8 = *(uint8*)val;
-      uint16 val16 = ((uint16)val8 << 8) | (uint16)val8;
-      uint16 count = size >> 1;
-      while(count--)
-      {
-        *dst16++ = val16;
-      }
-    }
-    else
-    {
-      uint8 *dst8 = (uint8*)dst;
-      uint8 val8 = *(uint8*)val;
-      uint16 count = size;
-      while(count--)
-      {
-        *dst8++ = val8;
-      }
-    }
-  }
 }

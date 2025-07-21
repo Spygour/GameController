@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file std_int.c
+ * \file Player.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,19 +25,42 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
+#ifndef ASW_PLAYER_PLAYER_H_
+#define ASW_PLAYER_PLAYER_H_
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "std_int.h"
+#include "../Asw/Map/Map.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-
+#define SCREEN_WIDTH  100.0F
+#define SCREEN_HEIGHT 100.0F
 /*********************************************************************************************************************/
+/*-------------------------------------------------Data Structures---------------------------------------------------*/
+/*********************************************************************************************************************/
+ typedef struct
+ {
+  uint8 x_pos;
+  uint8 y_pos;
+  float32 angle;
+  uint8 x_startPosition;
+  uint8 y_startPosition;
+  float32 fov;
+ }PLAYER_MAIN;
+
+ typedef enum
+ {
+  COLOR_PENDING,
+  COLOR_WAIT,
+  COLOR_SEND
+ }PLAYER_TRANSACTION_COLOR_STATE;
+
+ /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-
+extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -45,165 +68,7 @@
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
+ uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 pixel_start , uint8 pixel_end );
+ float32 Player_Atan2(float32 y_axis, float32 x_axis);
 
-/*********************************************************************************************************************/
-/*---------------------------------------------Function Implementations----------------------------------------------*/
-/*********************************************************************************************************************/
-void memcpy_sp(void* src, void* dst, uint16 size)
-{
-  uint32 src_addr = (uint32)src;
-  uint32 dst_addr = (uint32)dst;
-  uint16 count;
-  uint16 mod = size % 4;
-  if ( ( (src_addr % 4)==0) &&  ((dst_addr % 4) == 0))
-  {
-    uint32 *src32 = (uint32*)src;
-    uint32 *dst32 = (uint32*)dst;
-    count = size;
-    while(count--)
-    {
-      *dst32++ = *src32++;
-    }
-  }
-  else if ( ( (src_addr % 4)==2) && ( (dst_addr % 4)==2) && (mod == 2) )
-  {
-    if (mod == 0)
-    {
-      uint32 *src32 = (uint32*)src;
-      uint32 *dst32 = (uint32*)dst;
-      count = size >> 1;
-      while(count--)
-      {
-        *dst32++ = *src32++;
-      }
-    }
-    else
-    {
-      uint16 *src16 = (uint16*)src;
-      uint16 *dst16 = (uint16*)dst;
-      uint16 count = size;
-      while(count--)
-      {
-        *dst16++ = *src16++;
-      }
-    }
-  }
-
-  else
-  {
-    if (mod == 0)
-    {
-      uint32 *src32 = (uint32*)src;
-      uint32 *dst32 = (uint32*)dst;
-      count = size >> 2;
-      while(count--)
-      {
-        *dst32++ = *src32++;
-      }
-    }
-    else if (mod == 2)
-    {
-      uint16 *src16 = (uint16*)src;
-      uint16 *dst16 = (uint16*)dst;
-      uint16 count = size >> 1;
-      while(count--)
-      {
-        *dst16++ = *src16++;
-      }
-    }
-    else
-    {
-      uint8 *src8 = (uint8*)src;
-      uint8 *dst8 = (uint8*)dst;
-      uint16 count = size;
-      while(count--)
-      {
-        *dst8++ = *src8++;
-      }
-    }
-  }
-}
-
-
-void memset_var(void* dst, void* val , uint16 size)
-{
-  uint32 src_addr = (uint32)dst;
-  uint32 dst_addr = (uint32)val;
-  uint16 count;
-  uint16 mod = size % 4;
-  if ((src_addr % 4)!=(dst_addr % 4))
-  {
-    return;
-  }
-
-  if ( ( (src_addr % 4)==0) &&  ((dst_addr % 4) == 0))
-  {
-    uint32 *dst32 = (uint32*)dst;
-    uint32 val32 = *(uint32*)val;
-    count = size;
-    while(count--)
-    {
-      *dst32++ = val32;
-    }
-  }
-  else if ( ( (src_addr % 4)==2) && ( (dst_addr % 4)==2) )
-  {
-    if (mod == 0)
-    {
-      uint32 *dst32 = (uint32*)dst;
-      uint16 val16 = *(uint16*)val;
-      uint32 val32 = ((uint32)val16 << 16) | (uint32)val16;
-      count = size >> 1;
-      while(count--)
-      {
-        *dst32++ = val32;
-      }
-    }
-    else
-    {
-      uint16 *dst16 = (uint16*)dst;
-      uint16 val16 = *(uint16*)val;
-      uint16 count = size;
-      while(count--)
-      {
-        *dst16++ = val16;
-      }
-    }
-  }
-
-  else
-  {
-    if (mod == 0)
-    {
-      uint32 *dst32 = (uint32*)dst;
-      uint8 val8 = *(uint8*)val;
-      uint32 val32 = ((uint32)val8 << 24) | ((uint32)val8 << 16) | ((uint32)val8 << 8) | (uint32)val8;
-      count = size >> 2;
-      while(count--)
-      {
-        *dst32++ = val32++;
-      }
-    }
-    else if (mod == 2)
-    {
-      uint16 *dst16 = (uint16*)dst;
-      uint8 val8 = *(uint8*)val;
-      uint16 val16 = ((uint16)val8 << 8) | (uint16)val8;
-      uint16 count = size >> 1;
-      while(count--)
-      {
-        *dst16++ = val16;
-      }
-    }
-    else
-    {
-      uint8 *dst8 = (uint8*)dst;
-      uint8 val8 = *(uint8*)val;
-      uint16 count = size;
-      while(count--)
-      {
-        *dst8++ = val8;
-      }
-    }
-  }
-}
+#endif /* ASW_PLAYER_PLAYER_H_ */

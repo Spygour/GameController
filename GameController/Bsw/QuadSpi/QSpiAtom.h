@@ -25,38 +25,18 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
-#ifndef INFINEONARDUINOLIKE_INTERRUPTS_H_
-#define INFINEONARDUINOLIKE_INTERRUPTS_H_
+#ifndef QSPIATOM_H_
+#define QSPIATOM_H_
 
 /*********************************************************************************************************************/
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "Ifx_Types.h"
-#include "IfxGtm_Atom_PwmHL.h"
-#include "_Utilities/Ifx_Assert.h"
+#include "QSpiAtom types.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-typedef void                    (*IfxGtm_Atom_SerialTimers_Update)(IfxGtm_Atom_PwmHl *driver, Ifx_TimerValue *tOn);
-typedef struct
-{
-    Ifx_Pwm_Mode                 mode;                 /**< \brief Pwm Mode */
-    boolean                      inverted;             /**< \brief Inverted configuration for the selected mode */
-    IfxGtm_Atom_SerialTimers_Update      setMode;               /**< \brief update call back function for the selected mode */
-} IfxGtm_Atom_Serial;
 
-
-typedef uint16* QSPIATOM_SPIBUFFER;
-typedef uint16* QSPIATOM_INPUTBUFFER;
-
-typedef Ifx_GTM_ATOM_CH* QSPIATOM_MOSIREGS;
-
-typedef struct
-{
-    QSPIATOM_SPIBUFFER* SpiBuffer;
-    uint8* ringBufferSize;
-}QSPIATOM_RINGBUFFER;
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/

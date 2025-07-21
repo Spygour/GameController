@@ -180,7 +180,7 @@ static uint32 SpiRxBuffer[300];
    while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
    SpiTxBuffer[0] =  Reg;
    uint32 Val = 0xFFFFFFFF;
-   memset(&SpiTxBuffer[1], &Val ,size);
+   memset_var(&SpiTxBuffer[1], &Val ,size);
        // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], &SpiRxBuffer[0], size+1);
 
@@ -203,7 +203,7 @@ static uint32 SpiRxBuffer[300];
 
    while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
    time = (float32)(IfxStm_get(&MODULE_STM0) / IfxStm_getFrequency(&MODULE_STM0));
-   memcpy(Src, SpiTxBuffer, size);
+   memcpy_sp(Src, SpiTxBuffer, size);
    time = (float32)(IfxStm_get(&MODULE_STM0) / IfxStm_getFrequency(&MODULE_STM0)) - time;
        // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], NULL_PTR, size);
@@ -221,13 +221,13 @@ static uint32 SpiRxBuffer[300];
  {
    while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
    uint32 Val = 0xFFFFFFFF;
-   memcpy(Src, SpiTxBuffer, SrcSize);
-   memset(&SpiTxBuffer[SrcSize], &Val ,DestSize - SrcSize + 1);
+   memcpy_sp(Src, SpiTxBuffer, SrcSize);
+   memset_var(&SpiTxBuffer[SrcSize], &Val ,DestSize - SrcSize + 1);
        // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], &SpiRxBuffer[0], DestSize + 1);
 
    while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
-   memcpy(&SpiRxBuffer[1], Dest, DestSize);
+   memcpy_sp(&SpiRxBuffer[1], Dest, DestSize);
  }
 
 

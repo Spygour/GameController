@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file PixelSend.h
+ * \file Walls.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  *
  * Use of this file is subject to the terms of use agreed between (i) you or the
@@ -32,27 +32,54 @@
  *DEALINGS IN THE SOFTWARE.
  *********************************************************************************************************************/
 
-#ifndef ASW_PIXELSEND_H_
-#define ASW_PIXELSEND_H_
+#ifndef ASW_MAP_MAP_H_
+#define ASW_MAP_MAP_H_
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "Platform_Types.h"
-
+#include "Ifx_Types.h"
+#include "stdbool.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
 
-#define PIXELSEND_SPIBAUDRATE 10000000
+#define MAP_MAX_OBJ 128u
 
-typedef struct 
+typedef enum
 {
+  WALL,
+  DOOR
+}MAP_TYPE;
+
+typedef struct MAP_OBJ_s
+{
+  /* For now y = ax + b or something similar I need to map some things I guess */
   uint8 Color;
-  uint8 Resolution;
+  uint8 Distance;
   uint8 Xaxis;
   uint8 Yaxis;
-} PIXELSEND_WALL;
+  uint8 Length;
+  float32 Angle;
+  MAP_TYPE type;
+  struct MAP_OBJ_s *NEXT_OBJ;
+  struct MAP_OBJ_s *PREV_OBJ;
+}MAP_OBJ;
+
+struct MAP_QUEUE;
+
+typedef uint8 (*MAP_ADD_FUNC)(struct MAP_QUEUE *queue, MAP_OBJ *obj);
+typedef uint8 (*MAP_REMOVE_FUNC)(struct MAP_QUEUE *queue, MAP_OBJ *obj);
+
+typedef struct MAP_QUEUE
+{
+  MAP_OBJ *first;
+  MAP_OBJ *last;
+  uint8 baseIndex;
+  uint8 length;
+  MAP_ADD_FUNC add;
+  MAP_REMOVE_FUNC remove;
+}MAP_QUEUE;
 
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
@@ -69,7 +96,8 @@ typedef struct
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-void PixelSend_Init(void);
-uint8 PixelSend_SendSpi(uint16 size);
+bool Map_InitQueue(struct MAP_QUEUE *queue, MAP_OBJ *obj);
+uint8 Map_Init(void) ;
+MAP_OBJ* Map_ReturnObjPtr(uint8 idx);
 
-#endif /* ASW_PIXELSEND_H_ */
+#endif /* ASW_WALLS_WALLS_H_ */
