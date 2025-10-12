@@ -6,7 +6,7 @@ USE work.SdRamTypes.ALL;
 ENTITY SdRam IS
     PORT (
         SdRam_ActlClk : IN STD_LOGIC := '0';
-        SdRam_Reset_n : IN STD_LOGIC := '1';
+        SdRam_Reset : IN STD_LOGIC := '1';
         SdRam_ClkOut : OUT STD_LOGIC := '0';
         SdRam_SdRamClk : IN STD_LOGIC := '0';
         SdRam_GlobalClk : IN STD_LOGIC := '0';
@@ -48,9 +48,9 @@ ARCHITECTURE SYN OF SdRam IS
     SIGNAL SdRam_RdEn_reg : STD_LOGIC := '0';
 BEGIN
 
-    PROCESS (SdRam_SdRamClk, SdRam_Reset_n, SdRam_PllLocked) IS
+    PROCESS (SdRam_SdRamClk, SdRam_Reset, SdRam_PllLocked) IS
     BEGIN
-        IF (SdRam_Reset_n = '1') THEN
+        IF (SdRam_Reset = '1') THEN
             SdRam_DatacolsIndex <= "0";
             SdRam_NopCounter <= 0;
             SdRam_SdRamState <= POWERON;

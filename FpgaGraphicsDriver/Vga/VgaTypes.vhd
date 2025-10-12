@@ -1,19 +1,17 @@
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
 
-package VgaTypes is 
+PACKAGE VgaTypes IS
     -- 8 bits per color (We hope)
-    type LineColor_t is array (0 to 800) of std_logic_vector(23 downto 0);
-    type LineBuffer_t is array (0 to 2) of LineColor_t;
-
-
-    type Sprite_t is record
-        x_start : unsigned (9 downto 0);
-        y_start : unsigned (9 downto 0);
+    TYPE LineColor_t IS ARRAY (0 TO 800) OF STD_LOGIC_VECTOR(23 DOWNTO 0);
+    TYPE LineBuffer_t IS ARRAY (0 TO 2) OF LineColor_t;
+    TYPE Sprite_t IS RECORD
+        x_start : unsigned (9 DOWNTO 0);
+        y_start : unsigned (9 DOWNTO 0);
         -- Here we have the type of the sprite which will be aknowledged by the memory address to get the colors
         -- Sprites are 16x16 and are stored in SD ram
-        sprite_type : unsigned (4 downto 0);
-    end record;
+        sprite_type : unsigned (4 DOWNTO 0);
+    END RECORD;
 
-end VgaTypes;
+END VgaTypes;

@@ -10,7 +10,7 @@ ENTITY SpiSlave IS
         Spi_ActlClk : IN STD_LOGIC := '0';
         Spi_Clk : IN STD_LOGIC := '0';
         Spi_SpiClk : IN STD_LOGIC;
-        Spi_Reset_n : IN STD_LOGIC := '1';
+        Spi_Reset : IN STD_LOGIC := '1';
         Spi_So : OUT STD_LOGIC := '0';
         Spi_Si : IN STD_LOGIC_VECTOR(0 TO 2);
         Spi_Cs : IN STD_LOGIC;
@@ -43,9 +43,9 @@ ARCHITECTURE rtl OF SpiSlave IS
     SIGNAL Spi_SpiRxWord : Spi_QSpiWord := (OTHERS => (OTHERS => '0'));
 
 BEGIN
-    PROCESS (Spi_Clk, Spi_Reset_n, Spi_lockedloop) IS
+    PROCESS (Spi_Clk, Spi_Reset, Spi_lockedloop) IS
     BEGIN
-        IF (Spi_Reset_n = '1') THEN
+        IF (Spi_Reset = '1') THEN
             Spi_SpiTxWord <= (OTHERS => '0');
             Spi_SpiRxWord <= (OTHERS => (OTHERS => '0'));
             Spi_SpiWordCounter <= (OTHERS => '0');

@@ -8,7 +8,7 @@ USE work.SpiSlaveTypes.ALL;
 
 ENTITY DataHandler IS
     PORT (
-        DataHandler_Reset_n : IN STD_LOGIC := '1';
+        DataHandler_Reset : IN STD_LOGIC := '1';
         -- Clocks
         DataHandler_ActlClk : IN STD_LOGIC := '0';
         DataHandler_SdRamClk : IN STD_LOGIC := '0';
@@ -31,13 +31,16 @@ ENTITY DataHandler IS
         DataHandler_Si : IN STD_LOGIC_VECTOR(0 TO 2);
         DataHandler_Cs : IN STD_LOGIC;
         DataHandler_SpiReady : OUT STD_LOGIC := '0';
-        DataHandler_Xaxis : OUT DataPart_t := (OTHERS => (OTHERS => '0'));
-        DataHandler_Yaxis : OUT DataPart_t := (OTHERS => (OTHERS => '0'));
-        DataHandler_Resolution : INOUT DataPart_t := (OTHERS => (OTHERS => '0'));
-        DataHandler_Color : INOUT DataColor_t := (OTHERS => (OTHERS => '0'));
+        DataHandler_Xaxis : OUT Data_Xaxis_t := (OTHERS => '0');
+        DataHandler_Yaxis : OUT Data_Yaxis_t := (OTHERS => '0');
+        DataHandler_Resolution : INOUT Data_Resolution_t := (OTHERS => '0');
+        DataHandler_Color : INOUT DataColor_t := (OTHERS => '0');
+        DataHandler_AngleStep : OUT Data_AngleStep_t := (OTHERS => '0');
+        DataHandler_Type : OUT Data_Type_t := (OTHERS => '0');
+        DataHandler_Ackn : OUT Data_Ackn_t := (OTHERS => '0');
         --DataHandler_DebugLeds : OUT STD_LOGIC_VECTOR (7 DOWNTO 0) := (OTHERS => '0');
         -- DATA HANDLER CONTROL PINS
-        DataHandler_Finish : OUT STD_LOGIC := '1';
+        DataHandler_Finish : OUT STD_LOGIC := '0';
         DataHandler_Start : IN STD_LOGIC;
         DataHandler_SpiWordsReg : INOUT INTEGER := 0
     );
@@ -54,10 +57,11 @@ ARCHITECTURE rtl OF DataHandler IS
     WAIT_WRITE,
     WRITE_ENABLE,
     START_READ,
+    RESTART_READ,
     WAIT_READ,
     CHECK_DATA_AVAILABLE,
     READ_DATA,
-    STORE_DATA,
+    PREPARE_IDLE,
     READ_DATA_IDLE
     );
 
@@ -93,6 +97,7 @@ ARCHITECTURE rtl OF DataHandler IS
     SIGNAL DataHandler_WriteDataBufferIdx : INTEGER := 0;
     SIGNAL DATAHANDLER_SdRamInit : STD_LOGIC := '0';
     SIGNAL DataHandler_WaitCounter : INTEGER := 0;
+    SIGNAL DataHandler_Index : unsigned(0 DOWNTO 0) := '0';
 
     -- QSPI SIGNALS
     SIGNAL DataHandler_StartSpi : STD_LOGIC := '0';
@@ -104,8 +109,6 @@ ARCHITECTURE rtl OF DataHandler IS
     SIGNAL DataHandler_SpiPllLocked : STD_LOGIC := '0';
     SIGNAL DataHandler_Words : INTEGER := 0;
     SIGNAL DataHandler_EndSpi : STD_LOGIC := '1';
-    SIGNAL DataHandler_MisoIndex : unsigned (1 DOWNTO 0) := (OTHERS => '0');
-    SIGNAL DataHandler_MisoIndexReg : unsigned (1 DOWNTO 0) := (OTHERS => '0');
     SIGNAL DataHandler_SdRamReadAddress : Address_t := (OTHERS => (OTHERS => '0'));
 
 BEGIN
@@ -113,7 +116,7 @@ BEGIN
         PORT MAP
         (
             SdRam_ActlClk => DataHandler_ActlClk,
-            SdRam_Reset_n => DataHandler_Reset_Sync,
+            SdRam_Reset => DataHandler_Reset_Sync,
             SdRam_ClkOut => DataHandler_SdRamClkOut,
             SdRam_SdRamClk => DataHandler_SdRamClk,
             SdRam_GlobalClk => DataHandler_GlobalClk,
@@ -143,7 +146,7 @@ BEGIN
             Spi_ActlClk => DataHandler_ActlClk,
             Spi_Clk => DataHandler_SdRamClk,
             Spi_SpiClk => DataHandler_SpiClk,
-            Spi_Reset_n => DataHandler_Reset_Sync,
+            Spi_Reset => DataHandler_Reset_Sync,
             Spi_So => DataHandler_So,
             Spi_Si => DataHandler_Si,
             Spi_Cs => DataHandler_Cs,
@@ -194,14 +197,12 @@ BEGIN
     PROCESS (DataHandler_SdRamClk, DataHandler_Reset_Sync, DataHandler_PllLocked) IS
     BEGIN
         IF (DataHandler_Reset_Sync = '1') THEN
-            DataHandler_Finish <= '1';
+            DataHandler_Finish <= '0';
             DataHandler_SdRamHandlerState <= START_WRITE;
             DataHandler_RdEn <= '0';
             DataHandler_WrEn <= '0';
             DataHandler_DataColsOutput <= (OTHERS => (OTHERS => '0'));
             DataHandler_WriteDataBufferIdx <= 0;
-            DataHandler_MisoIndex <= "00";
-            DataHandler_MisoIndexReg <= "00";
             -- SPI PART
             DataHandler_SpiReady <= '0';
             DataHandler_StartSpi <= '0';
@@ -224,13 +225,13 @@ BEGIN
                     END IF;
 
                 WHEN FINISH_WRITE =>
-                        --write has been finished
-                        -- START THE SPI and prepare the spi ready
-                        DataHandler_StartSpi <= '1';
-                        DataHandler_SpiReady <= '1';
-                        DataHandler_RowsAddress <= to_unsigned(0, 13);
-                        DataHandler_ColsAddress <= to_unsigned(0, 9);
-                        DataHandler_SdRamHandlerState <= START_READ;
+                    --write has been finished
+                    -- START THE SPI and prepare the spi ready
+                    DataHandler_StartSpi <= '1';
+                    DataHandler_SpiReady <= '1';
+                    DataHandler_RowsAddress <= to_unsigned(0, 13);
+                    DataHandler_ColsAddress <= to_unsigned(0, 9);
+                    DataHandler_SdRamHandlerState <= START_READ;
 
                 WHEN WAIT_START =>
                     IF DataHandler_WrFinish_reg = '0' THEN
@@ -281,30 +282,41 @@ BEGIN
                         -- AVOID EXTRA WRONG DATA SEND
                         DataHandler_SpiReady <= '0';
                         DataHandler_StartSpi <= '0';
-                        DataHandler_MisoIndex <= "00";
                         DataHandler_SdRamHandlerState <= CHECK_DATA_AVAILABLE;
                         DataHandler_RowsAddress <= (OTHERS => '0');
                     END IF;
 
+                WHEN RESTART_READ =>
+                    DataHandler_ColsAddress <= unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8) & '0');
+                    -- DEBUG READ HERE THE COLOR
+                    ----DataHandler_DebugLeds <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
+                    DataHandler_Xaxis(DataHandler_Index) <= DataHandler_ReadDataWord(0)(15 DOWNTO 8);
+                    DataHandler_Yaxis(DataHandler_Index) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
+                    DataHandler_SdRamReadAddress <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8))) & '0';
+                    DataHandler_Resolution(DataHandler_Index) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
+
+                    DataHandler_AngleStep(DataHandler_Index) <= DataHandler_ReadDataWord(2)(15 DOWNTO 10);
+                    DataHandler_Type(DataHandler_Index) <= DataHandler_ReadDataWord(2)(10 DOWNTO 8);
+                    DataHandler_Ackn(DataHandler_Index) <= DataHandler_ReaDataWord(2)(7 DOWNTO 0);
+                    DataHandler_RdEn <= '1';
+                    DataHandler_SdRamHandlerState <= WAIT_READ;
+
                 WHEN CHECK_DATA_AVAILABLE =>
                     IF (DataHandler_SpiWordsReg + 1) < DataHandler_Words THEN
-                        DataHandler_ColsAddress <= unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8) & '0');
-
+                        DataHandler_ColsAddress <= unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8) & '0');
                         -- DEBUG READ HERE THE COLOR
                         ----DataHandler_DebugLeds <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
-                        DataHandler_SdRamReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8))) & '0';
-                        DataHandler_SdRamReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8))) & '0';
-                        DataHandler_SdRamReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(2)(15 DOWNTO 8))) & '0';
-                        DataHandler_Resolution(0) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
-                        DataHandler_Resolution(1) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
-                        DataHandler_Resolution(2) <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
+                        DataHandler_Xaxis(DataHandler_Index) <= DataHandler_ReadDataWord(0)(15 DOWNTO 8);
+                        DataHandler_Yaxis(DataHandler_Index) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
 
-                        -- Increase the address for the x y axis
-                        DataHandler_ReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(0)) + 1);
-                        DataHandler_ReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(1)) + 1);
-                        DataHandler_ReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(2)) + 1);
+                        DataHandler_SdRamReadAddress <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8))) & '0';
+                        DataHandler_Resolution(DataHandler_Index) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
+
+                        DataHandler_AngleStep(DataHandler_Index) <= DataHandler_ReadDataWord(2)(15 DOWNTO 10);
+                        DataHandler_Type(DataHandler_Index) <= DataHandler_ReadDataWord(2)(10 DOWNTO 8);
+                        DataHandler_Ackn(DataHandler_Index) <= DataHandler_ReaDataWord(2)(7 DOWNTO 0);
+
                         DataHandler_RdEn <= '1';
-                        DataHandler_MisoIndexReg <= "00";
                         DataHandler_SdRamHandlerState <= WAIT_READ;
                         DataHandler_Finish <= '0';
                     END IF;
@@ -313,14 +325,7 @@ BEGIN
                     IF DataHandler_RdFinish_reg = '0' THEN
                         -- DEACTIVATE THE READ
                         DataHandler_RdEn <= '0';
-                        IF (DataHandler_MisoIndex = "10") THEN
-                            DataHandler_MisoIndex <= "00";
-                            DataHandler_SdRamHandlerState <= STORE_DATA;
-                        ELSE
-                            DataHandler_ColsAddress <= unsigned(DataHandler_SdRamReadAddress(to_integer(DataHandler_MisoIndex + 1)));
-                            DataHandler_MisoIndex <= DataHandler_MisoIndex + 1;
-                            DataHandler_SdRamHandlerState <= READ_DATA;
-                        END IF;
+                        DataHandler_SdRamHandlerState <= READ_DATA;
                     ELSE
                         DataHandler_RdFinish_reg <= DataHandler_RdFinish;
                         DataHandler_SdRamHandlerState <= WAIT_READ;
@@ -329,41 +334,32 @@ BEGIN
                 WHEN READ_DATA =>
                     IF DataHandler_RdFinish_reg = '1' THEN
                         -- Store the color
-                        DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(23 DOWNTO 8) <= DataHandler_DataColsInput(0);
-                        DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(7 DOWNTO 0) <= DataHandler_DataColsInput(1)(15 DOWNTO 8);
-                        DataHandler_MisoIndexReg <= DataHandler_MisoIndexReg + 1;
+                        DataHandler_Color(DataHandler_Index)(23 DOWNTO 8) <= DataHandler_DataColsInput(0);
+                        DataHandler_Color(DataHandler_Index)(7 DOWNTO 0) <= DataHandler_DataColsInput(1)(15 DOWNTO 8);
                         -- Activate back the read enable
-                        DataHandler_RdEn <= '1';
-                        DataHandler_SdRamHandlerState <= WAIT_READ;
+                        DataHandler_SdRamHandlerState <= PREPARE_IDLE;
                     ELSE
                         DataHandler_RdFinish_reg <= DataHandler_RdFinish;
                         DataHandler_SdRamHandlerState <= READ_DATA;
                     END IF;
 
-                WHEN STORE_DATA =>
+                WHEN PREPARE_IDLE =>
                     -- If we increase and overflows data is maximum
                     IF DataHandler_RdFinish_reg = '1' THEN
-                        -- DO NOTHING FOR NOW
-                        DataHandler_Xaxis(0) <= DataHandler_ReadDataWord(0)(15 DOWNTO 8);
-                        DataHandler_Xaxis(1) <= DataHandler_ReadDataWord(1)(15 DOWNTO 8);
-                        DataHandler_Xaxis(2) <= DataHandler_ReadDataWord(2)(15 DOWNTO 8);
-
-                        DataHandler_Yaxis(0) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
-                        DataHandler_Yaxis(1) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
-                        DataHandler_Yaxis(2) <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
-
                         -- DEBUG READ HERE THE COLOR
                         ----DataHandler_DebugLeds <= DataHandler_DataColsInput(0)(15 DOWNTO 8);
-                        -- Increase the address
+                        -- Increase the address of qspi brams
                         DataHandler_ReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(0)) + 1);
                         DataHandler_ReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(1)) + 1);
                         DataHandler_ReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(2)) + 1);
-                        DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 2;
-                        -- Store the color
-                        DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(23 DOWNTO 8) <= DataHandler_DataColsInput(0);
-                        DataHandler_Color(to_integer(DataHandler_MisoIndexReg))(7 DOWNTO 0) <= DataHandler_DataColsInput(1)(15 DOWNTO 8);
-                        DataHandler_Finish <= '1';
-                        DataHandler_SdRamHandlerState <= READ_DATA_IDLE;
+                        DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 1;
+                        IF DataHandler_Index == '1' THEN
+                            DataHandler_Finish <= '1';
+                            DataHandler_SdRamHandlerState <= READ_DATA_IDLE;
+                        ELSE
+                            DataHandler_SdRamHandlerState <= RESTART_READ;
+                        END IF;
+                        DataHandler_Index <= DataHandler_Index + '1';
                     ELSE
                         DataHandler_RdFinish_reg <= DataHandler_RdFinish;
                         DataHandler_SdRamHandlerState <= STORE_DATA;
@@ -371,32 +367,31 @@ BEGIN
 
                 WHEN READ_DATA_IDLE =>
                     IF (DataHandler_Start = '1' AND (DataHandler_SpiWordsReg + 1) < DataHandler_Words) THEN
-                        DataHandler_ColsAddress <= unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8) & '0');
-                        DataHandler_SdRamReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(0)(15 DOWNTO 8))) & '0';
-                        DataHandler_SdRamReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8))) & '0';
-                        DataHandler_SdRamReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(2)(15 DOWNTO 8))) & '0';
-                        -- ReInit the new resolution data that the bram has
-                        DataHandler_Resolution(0) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
-                        DataHandler_Resolution(1) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
-                        DataHandler_Resolution(2) <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
+                        DataHandler_ColsAddress <= unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8) & '0');
 
-                        -- Increase the address
-                        DataHandler_ReadAddress(0) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(0)) + 1);
-                        DataHandler_ReadAddress(1) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(1)) + 1);
-                        DataHandler_ReadAddress(2) <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadAddress(2)) + 1);
+                        -- DEBUG READ HERE THE COLOR
+                        ----DataHandler_DebugLeds <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
+                        DataHandler_Xaxis(DataHandler_Index) <= DataHandler_ReadDataWord(0)(15 DOWNTO 8);
+                        DataHandler_Yaxis(DataHandler_Index) <= DataHandler_ReadDataWord(0)(7 DOWNTO 0);
+
+                        DataHandler_SdRamReadAddress <= STD_LOGIC_VECTOR(unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8))) & '0';
+                        DataHandler_Resolution(DataHandler_Index) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
+
+                        DataHandler_AngleStep(DataHandler_Index) <= DataHandler_ReadDataWord(2)(15 DOWNTO 10);
+                        DataHandler_Type(DataHandler_Index) <= DataHandler_ReadDataWord(2)(10 DOWNTO 8);
+                        DataHandler_Ackn(DataHandler_Index) <= DataHandler_ReaDataWord(2)(7 DOWNTO 0);
 
                         -- DataHandler state machine restart
-                        DataHandler_MisoIndexReg <= "00";
                         DataHandler_Finish <= '0';
                         DataHandler_RdEn <= '1';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
-                    ELSIF ((DataHandler_Start = '1') AND (DataHandler_SpiWordsReg = DataHandler_Words) AND (DataHandler_EndSpi = '1')) THEN
+                    ELSIF ((DataHandler_Start = '1') AND (DataHandler_SpiWordsReg >= DataHandler_Words) AND (DataHandler_EndSpi = '1')) THEN
                         -- START THE SPI and prepare the spi ready
                         DataHandler_SpiWordsReg <= 0;
                         DataHandler_StartSpi <= '1';
                         DataHandler_SpiReady <= '1';
-                        DataHandler_Finish <= '0';
                         DataHandler_ReadAddress <= (OTHERS => (OTHERS => '0'));
+                        DataHandler_Index <= '0';
                         DataHandler_SdRamHandlerState <= START_READ;
                     END IF;
 
@@ -406,9 +401,9 @@ BEGIN
         END IF;
     END PROCESS;
 
-    PROCESS (DataHandler_Reset_n, DataHandler_PllLocked) IS
+    PROCESS (DataHandler_Reset, DataHandler_PllLocked) IS
     BEGIN
-        IF (DataHandler_Reset_n = '1') THEN
+        IF (DataHandler_Reset = '1') THEN
             DataHandler_Reset_Sync <= '1';
             DataHandler_SdRamCS <= '1';
         ELSIF DataHandler_PllLocked = '1' THEN
