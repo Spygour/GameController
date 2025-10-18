@@ -10,7 +10,7 @@ ENTITY Vga IS
         HsyncFreq : INTEGER := 37680);
 
     PORT (
-        Reset : IN;
+        Reset : IN STD_LOGIC;
         ColorClk : IN STD_LOGIC;
         HsyncClk : OUT STD_LOGIC := '1';
         VsyncClk : OUT STD_LOGIC := '1';
@@ -200,5 +200,5 @@ BEGIN
     -- assign the out signals
     x_axis <= x_axis_reg;
     y_axis <= y_axis_reg;
-    HsynComplete <= HsynComplete_reg;
+    HsyncComplete <= HsyncComplete_reg;
 END ARCHITECTURE;

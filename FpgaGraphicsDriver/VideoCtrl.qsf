@@ -97,7 +97,7 @@ set_location_assignment PIN_P6 -to VideoCtrl_SdRamCS
 set_location_assignment PIN_R6 -to VideoCtrl_DQM[0]
 set_location_assignment PIN_T5 -to VideoCtrl_DQM[1]
 set_location_assignment PIN_C2 -to VideoCtrl_WE
-set_location_assignment PIN_M1 -to VideoCtrl_Reset_n
+set_location_assignment PIN_M1 -to VideoCtrl_Reset
 set_location_assignment PIN_R8 -to VideoCtrl_ActlClk
 set_location_assignment PIN_R4 -to VideoCtrl_SdRamClkOut
 set_location_assignment PIN_A15 -to VideoCtrl_DebugLeds[0]
@@ -115,8 +115,38 @@ set_location_assignment PIN_L14 -to VideoCtrl_Si[2]
 set_location_assignment PIN_K15 -to VideoCtrl_So
 set_location_assignment PIN_L13 -to VideoCtrl_SpiClk
 set_location_assignment PIN_J14 -to VideoCtrl_SpiReady
+set_location_assignment PIN_A4 -to VideoCtrl_G[6]
+set_location_assignment PIN_E9 -to VideoCtrl_R[7]
+set_location_assignment PIN_F9 -to VideoCtrl_R[6]
+set_location_assignment PIN_F8 -to VideoCtrl_R[5]
+set_location_assignment PIN_E8 -to VideoCtrl_R[4]
+set_location_assignment PIN_D8 -to VideoCtrl_R[3]
+set_location_assignment PIN_E7 -to VideoCtrl_R[2]
+set_location_assignment PIN_E6 -to VideoCtrl_R[1]
+set_location_assignment PIN_C8 -to VideoCtrl_R[0]
+set_location_assignment PIN_B5 -to VideoCtrl_G[7]
+set_location_assignment PIN_B4 -to VideoCtrl_G[5]
+set_location_assignment PIN_B3 -to VideoCtrl_G[4]
+set_location_assignment PIN_A3 -to VideoCtrl_G[3]
+set_location_assignment PIN_A2 -to VideoCtrl_G[2]
+set_location_assignment PIN_C3 -to VideoCtrl_G[1]
+set_location_assignment PIN_D3 -to VideoCtrl_G[0]
+set_location_assignment PIN_C6 -to VideoCtrl_B[7]
+set_location_assignment PIN_A7 -to VideoCtrl_B[6]
+set_location_assignment PIN_D6 -to VideoCtrl_B[5]
+set_location_assignment PIN_B7 -to VideoCtrl_B[4]
+set_location_assignment PIN_A6 -to VideoCtrl_B[3]
+set_location_assignment PIN_B6 -to VideoCtrl_B[2]
+set_location_assignment PIN_D5 -to VideoCtrl_B[1]
+set_location_assignment PIN_A5 -to VideoCtrl_B[0]
+set_location_assignment PIN_T15 -to VideoCtrl_VsyncClk
+set_location_assignment PIN_F13 -to VideoCtrl_HsyncClk
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name ENABLE_SIGNALTAP OFF
+set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
+set_global_assignment -name VHDL_FILE Vga/VgaTypes.vhd
+set_global_assignment -name VHDL_FILE Vga/Vga.vhd
 set_global_assignment -name SDC_FILE SDC1.sdc
 set_global_assignment -name VHDL_FILE VideoCtrl.vhd
 set_global_assignment -name VHDL_FILE DataHandler/SdRam/SdRamTypes.vhd
@@ -129,7 +159,5 @@ set_global_assignment -name QIP_FILE DataHandler/SdRam/SdRamPll.qip
 set_global_assignment -name QIP_FILE DataHandler/Spi/SpiRam_1.qip
 set_global_assignment -name QIP_FILE DataHandler/Spi/SpiRam_2.qip
 set_global_assignment -name QIP_FILE DataHandler/Spi/SpiRam_3.qip
-set_global_assignment -name ENABLE_SIGNALTAP OFF
-set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
 set_global_assignment -name SIGNALTAP_FILE stp1.stp
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

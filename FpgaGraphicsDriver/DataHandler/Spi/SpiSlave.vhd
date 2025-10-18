@@ -18,8 +18,7 @@ ENTITY SpiSlave IS
         Spi_EndSpi : OUT STD_LOGIC := '1';
         Spi_Words : OUT INTEGER := 0;
         Spi_WrEn : OUT STD_LOGIC := '1';
-        Spi_WriteDataWord : INOUT Spi_QSpiCorrected := (OTHERS => (OTHERS => '0'));
-        Spi_ReadDataWord : INOUT Spi_QSpiCorrected := (OTHERS => (OTHERS => '0'));
+        Spi_WriteDataWord : OUT Spi_QSpiCorrected := (OTHERS => (OTHERS => '0'));
         Spi_WriteAddress : INOUT STD_LOGIC_VECTOR (7 DOWNTO 0) := (OTHERS => '0');
         Spi_ReadAddress : IN Spi_Address_t := (OTHERS => (OTHERS => '0'));
         Spi_lockedloop : IN STD_LOGIC := '0');
