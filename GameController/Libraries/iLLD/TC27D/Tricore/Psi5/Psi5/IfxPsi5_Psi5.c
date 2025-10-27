@@ -2,8 +2,8 @@
  * \file IfxPsi5_Psi5.c
  * \brief PSI5 PSI5 details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -214,8 +214,12 @@ boolean IfxPsi5_Psi5_initChannel(IfxPsi5_Psi5_Channel *channel, const IfxPsi5_Ps
     tempIOCR.B.IIE   = config->inputOutputControl.inputInverterEnabled;
     psi5Ch->IOCR.U   = tempIOCR.U;
 
-    psi5->GCR.U     |=
-        ((IFXPSI5_ENABLE_CHANNELTRIGGER << config->channelId) | (IFXPSI5_ENABLE_CHANNEL << config->channelId));
+    psi5->GCR.U     |= (IFXPSI5_ENABLE_CHANNELTRIGGER << config->channelId);
+
+    if (config->enableChannel)
+    {
+        psi5->GCR.U |= (IFXPSI5_ENABLE_CHANNEL << config->channelId);
+    }
 
     IfxScuWdt_setCpuEndinit(passwd);
 
@@ -247,6 +251,7 @@ void IfxPsi5_Psi5_initChannelConfig(IfxPsi5_Psi5_ChannelConfig *config, IfxPsi5_
     IfxPsi5_Psi5_ChannelConfig IfxPsi5_Psi5_defaultChannelConfig = {
         .channelId       = IfxPsi5_ChannelId_0,
         .module          = NULL_PTR,
+        .enableChannel   = TRUE,
         .pulseGeneration = {
             .pulseLength                = 5,
             .delayLength                = 1,

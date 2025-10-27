@@ -1,7 +1,7 @@
 /**
  * \file IfxCpu_IntrinsicsGnuc.h
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -63,6 +63,7 @@
 /* *INDENT-OFF* */
 #define STRINGIFY(x)    #x
 
+#define IFX_WEAK        __attribute__ ((weak))
 /** Function call without return
  */
 #define Ifx__non_return_call(fun)	__asm__ volatile ("ji %0"::"a"(fun))
@@ -1337,7 +1338,7 @@ IFX_INLINE sint8 Ifx__satb(sint32 a)
 
 /**  Return saturated uint8
  */
-IFX_INLINE uint8 Ifx__satbu(sint32 a)
+IFX_INLINE uint8 Ifx__satbu(uint32 a)
 {
     uint8 res;
     __asm__ volatile ("sat.bu %0,%1":"=d"(res):"d"(a));
@@ -1348,16 +1349,16 @@ IFX_INLINE uint8 Ifx__satbu(sint32 a)
  */
 IFX_INLINE sint16 Ifx__sath(sint32 a)
 {
-    sint8 res;
+    sint16 res;
     __asm__ volatile ("sat.h %0,%1":"=d"(res):"d"(a));
     return res;
 }
 
 /**  Return saturated unsigned halfword
  */
-IFX_INLINE uint16 Ifx__sathu(sint32 a)
+IFX_INLINE uint16 Ifx__sathu(uint32 a)
 {
-    sint8 res;
+    uint16 res;
     __asm__ volatile ("sat.hu %0,%1":"=d"(res):"d"(a));
     return res;
 }
@@ -1579,6 +1580,34 @@ IFX_INLINE uint32 IfxCpu_calculateCrc32(uint32 *startaddress, uint8 length)
         __asm__ ("CRC32B.W %0,%0,%1" : "+d" (returnvalue) : "d" (*startaddress)); 
         startaddress++; 
     } 
+    return returnvalue;
+}
+
+/** \brief Function calculates a user defined CRC
+ *
+ * Bit31    15      12         10       9        8                2         Bit0
+ *  ---------------------------------------------------------------------------
+ * |        |        |         |        |        |                |    input   |
+ * | poly-  | CRC    |    0    | inver  | bit    |        0       |    data    |
+ * | nomial | width  |         | sion   | order  |                |    width   |
+ * |        | (1-16) |         |        |        |                |    (1-8)   |
+ *  ---------------------------------------------------------------------------
+ *
+ * \param startaddress value to be converted.
+ * \param seedValue Seed value for CRC.
+ * \param length length of data.
+ * \param value Parameters of CRC algorithm.
+ * \return Returns the calculated CRC value.
+ *
+ */
+IFX_INLINE uint16 Ifx__calculateCrcN(uint8 *startaddress, uint16 seedValue, uint8 length, uint32 value)
+{
+	uint16 returnvalue = seedValue;
+	for (;length > 0; length--)
+	{
+		__asm__ volatile("crcn %0,%0,%1,%2" :"+d"(returnvalue) : "d"(value), "d" (*startaddress) : "memory");
+		startaddress++;
+	}
     return returnvalue;
 }
 

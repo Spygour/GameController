@@ -1,6 +1,6 @@
 /**
  * \file IfxCpu_IntrinsicsDcc.h
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -47,6 +47,8 @@
 
 /******************************************************************************/
 /* *INDENT-OFF* */
+#define IFX_WEAK     __attribute__ ((weak))
+
 /** \defgroup IfxLld_Cpu_Intrinsics_Dcc_min_smax Minimum and Maximum of (Short) Integers
  These intrinsic functions return the minimum or maximum of a signed integer, unsigned integer or short integer.
  * \ingroup IfxLld_Cpu_Intrinsics_Dcc
@@ -1261,7 +1263,7 @@ asm sint8 Ifx__satb(sint32 a)
 
 /**  Return saturated unsigned byte
  */
-asm volatile uint8 Ifx__satbu(sint32 a)
+asm volatile uint8 Ifx__satbu(uint32 a)
 {
 % reg a
 ! "%d2"
@@ -1279,7 +1281,7 @@ asm short Ifx__sath(sint32 a)
 
 /**  Return saturated unsignedhalfword
  */
-asm volatile uint16 Ifx__sathu(sint32 a)
+asm volatile uint16 Ifx__sathu(uint32 a)
 {
 % reg a
 ! "%d2"
@@ -1508,6 +1510,13 @@ asm volatile unsigned int Ifx__crc32(uint32 b,uint32 a)
 	CRC32B.W %d2, b, a
 }
 
+asm volatile unsigned int Ifx__crc32n(uint8 startAddr, uint16 a, uint32 b)
+{
+% reg a, b, startAddr
+! "%d2"
+	crcn %d2, a, b, startAddr
+}
+
 IFX_INLINE unsigned int IfxCpu_calculateCrc32(uint32 *startaddress, uint8 length)
 {
     uint32 returnvalue = 0; /* set seed value to 0 */
@@ -1520,6 +1529,33 @@ IFX_INLINE unsigned int IfxCpu_calculateCrc32(uint32 *startaddress, uint8 length
     return returnvalue;
 }
 
+/** \brief Function calculates a user defined CRC
+ *
+ * Bit31    15      12         10       9        8                2         Bit0
+ *  ---------------------------------------------------------------------------
+ * |        |        |         |        |        |                |    input   |
+ * | poly-  | CRC    |    0    | inver  | bit    |        0       |    data    |
+ * | nomial | width  |         | sion   | order  |                |    width   |
+ * |        | (1-16) |         |        |        |                |    (1-8)   |
+ *  ---------------------------------------------------------------------------
+ *
+ * \param startaddress value to be converted.
+ * \param seedValue Seed value for CRC.
+ * \param length length of data.
+ * \param value Parameters of CRC algorithm.
+ * \return Returns the calculated CRC value.
+ *
+ */
+IFX_INLINE uint16 Ifx__calculateCrcN(uint8 *startaddress, uint16 seedValue, uint8 length, uint32 value)
+{
+	uint16 returnvalue = seedValue;
+	for (;length > 0; length--)
+	{
+		returnvalue=Ifx__crc32n(*startaddress, returnvalue, value);
+		startaddress++;
+	}
+    return returnvalue;
+}
 /** \brief Generate the Random value
  *
  * This function generates the random value by taking a valid seed and limits.

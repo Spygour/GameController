@@ -3,8 +3,9 @@
  * \brief GTM IN details
  * \ingroup IfxLld_Gtm
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -38,6 +39,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
+ *
  * \defgroup IfxLld_Gtm_Tim_In TIM Input Interface
  * \ingroup IfxLld_Gtm_Tim
  * \defgroup IfxLld_Gtm_Tim_In_DataStructures Data Structures
@@ -60,6 +62,7 @@
 #include "Gtm/Std/IfxGtm_Cmu.h"
 #include "Cpu/Std/IfxCpu.h"
 #include "_Utilities/Ifx_Assert.h"
+#include "StdIf/IfxStdIf_PwmHl.h"
 
 /******************************************************************************/
 /*--------------------------------Enumerations--------------------------------*/
@@ -88,6 +91,15 @@ typedef enum
 
 /** \} */
 
+/** \brief Active edge for measurement
+ */
+typedef enum
+{
+    IfxGtm_Tim_In_ActiveEdge_falling,  /**< \brief Use falling edge as active edge */
+    IfxGtm_Tim_In_ActiveEdge_raising,  /**< \brief Use raising edge as active edge */
+    IfxGtm_Tim_In_ActiveEdge_both      /**< \brief Use both edge as active edge */
+} IfxGtm_Tim_In_ActiveEdge;
+
 /******************************************************************************/
 /*-----------------------------Data Structures--------------------------------*/
 /******************************************************************************/
@@ -98,12 +110,14 @@ typedef enum
  */
 typedef struct
 {
-    boolean        irqOnNewVal;             /**< \brief If TRUE, the interrupt on new value is enabled */
-    boolean        irqOnCntOverflow;        /**< \brief If TRUE, the interrupt on CNT overflow is enabled */
-    boolean        irqOnEcntOverflow;       /**< \brief If TRUE, the interrupt on ECNT (Edge counter) overflow is enabled */
-    boolean        irqOnDatalost;           /**< \brief If TRUE, the interrupt on data lost (GPR0, GPR1) is enabled */
-    IfxGtm_Cmu_Clk clock;                   /**< \brief Timer input clock */
-    Ifx_Pwm_Mode   mode;                    /**< \brief PWM mode, only Ifx_Pwm_Mode_leftAligned and Ifx_Pwm_Mode_righAligned are supported */
+    boolean                  irqOnNewVal;             /**< \brief If TRUE, the interrupt on new value is enabled */
+    boolean                  irqOnCntOverflow;        /**< \brief If TRUE, the interrupt on CNT overflow is enabled */
+    boolean                  irqOnEcntOverflow;       /**< \brief If TRUE, the interrupt on ECNT (Edge counter) overflow is enabled */
+    boolean                  irqOnDatalost;           /**< \brief If TRUE, the interrupt on data lost (GPR0, GPR1) is enabled */
+    IfxGtm_Cmu_Clk           clock;                   /**< \brief Timer input clock */
+    Ifx_Pwm_Mode             mode;                    /**< \brief PWM mode, only Ifx_Pwm_Mode_leftAligned and Ifx_Pwm_Mode_righAligned are supported */
+    IfxGtm_Tim_In_ActiveEdge activeEdge;              /**< \brief Active edge to be selected as falling, raising or both */
+    uint32                   gateCount;               /**< \brief Shadow count value */
 } IfxGtm_Tim_In_ConfigCapture;
 
 /** \brief Configuration structure for TIM filter
@@ -166,6 +180,7 @@ typedef struct
     IfxGtm_Tim_In_ConfigCapture capture;            /**< \brief Capture configuration */
     IfxGtm_Tim_In_ConfigFilter  filter;             /**< \brief Filter configuration */
     IfxGtm_Tim_In_ConfigTimeout timeout;            /**< \brief Timeout configuration */
+    IfxGtm_Tim_Mode             mode;               /**< \brief TIM channel Mode */
 } IfxGtm_Tim_In_Config;
 
 /** \} */

@@ -2,8 +2,8 @@
  * \file IfxI2c_I2c.c
  * \brief I2C I2C details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -53,9 +53,25 @@
 
 void IfxI2c_I2c_initConfig(IfxI2c_I2c_Config *config, Ifx_I2C *i2c)
 {
-    config->i2c      = i2c;
-    config->baudrate = 400000;
-    config->pins     = NULL_PTR;
+    config->i2c                                            = i2c;
+    config->baudrate                                       = 400000;
+    config->pins                                           = NULL_PTR;
+
+    config->peripheralMode                                 = IfxI2c_MasterNotSlave_master;
+
+    config->addrFifoCfg.addressConfig.slaveAddress         = 0;
+    config->addrFifoCfg.addressConfig.addressMode          = IfxI2c_AddressMode_7Bit;
+    config->addrFifoCfg.addressConfig.generalCallEnable    = 0;
+    config->addrFifoCfg.addressConfig.masterCodeEnable     = 0;
+    config->addrFifoCfg.addressConfig.stopOnNotAcknowledge = 0;
+    config->addrFifoCfg.addressConfig.stopOnPacketEnd      = 0;
+
+    config->addrFifoCfg.fifoConfig.rxBurstSize             = IfxI2c_RxBurstSize_1Word;
+    config->addrFifoCfg.fifoConfig.txBurstSize             = IfxI2c_TxBurstSize_1Word;
+    config->addrFifoCfg.fifoConfig.rxFifoAlignment         = IfxI2c_RxFifoAlignment_byte;
+    config->addrFifoCfg.fifoConfig.txFifoAlignment         = IfxI2c_TxFifoAlignment_byte;
+    config->addrFifoCfg.fifoConfig.rxFifoFlowControl       = IfxI2c_RxFifoFlowControl_enable;
+    config->addrFifoCfg.fifoConfig.txFifoFlowControl       = IfxI2c_TxFifoFlowControl_enable;
 }
 
 
@@ -81,7 +97,15 @@ void IfxI2c_I2c_initModule(IfxI2c_I2c *i2c, const IfxI2c_I2c_Config *config)
     IfxI2c_enableModule(i2cSFR);
     IfxI2c_stop(i2cSFR);                                                                   // enter config Mode
     IfxI2c_configureAsMaster(i2cSFR);
-    IfxI2c_setBaudrate(i2cSFR, config->baudrate);
+
+    if (config->peripheralMode == IfxI2c_MasterNotSlave_slave)
+    {
+        IfxI2c_configureAsSlave(i2cSFR);
+    }
+
+    IfxI2c_configureAddrFifo(i2cSFR, &config->addrFifoCfg);
+
+    IfxI2c_setBaudrate(i2cSFR, config->baudrate);  /*In high speed mode the baud rate must be higher then 400kHz */
 
     if (config->pins != NULL_PTR)
     {
@@ -89,28 +113,7 @@ void IfxI2c_I2c_initModule(IfxI2c_I2c *i2c, const IfxI2c_I2c_Config *config)
     }
 
     IfxI2c_run(i2cSFR);
-    i2c->baudrate  = IfxI2c_getBaudrate(i2cSFR);
-    i2c->busStatus = IfxI2c_getBusStatus(i2cSFR);
-    i2c->status    = IfxI2c_I2c_Status_ok;
-}
 
-
-void IfxI2c_I2c_initSlaveModule(IfxI2c_I2c *i2c, const IfxI2c_I2c_Config *config,uint8 I2cAddress)
-{
-    Ifx_I2C *i2cSFR = config->i2c;
-    i2c->i2c = i2cSFR;
-
-    IfxI2c_enableModule(i2cSFR);
-    IfxI2c_stop(i2cSFR);                                                                   // enter config Mode
-    IfxI2c_configureAsSlave(i2cSFR,I2cAddress);
-    IfxI2c_setBaudrate(i2cSFR, config->baudrate);
-
-    if (config->pins != NULL_PTR)
-    {
-        IfxI2c_initSclSdaPin(config->pins->scl, config->pins->sda, config->pins->padDriver);
-    }
-
-    IfxI2c_run(i2cSFR);
     i2c->baudrate  = IfxI2c_getBaudrate(i2cSFR);
     i2c->busStatus = IfxI2c_getBusStatus(i2cSFR);
     i2c->status    = IfxI2c_I2c_Status_ok;
@@ -152,14 +155,12 @@ IfxI2c_I2c_Status IfxI2c_I2c_read(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *
     IfxI2c_setTransmitPacketSize(i2c, 1);   // send slave address packet with RnW = 1
     IfxI2c_setReceivePacketSize(i2c, size); // set number of bytes to reveive
     IfxI2c_writeFifo(i2c, packet);
-    IfxI2c_clearLastSingleRequestInterruptSource(i2c);
-    IfxI2c_clearSingleRequestInterruptSource(i2c);
-    IfxI2c_clearLastBurstRequestInterruptSource(i2c);
-    IfxI2c_clearBurstRequestInterruptSource(i2c);
 
-    /* Poll until aribtration lost, nack, or rx mode flag is reset, or the error is gone*/
-    while ((i2c->PIRQSS.U & ((1 << IFX_I2C_PIRQSS_AL_OFF) | (1 << IFX_I2C_PIRQSS_NACK_OFF) | (1 << IFX_I2C_PIRQSS_RX_OFF))) || i2c->ERRIRQSS.U)
+    /* Poll until aribtration lost, nack, or rx mode flag is reset */
+    while ((i2c->PIRQSS.U & ((1 << IFX_I2C_PIRQSS_AL_OFF) | (1 << IFX_I2C_PIRQSM_TX_END_OFF) | (1 << IFX_I2C_PIRQSS_RX_OFF))) == FALSE)
     {}
+
+    IfxI2c_clearAllDtrInterruptSources(i2c);
 
     /* check status*/
     if (i2c->ERRIRQSS.U)
@@ -202,7 +203,7 @@ IfxI2c_I2c_Status IfxI2c_I2c_read(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *
                     bytesToReceive = 0;
                 }
 
-                uint32 ris;
+                uint32 ris = 0;
 
                 while (!(ris = i2c->RIS.U)) // wait for fifo request or error
 
@@ -353,7 +354,6 @@ IfxI2c_I2c_Status IfxI2c_I2c_read(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *
 
     IfxI2c_clearAllErrorInterruptSources(i2c);
     IfxI2c_clearAllProtocolInterruptSources(i2c);
-
     IfxI2c_releaseBus(i2c);
     i2cDevice->i2c->busStatus = IfxI2c_getBusStatus(i2c);
     i2cDevice->i2c->status    = status;
@@ -413,7 +413,7 @@ IfxI2c_I2c_Status IfxI2c_I2c_write(IfxI2c_I2c_Device *i2cDevice, volatile uint8 
         IfxI2c_clearProtocolInterruptSource(i2c, IfxI2c_ProtocolInterruptSource_notAcknowledgeReceived);
         status = IfxI2c_I2c_Status_nak;
     }
-    else if (size > 0) // write i2c device
+    else if (size > 0)   // write i2c device
 
     {
         uint32  i, j = 0;
@@ -475,6 +475,11 @@ IfxI2c_I2c_Status IfxI2c_I2c_write(IfxI2c_I2c_Device *i2cDevice, volatile uint8 
             }
 
             IfxI2c_writeFifo(i2c, txdata.packet);
+
+            /* our write to FIFO will trigger any of the request source, we wait for it */
+            while (!(i2c->RIS.U)) // wait for fifo request or error
+            {}
+
             IfxI2c_clearLastSingleRequestInterruptSource(i2c);
             IfxI2c_clearSingleRequestInterruptSource(i2c);
             IfxI2c_clearLastBurstRequestInterruptSource(i2c);
@@ -510,335 +515,4 @@ IfxI2c_I2c_Status IfxI2c_I2c_write(IfxI2c_I2c_Device *i2cDevice, volatile uint8 
     i2cDevice->i2c->busStatus = IfxI2c_getBusStatus(i2c);
     i2cDevice->i2c->status    = status;
     return status;
-}
-uint8 tempi2c = 0;
-
-IfxI2c_I2c_Status IfxI2c_I2c_SlaveRead(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size)
-{
-  IfxI2c_I2c_Status status = IfxI2c_I2c_Status_ok;
-  Ifx_I2C          *i2c    = i2cDevice->i2c->i2c;
-  union data
-  {
-      uint32 packet;
-      uint8  packetbyte[4];
-  }      rxdata;
-
-  rxdata.packet = 0;
-
-  sint32 bytesToReceive = size;
-  uint32 bytes;
-
-  // bus free?
-  if (IfxI2c_busIsFree(i2c) == FALSE)
-  {
-      status                    = IfxI2c_I2c_Status_busNotFree;
-      i2cDevice->i2c->busStatus = IfxI2c_getBusStatus(i2c);
-      i2cDevice->i2c->status    = status;
-      return status;
-  }
-
-  IfxI2c_clearAllProtocolInterruptSources(i2c);
-  IfxI2c_clearAllErrorInterruptSources(i2c);
-  IfxI2c_clearLastSingleRequestInterruptSource(i2c);
-  IfxI2c_clearSingleRequestInterruptSource(i2c);
-  IfxI2c_clearLastBurstRequestInterruptSource(i2c);
-  IfxI2c_clearBurstRequestInterruptSource(i2c);
-
-  // wait until address match happens Slave will send ack by itself
-   while (IfxI2c_getProtocolInterruptSourceStatus(i2c, IfxI2c_ProtocolInterruptSource_addressMatch) == FALSE)
-   {}
-
-   IfxI2c_clearProtocolInterruptSource(i2c, IfxI2c_ProtocolInterruptSource_addressMatch);
-
-   if (i2c->BUSSTAT.B.RnW == 1 )
-   {
-     IfxI2c_setReceivePacketSize(i2c, size); // set number of bytes to receive
-     IfxI2c_clearLastSingleRequestInterruptSource(i2c);
-     IfxI2c_clearSingleRequestInterruptSource(i2c);
-     IfxI2c_clearLastBurstRequestInterruptSource(i2c);
-     IfxI2c_clearBurstRequestInterruptSource(i2c);
-
-
-     // wait until all bytes are received
-      while (IfxI2c_getProtocolInterruptSourceStatus(i2c, IfxI2c_ProtocolInterruptSource_transmissionEnd) == FALSE)
-     {}
-
-      IfxI2c_clearProtocolInterruptSource(i2c, IfxI2c_ProtocolInterruptSource_transmissionEnd);
-
-      // check errors
-      uint32 ris;
-      ris = i2c->RIS.U;
-
-      if (ris & (1 << IFX_I2C_RIS_I2C_ERR_INT_OFF)) // error flags
-      {
-          IfxI2c_clearAllErrorInterruptSources(i2c);
-          status = IfxI2c_I2c_Status_error;
-      }
-
-      else if (ris & (1 << IFX_I2C_RIS_I2C_P_INT_OFF)) // check protocol flags
-      {
-          if (i2c->PIRQSS.U & (1 << IFX_I2C_PIRQSS_AL_OFF))
-          {
-              i2c->PIRQSC.U = (1 << IFX_I2C_PIRQSS_AL_OFF);
-              status        = IfxI2c_I2c_Status_al;
-          }
-
-          else if (i2c->PIRQSS.U & (1 << IFX_I2C_PIRQSS_NACK_OFF))
-          {
-              i2c->PIRQSC.U = (1 << IFX_I2C_PIRQSS_NACK_OFF);
-              status        = IfxI2c_I2c_Status_nak;
-          }
-
-          /*Clear remaining flags*/
-          /*  Check and clear Address Match, General Call, Master Code, Transmission End and Receive Mode*/
-          if (i2c->PIRQSS.U & ((1 << IFX_I2C_PIRQSS_AM_OFF) | (1 << IFX_I2C_PIRQSS_GC_OFF) | (1 << IFX_I2C_PIRQSS_MC_OFF) | (1 << IFX_I2C_PIRQSS_TX_END_OFF) | (1 << IFX_I2C_PIRQSS_RX_OFF)))
-          {
-              /*Just clearing the bits. Status need not be updated*/
-              i2c->PIRQSC.U = ((1 << IFX_I2C_PIRQSS_AM_OFF) | (1 << IFX_I2C_PIRQSS_GC_OFF) | (1 << IFX_I2C_PIRQSS_MC_OFF) | (1 << IFX_I2C_PIRQSS_TX_END_OFF) | (1 << IFX_I2C_PIRQSS_RX_OFF));
-          }
-       }
-
-     if ((status != IfxI2c_I2c_Status_error) && (status != IfxI2c_I2c_Status_al) && (status != IfxI2c_I2c_Status_nak))
-     {
-     // read fifo
-         uint32 i;
-
-         for (i = 0; i < (uint32)size; i += 4)
-         {
-             if (bytesToReceive >= 4)
-             {
-                 bytes           = 4;
-                 bytesToReceive -= 4;
-             }
-             else
-             {
-                 bytes          = bytesToReceive;
-                 bytesToReceive = 0;
-             }
-
-             uint32 k;
-             rxdata.packet = i2c->RXD.U;
-             IfxI2c_clearLastSingleRequestInterruptSource(i2c);
-             IfxI2c_clearSingleRequestInterruptSource(i2c);
-             IfxI2c_clearLastBurstRequestInterruptSource(i2c);
-             IfxI2c_clearBurstRequestInterruptSource(i2c);
-
-             for (k = 0; k < bytes; k++)
-             {
-                 data[i + k] = rxdata.packetbyte[k];
-             }
-         }
-     }
-
-     IfxI2c_releaseBus(i2c);
-     i2cDevice->i2c->busStatus = IfxI2c_getBusStatus(i2c);
-     i2cDevice->i2c->status    = status;
-     return status;
-   }
-   else
-   {
-     IfxI2c_clearLastSingleRequestInterruptSource(i2c);
-     IfxI2c_clearSingleRequestInterruptSource(i2c);
-     IfxI2c_clearLastBurstRequestInterruptSource(i2c);
-     IfxI2c_clearBurstRequestInterruptSource(i2c);
-
-     // check errors
-     uint32 ris;
-     ris = i2c->RIS.U;
-
-     if (ris & (1 << IFX_I2C_RIS_I2C_ERR_INT_OFF)) // error flags
-     {
-         IfxI2c_clearAllErrorInterruptSources(i2c);
-         status = IfxI2c_I2c_Status_error;
-     }
-
-     else if (ris & (1 << IFX_I2C_RIS_I2C_P_INT_OFF)) // check protocol flags
-     {
-         if (i2c->PIRQSS.U & (1 << IFX_I2C_PIRQSS_AL_OFF))
-         {
-             i2c->PIRQSC.U = (1 << IFX_I2C_PIRQSS_AL_OFF);
-             status        = IfxI2c_I2c_Status_al;
-         }
-
-         else if (i2c->PIRQSS.U & (1 << IFX_I2C_PIRQSS_NACK_OFF))
-         {
-             i2c->PIRQSC.U = (1 << IFX_I2C_PIRQSS_NACK_OFF);
-             status        = IfxI2c_I2c_Status_nak;
-         }
-
-         /*Clear remaining flags*/
-         /*  Check and clear Address Match, General Call, Master Code, Transmission End and Receive Mode*/
-         if (i2c->PIRQSS.U & ((1 << IFX_I2C_PIRQSS_AM_OFF) | (1 << IFX_I2C_PIRQSS_GC_OFF) | (1 << IFX_I2C_PIRQSS_MC_OFF) | (1 << IFX_I2C_PIRQSS_TX_END_OFF) | (1 << IFX_I2C_PIRQSS_RX_OFF)))
-         {
-             /*Just clearing the bits. Status need not be updated*/
-             i2c->PIRQSC.U = ((1 << IFX_I2C_PIRQSS_AM_OFF) | (1 << IFX_I2C_PIRQSS_GC_OFF) | (1 << IFX_I2C_PIRQSS_MC_OFF) | (1 << IFX_I2C_PIRQSS_TX_END_OFF) | (1 << IFX_I2C_PIRQSS_RX_OFF));
-         }
-      }
-     IfxI2c_releaseBus(i2c);
-     i2cDevice->i2c->busStatus = IfxI2c_getBusStatus(i2c);
-     i2cDevice->i2c->status    = status;
-     return status;
-   }
-
-}
-
-
-
-IfxI2c_I2c_Status IfxI2c_I2c_SlaveWrite(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size)
-{
-  IfxI2c_I2c_Status status = IfxI2c_I2c_Status_ok;
-  Ifx_I2C          *i2c    = i2cDevice->i2c->i2c;
-
-  union data
-  {
-      uint32 packet;
-      uint8  packetbyte[4];
-  }      txdata;
-
-  txdata.packet = 0;
-
-  sint32 bytesToSend = size; // +1 slave device address
-  uint32 bytes;
-
-  // bus free?
-  if (IfxI2c_busIsFree(i2c) == FALSE)
-  {
-      status                    = IfxI2c_I2c_Status_busNotFree;
-      i2cDevice->i2c->busStatus = IfxI2c_getBusStatus(i2c);
-      i2cDevice->i2c->status    = status;
-      return status;
-  }
-
-  IfxI2c_clearAllProtocolInterruptSources(i2c);
-  IfxI2c_clearAllErrorInterruptSources(i2c);
-  IfxI2c_clearLastSingleRequestInterruptSource(i2c);
-  IfxI2c_clearSingleRequestInterruptSource(i2c);
-  IfxI2c_clearLastBurstRequestInterruptSource(i2c);
-  IfxI2c_clearBurstRequestInterruptSource(i2c);
-
-  // wait until address match happens Slave will send ack by itself
-   while (IfxI2c_getProtocolInterruptSourceStatus(i2c, IfxI2c_ProtocolInterruptSource_addressMatch) == FALSE)
-   {}
-
-   IfxI2c_clearProtocolInterruptSource(i2c, IfxI2c_ProtocolInterruptSource_addressMatch);
-
-   if (i2c->BUSSTAT.B.RnW == 0 )
-   {
-     uint32  i, j = 0;
-
-     // assumes TC is faster then i2c and therefor a fifo underflow is not possible
-     boolean intEnabled = IfxCpu_disableInterrupts(); // disable global interrupts to prevent FIFO underflow
-     IfxI2c_setTransmitPacketSize(i2c, size);
-
-     for (i = 0; i < (uint32)(size); i += 4)
-     {
-         if (bytesToSend >= 4)
-         {
-             bytes        = 4;
-             bytesToSend -= 4;
-         }
-         else
-         {
-             bytes       = bytesToSend;
-             bytesToSend = 0;
-         }
-
-         txdata.packet = 0;
-
-         for (j = 0; j < bytes; j++)
-         {
-           txdata.packetbyte[j] = (uint8)data[i + j];
-         }
-
-         do
-         {
-             // check errors
-             uint32 ris;
-             ris = i2c->RIS.U;
-
-             if (ris & (1 << IFX_I2C_RIS_I2C_P_INT_OFF)) // check protocol flags
-             {
-                 IfxI2c_clearAllProtocolInterruptSources(i2c);
-                 status = IfxI2c_I2c_Status_error;
-             }
-
-             if (ris & (1 << IFX_I2C_RIS_I2C_ERR_INT_OFF)) // error flags
-             {
-                 IfxI2c_clearAllErrorInterruptSources(i2c);
-                 status = IfxI2c_I2c_Status_error;
-             }
-         } while (i2c->FFSSTAT.B.FFS == 8 && status != IfxI2c_I2c_Status_error); // wait to prevent FIFO overflow
-
-         if (status == IfxI2c_I2c_Status_error)
-         {
-             break;
-         }
-
-         IfxI2c_writeFifo(i2c, txdata.packet);
-         IfxI2c_clearLastSingleRequestInterruptSource(i2c);
-         IfxI2c_clearSingleRequestInterruptSource(i2c);
-         IfxI2c_clearLastBurstRequestInterruptSource(i2c);
-         IfxI2c_clearBurstRequestInterruptSource(i2c);
-     }
-     IfxCpu_restoreInterrupts(intEnabled); // (re-) enable global interrupts
-
-     // wait until all bytes are sent
-     while (IfxI2c_getProtocolInterruptSourceStatus(i2c, IfxI2c_ProtocolInterruptSource_transmissionEnd) == FALSE)
-     {}
-
-     IfxI2c_clearProtocolInterruptSource(i2c, IfxI2c_ProtocolInterruptSource_transmissionEnd);
-
-     // finally check errors
-     uint32 ris;
-     ris = i2c->RIS.U;
-
-     if (ris & (1 << IFX_I2C_RIS_I2C_P_INT_OFF)) // check protocol flags
-     {
-         IfxI2c_clearAllProtocolInterruptSources(i2c);
-         status = IfxI2c_I2c_Status_error;
-     }
-
-     if (ris & (1 << IFX_I2C_RIS_I2C_ERR_INT_OFF)) // error flags
-     {
-         IfxI2c_clearAllErrorInterruptSources(i2c);
-         status = IfxI2c_I2c_Status_error;
-     }
-
-     IfxI2c_releaseBus(i2c);
-     i2cDevice->i2c->busStatus = IfxI2c_getBusStatus(i2c);
-     i2cDevice->i2c->status    = status;
-     return status;
-   }
-   else
-   {
-     // finally check errors
-     uint32 ris;
-     ris = i2c->RIS.U;
-
-     if (ris & (1 << IFX_I2C_RIS_I2C_P_INT_OFF)) // check protocol flags
-     {
-         IfxI2c_clearAllProtocolInterruptSources(i2c);
-         status = IfxI2c_I2c_Status_error;
-     }
-
-     if (ris & (1 << IFX_I2C_RIS_I2C_ERR_INT_OFF)) // error flags
-     {
-         IfxI2c_clearAllErrorInterruptSources(i2c);
-         status = IfxI2c_I2c_Status_error;
-     }
-
-     /*Clear remaining flags*/
-     /*  Check and clear Address Match, General Call, Master Code, Transmission End and Receive Mode*/
-     if (i2c->PIRQSS.U & ((1 << IFX_I2C_PIRQSS_AM_OFF) | (1 << IFX_I2C_PIRQSS_GC_OFF) | (1 << IFX_I2C_PIRQSS_MC_OFF) | (1 << IFX_I2C_PIRQSS_TX_END_OFF) | (1 << IFX_I2C_PIRQSS_RX_OFF)))
-     {
-         /*Just clearing the bits. Status need not be updated*/
-         i2c->PIRQSC.U = ((1 << IFX_I2C_PIRQSS_AM_OFF) | (1 << IFX_I2C_PIRQSS_GC_OFF) | (1 << IFX_I2C_PIRQSS_MC_OFF) | (1 << IFX_I2C_PIRQSS_TX_END_OFF) | (1 << IFX_I2C_PIRQSS_RX_OFF));
-     }
-
-     IfxI2c_releaseBus(i2c);
-     i2cDevice->i2c->busStatus = IfxI2c_getBusStatus(i2c);
-     i2cDevice->i2c->status    = status;
-     return status;
-   }
-
 }

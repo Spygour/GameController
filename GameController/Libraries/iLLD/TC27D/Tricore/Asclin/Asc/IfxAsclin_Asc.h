@@ -3,8 +3,9 @@
  * \brief ASCLIN ASC details
  * \ingroup IfxLld_Asclin
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2020 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  * \defgroup IfxLld_Asclin_Asc_Usage How to use the ASCLIN ASC Interface driver?
  * \ingroup IfxLld_Asclin
@@ -238,7 +240,6 @@
 #include "Asclin/Std/IfxAsclin.h"
 #include "_Lib/DataHandling/Ifx_Fifo.h"
 #include "Stm/Std/IfxStm.h"
-#include "StdIf/IfxStdIf_DPipe.h"
 
 /******************************************************************************/
 /*-----------------------------Data Structures--------------------------------*/
@@ -345,7 +346,7 @@ typedef struct
     volatile boolean              txInProgress;           /**< \brief Ongoing transfer. Will be set by IfxAsclin_Asc_initiateTransmission, and cleared by IfxAsclin_Asc_isrTransmit */
     volatile boolean              rxSwFifoOverflow;       /**< \brief Will be set by IfxAsclin_Asc_isrReceive if the SW Fifo overflowed */
     IfxAsclin_Asc_ErrorFlagsUnion errorFlags;             /**< \brief error reported by ASCLIN during runtime (written by IfxAsclin_Asc_isrError) */
-    Ifx_DataBufferMode            dataBufferMode;         /**< \brief Rx buffer mode */
+    IfxAsclin_DataBufferMode      dataBufferMode;         /**< \brief Rx buffer mode */
     volatile uint32               sendCount;              /**< \brief Number of byte that are send out, this value is reset with the function Asc_If_resetSendCount() */
     volatile Ifx_TickTime         txTimestamp;            /**< \brief Time stamp of the latest send byte */
 } IfxAsclin_Asc;
@@ -375,8 +376,8 @@ typedef struct
                                                           * The Size of this area must be at least equals to "rxBufferSize + sizeof(Ifx_Fifo) + 8". Not tacking this in account may result in unpredictable behavior.
                                                           *
                                                           * If set to NULL, the buffer will be allocated dynamically according to rxBufferSize */
-    boolean            loopBack;                         /**< \brief IOCR.LB, loop back mode selection, 0 for disable, 1 for enable */
-    Ifx_DataBufferMode dataBufferMode;                   /**< \brief Rx buffer mode */
+    boolean                  loopBack;                   /**< \brief IOCR.LB, loop back mode selection, 0 for disable, 1 for enable */
+    IfxAsclin_DataBufferMode dataBufferMode;             /**< \brief Rx buffer mode */
 } IfxAsclin_Asc_Config;
 
 /** \} */
@@ -494,7 +495,7 @@ IFX_EXTERN sint32 IfxAsclin_Asc_getReadCount(IfxAsclin_Asc *asclin);
  * \param asclin module handle
  * \return Read event object
  */
-IFX_EXTERN IfxStdIf_DPipe_ReadEvent IfxAsclin_Asc_getReadEvent(IfxAsclin_Asc *asclin);
+IFX_EXTERN volatile boolean *IfxAsclin_Asc_getReadEvent(IfxAsclin_Asc *asclin);
 
 /** \brief \see IfxStdIf_DPipe_GetSendCount
  * \param asclin module handle
@@ -518,7 +519,7 @@ IFX_EXTERN sint32 IfxAsclin_Asc_getWriteCount(IfxAsclin_Asc *asclin);
  * \param asclin module handle
  * \return Write event object
  */
-IFX_EXTERN IfxStdIf_DPipe_WriteEvent IfxAsclin_Asc_getWriteEvent(IfxAsclin_Asc *asclin);
+IFX_EXTERN volatile boolean *IfxAsclin_Asc_getWriteEvent(IfxAsclin_Asc *asclin);
 
 /** \brief \see  IfxStdIf_DPipe_Read
  * \param asclin module handle
@@ -601,12 +602,4 @@ IFX_EXTERN void IfxAsclin_Asc_initModuleConfig(IfxAsclin_Asc_Config *config, Ifx
  *
  */
 IFX_EXTERN void IfxAsclin_Asc_initiateTransmission(IfxAsclin_Asc *asclin);
-
-/** \brief Initialize the standard interface to the device driver
- * \param stdif standard interface object, will be initialized by the function
- * \param asclin device driver object used by the standard interface. must be initialised separately
- * \return TRUE on success, else FALSE
- */
-IFX_EXTERN boolean IfxAsclin_Asc_stdIfDPipeInit(IfxStdIf_DPipe *stdif, IfxAsclin_Asc *asclin);
-
 #endif /* IFXASCLIN_ASC_H */

@@ -3,7 +3,7 @@
  * \brief SCU I/O map
  * \ingroup IfxLld_Scu
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2013 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -48,6 +48,7 @@
 #include <IfxScu_reg.h>
 #include <_Impl/IfxScu_cfg.h>
 #include <Port/Std/IfxPort.h>
+#include "Ifx_PinMap.h"
 
 /** \addtogroup IfxLld_Scu_pinmap
  * \{ */

@@ -3,8 +3,8 @@
  * \brief PSI5  basic functionality
  * \ingroup IfxLld_Psi5
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -448,6 +448,13 @@ IFX_INLINE void IfxPsi5_setFractionalDivider(Ifx_PSI5 *psi5, IfxPsi5_FractionalD
  * \return None
  */
 IFX_EXTERN void IfxPsi5_enableModule(Ifx_PSI5 *psi5);
+
+/** \brief Enable channel
+ * \param psi5 Pointer to PSI5 SFR base register
+ * \param channelId Channel ID
+ * \return None
+ */
+IFX_EXTERN void IfxPsi5_enableChannel(Ifx_PSI5 *psi5, IfxPsi5_ChannelId channelId);
 
 /******************************************************************************/
 /*---------------------Inline Function Implementations------------------------*/

@@ -2,8 +2,9 @@
  * \file IfxCcu6_Timer.c
  * \brief CCU6 TIMER details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  *
  */
@@ -86,18 +88,10 @@ void IfxCcu6_Timer_initModule(IfxCcu6_Timer *timer, const IfxCcu6_Timer_Config *
         IfxCcu6_enableModule(ccu6SFR);
     }
 
-    /* -- timer initialisation -- */
-
     // Timer 13 initialisation //
 
     if ((config->timer == IfxCcu6_TimerId_t13) || (config->synchronousOperation))
     {
-        // enable Timer13 if it hasn't been enabled by any other interface //
-        if (IfxCcu6_getTimerAvailabilityStatus(ccu6SFR, IfxCcu6_TimerId_t13) == FALSE)
-        {
-            IfxCcu6_enableTimer(ccu6SFR, IfxCcu6_TimerId_t13);
-        }
-
         // clock initialisation //
 
         if (config->clock.t13ExtClockEnabled)   // if external source is selected as reference
@@ -138,12 +132,6 @@ void IfxCcu6_Timer_initModule(IfxCcu6_Timer *timer, const IfxCcu6_Timer_Config *
     if ((config->timer == IfxCcu6_TimerId_t12) || (config->trigger.t13InSyncWithT12) || (config->synchronousOperation))
     {
         Ifx_TimerValue period = config->base.t12Period;
-
-        // enable Timer12 if it hasn't been enabled by any other interface //
-        if (IfxCcu6_getTimerAvailabilityStatus(ccu6SFR, IfxCcu6_TimerId_t12) == FALSE)
-        {
-            IfxCcu6_enableTimer(ccu6SFR, IfxCcu6_TimerId_t12);
-        }
 
         // if Timer 13 start is in sync with Timer 12 //
         if ((config->trigger.t13InSyncWithT12) && (!(config->synchronousOperation)) && (config->base.waitingTime != 0))

@@ -1,6 +1,6 @@
 /**
  * \file IfxCpu_IntrinsicsDcc.h
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -47,6 +47,8 @@
 
 /******************************************************************************/
 /* *INDENT-OFF* */
+#define IFX_WEAK     __attribute__ ((weak))
+
 /** \defgroup IfxLld_Cpu_Intrinsics_Dcc_min_smax Minimum and Maximum of (Short) Integers
  These intrinsic functions return the minimum or maximum of a signed integer, unsigned integer or short integer.
  * \ingroup IfxLld_Cpu_Intrinsics_Dcc
@@ -1261,7 +1263,7 @@ asm sint8 Ifx__satb(sint32 a)
 
 /**  Return saturated unsigned byte
  */
-asm volatile uint8 Ifx__satbu(sint32 a)
+asm volatile uint8 Ifx__satbu(uint32 a)
 {
 % reg a
 ! "%d2"
@@ -1279,7 +1281,7 @@ asm short Ifx__sath(sint32 a)
 
 /**  Return saturated unsignedhalfword
  */
-asm volatile uint16 Ifx__sathu(sint32 a)
+asm volatile uint16 Ifx__sathu(uint32 a)
 {
 % reg a
 ! "%d2"

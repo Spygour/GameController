@@ -1,7 +1,7 @@
 /**
  * \file IfxCpu_IntrinsicsGhs.h
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -52,6 +52,7 @@
 /******************************************************************************/
 /* *INDENT-OFF* */
 #define STRINGIFY(x)    #x
+#define IFX_WEAK        __attribute__ ((weak))
 
 typedef void (*voidfunc)();
 
@@ -1033,6 +1034,76 @@ IFX_INLINE void Ifx__setuhw2(__upackhw* a, uint16 b)
 
 /** \} */
 
+/**  Return saturated byte
+ */
+IFX_INLINE sint8 Ifx__satb(sint32 a)
+{
+    sint8 res;
+    __asm__ volatile ("sat.b %0,%1":"=d"(res):"d"(a));
+    return res;
+}
+
+/**  Return saturated uint8
+ */
+IFX_INLINE uint8 Ifx__satbu(uint32 a)
+{
+    uint8 res;
+    __asm__ volatile ("sat.bu %0,%1":"=d"(res):"d"(a));
+    return res;
+}
+
+/**  Return saturated halfword
+ */
+IFX_INLINE sint16 Ifx__sath(sint32 a)
+{
+    sint16 res;
+    __asm__ volatile ("sat.h %0,%1":"=d"(res):"d"(a));
+    return res;
+}
+
+/**  Return saturated unsigned halfword
+ */
+IFX_INLINE uint16 Ifx__sathu(uint32 a)
+{
+    uint16 res;
+    __asm__ volatile ("sat.hu %0,%1":"=d"(res):"d"(a));
+    return res;
+}
+/** add signed with saturation
+ */
+IFX_INLINE sint32 Ifx__adds(sint32 a, sint32 b)
+{
+    sint32 res;
+    __asm__ volatile ("adds %0, %1, %2": "=d" (res) : "d" (a), "d" (b));
+    return res;
+}
+
+/** add unsigned with saturation
+ */
+IFX_INLINE uint32 Ifx__addsu(uint32 a, uint32 b)
+{
+    uint32 res;
+    __asm__ volatile ("adds.u %0, %1, %2": "=d" (res) : "d" (a), "d" (b));
+    return res;
+}
+
+/** substract signed with saturation
+ */
+IFX_INLINE sint32 Ifx__subs(sint32 a, sint32 b)
+{
+    sint32 res;
+    __asm__ volatile ("subs %0, %1, %2": "=d" (res) : "d" (a), "d" (b));
+    return res;
+}
+
+/** substract unsigned with saturation
+ */
+IFX_INLINE uint32 Ifx__subsu(uint32 a, uint32 b)
+{
+    uint32 res;
+    __asm__ volatile ("subs.u %0, %1, %2": "=d" (res) : "d" (a), "d" (b));
+    return res;
+}
 /** \defgroup IfxLld_Cpu_Intrinsics_Ghssingle_assembly Insert Single Assembly Instruction
  The next table provides an overview of the intrinsic functions that you can use to insert a single assembly
  instruction.You can also use inline assembly but these intrinsics provide a shorthand for frequently used
@@ -1648,6 +1719,38 @@ IFX_INLINE void Ifx__cacheai(uint8* p)
 
 #ifndef __setuhw2
 #define __setuhw2 Ifx__setuhw2
+#endif
+
+#ifndef __satb
+#define __satb Ifx__satb
+#endif
+
+#ifndef __satbu
+#define __satbu Ifx__satbu
+#endif
+
+#ifndef __sath
+#define __sath Ifx__sath
+#endif
+
+#ifndef __sathu
+#define __sathu Ifx__sathu
+#endif
+
+#ifndef __adds
+#define __adds Ifx__adds
+#endif
+
+#ifndef __addsu
+#define __addsu Ifx__addsu
+#endif
+
+#ifndef __subs
+#define __subs Ifx__subs
+#endif
+
+#ifndef __subsu
+#define __subsu Ifx__subsu
 #endif
 
 #ifndef __ldmst

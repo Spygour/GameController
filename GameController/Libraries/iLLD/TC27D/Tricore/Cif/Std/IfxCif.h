@@ -3,8 +3,9 @@
  * \brief CIF  basic functionality
  * \ingroup IfxLld_Cif
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  * \defgroup IfxLld_Cif_Std_stdEnumerations Standard Enumerations
  * \ingroup IfxLld_Cif_Std
@@ -658,6 +660,16 @@ typedef enum
 } IfxCif_DpSourcePath;
 
 /** \} */
+
+/******************************************************************************/
+/*-----------------------------Data Structures--------------------------------*/
+/******************************************************************************/
+
+typedef struct
+{
+    uint16 priority;
+    uint16 provider;
+} IfxCif_IsrSetting;
 
 /** \addtogroup IfxLld_Cif_Std_stdFunctions
  * \{ */

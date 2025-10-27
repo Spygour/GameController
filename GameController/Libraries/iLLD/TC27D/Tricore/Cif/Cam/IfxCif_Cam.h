@@ -3,8 +3,9 @@
  * \brief CIF CAM details
  * \ingroup IfxLld_Cif
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2018 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  * \defgroup IfxLld_Cif_Cam CAM
  * \ingroup IfxLld_Cif
@@ -185,7 +187,7 @@ typedef struct
     IfxCif_Cam_MemConfig             mainPath;                             /**< \brief main path */
     IfxCif_Cam_MemConfig             extraPaths[IFXCIF_EXTRA_PATHS];       /**< \brief extra paths */
     IfxCif_InputInterface            inputInterface;                       /**< \brief input interface */
-    Ifx_IsrSetting                   ispInterrupt;                         /**< \brief isp interrupt */
+    IfxCif_IsrSetting                ispInterrupt;                         /**< \brief isp interrupt */
     boolean                          debugPathEnabled;                     /**< \brief debug path enabled */
     boolean                          watchdogEnabled;                      /**< \brief watchdog enabled */
     IFX_CONST IfxCif_Cam_JpegTables *jpegTables;                           /**< \brief jpeg tables */

@@ -2,8 +2,8 @@
  * \file IfxQspi.c
  * \brief QSPI  basic functionality
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -64,7 +64,7 @@ float IfxQspi_calcRealBaudrate(Ifx_QSPI *qspi, IfxQspi_ChannelId channelId)
 }
 
 
-uint32 IfxQspi_calculateBasicConfigurationValue(Ifx_QSPI *qspi, const IfxQspi_ChannelId channelId, const SpiIf_ChMode *chMode, const float baudrate)
+uint32 IfxQspi_calculateBasicConfigurationValue(Ifx_QSPI *qspi, const IfxQspi_ChannelId channelId, const IfxQspi_chMode *chMode, const float baudrate)
 {
     IFX_UNUSED_PARAMETER(baudrate);
 
@@ -82,9 +82,9 @@ uint32 IfxQspi_calculateBasicConfigurationValue(Ifx_QSPI *qspi, const IfxQspi_Ch
     bacon.B.LEAD   = delayConst[1].delay; /* 3-bits Leading Delay Length */
     bacon.B.TPRE   = delayConst[2].pre;   /* 3-bits Prescaler for the Trailing Delay */
     bacon.B.TRAIL  = delayConst[2].delay; /* 2-bits Trailing Delay Length */
-    bacon.B.PARTYP = (chMode->parityMode == Ifx_ParityMode_even) ? 0 : 1;
+    bacon.B.PARTYP = (chMode->parityMode == IfxQspi_ParityMode_even) ? 0 : 1;
     bacon.B.UINT   = 0;                   /* 1-bits User Interrupt at the PT1 Event in the Subsequent Frames */
-    bacon.B.MSB    = (chMode->dataHeading == SpiIf_DataHeading_lsbFirst) ? 0 : 1;
+    bacon.B.MSB    = (chMode->dataHeading == IfxQspi_DataHeading_lsbFirst) ? 0 : 1;
     bacon.B.BYTE   = 0;                   /* only support bitwise selection in B.DL */
     bacon.B.DL     = chMode->dataWidth - 1;
     bacon.B.CS     = channelId;
@@ -93,7 +93,7 @@ uint32 IfxQspi_calculateBasicConfigurationValue(Ifx_QSPI *qspi, const IfxQspi_Ch
 }
 
 
-uint32 IfxQspi_calculateExtendedConfigurationValue(Ifx_QSPI *qspi, const uint8 cs, const SpiIf_ChConfig *chConfig)
+uint32 IfxQspi_calculateExtendedConfigurationValue(Ifx_QSPI *qspi, const uint8 cs, const IfxQspi_chConfig *chConfig)
 {
     IFX_UNUSED_PARAMETER(cs);
 
@@ -101,7 +101,7 @@ uint32 IfxQspi_calculateExtendedConfigurationValue(Ifx_QSPI *qspi, const uint8 c
     econ.U = 0;
 
     const int     maxB   = 3;
-    float32       tQspi  = 1.0 / IfxQspi_getTimeQuantaFrequency(qspi);
+    float32       tQspi  = 1.0f / IfxQspi_getTimeQuantaFrequency(qspi);
     float32       fBaud  = (chConfig->baudrate);
     int           abcMin = (2);
     int           abcMax = (4 + 0 + 4);
@@ -111,20 +111,20 @@ uint32 IfxQspi_calculateExtendedConfigurationValue(Ifx_QSPI *qspi, const uint8 c
     float32       tTmp, tBaudTmp;
     boolean       done = FALSE;
 
-    if (fBaud == 0.0)
+    if (fBaud == 0.0f)
     {
         IFX_ASSERT(IFX_VERBOSE_LEVEL_WARNING, FALSE);   /* chosen baud rate is 0 */
-        fBaud = 1.0;
+        fBaud = 1.0f;
     }
 
-    float32 tBaud = 1.0 / fBaud;
+    float32 tBaud = 1.0f / fBaud;
 
     bestError = 1e6;
 
     for (abc = abcMax; abc >= abcMin; abc--)
     {
         tTmp = tQspi * abc;
-        q    = (int)((tBaud / tTmp) + 0.5);
+        q    = (int)((tBaud / tTmp) + 0.5f);
 
         if (q > 64)
         {
@@ -157,7 +157,7 @@ uint32 IfxQspi_calculateExtendedConfigurationValue(Ifx_QSPI *qspi, const uint8 c
             /* break out if ABC is even and error = 0 */
             if (((uint32)bestAbc & (uint32)0x1) == 0)
             {
-                done = (__neqf(error, 0.0)) ? FALSE : TRUE;
+                done = (__neqf(error, 0.0f)) ? FALSE : TRUE;
 
                 if (done != FALSE)
                 {
@@ -198,8 +198,8 @@ uint32 IfxQspi_calculateExtendedConfigurationValue(Ifx_QSPI *qspi, const uint8 c
     econ.B.C     = (diffB > 0) ? diffB : 0;
     econ.B.B     = (diffB > 0) ? maxB : halfBaud;
 
-    econ.B.CPH   = (chConfig->mode.shiftClock == SpiIf_ShiftClock_shiftTransmitDataOnLeadingEdge) ? 1 : 0;
-    econ.B.CPOL  = (chConfig->mode.clockPolarity == SpiIf_ClockPolarity_idleLow) ? 0 : 1;
+    econ.B.CPH   = (chConfig->mode.shiftClock == IfxQspi_ShiftClock_shiftTransmitDataOnLeadingEdge) ? 1 : 0;
+    econ.B.CPOL  = (chConfig->mode.clockPolarity == IfxQspi_ClockPolarity_idleLow) ? 0 : 1;
     econ.B.PAREN = chConfig->mode.parityCheck;
 
     return econ.U;
@@ -237,33 +237,40 @@ uint32 IfxQspi_calculateTimeQuantumLength(Ifx_QSPI *qspi, float maxBaudrate)
 
     IFX_UNUSED_PARAMETER(qspi);
 
-    uint32 abcq  = ABCQMIN, tq, bestTq;
+    uint32 abcq = ABCQMIN, bestTq;
     float  realTQ, deltaMax, bestDelta, achievedMax;
+    uint32 tq;
     float  fQspi = IfxScuCcu_getMaxFrequency();
 
-    if (__leqf(maxBaudrate, 0.0))
+    if (__leqf(maxBaudrate, 0.0f))
     {
         IFX_ASSERT(IFX_VERBOSE_LEVEL_ERROR, FALSE); /* Max baud rate is 0!! */
     }
 
-    realTQ    = fQspi / (4.0 * maxBaudrate);
+    realTQ    = fQspi / (4.0f * maxBaudrate);
     bestTq    = __max((uint32)__roundf(realTQ), 1);
-    bestDelta = __absf(maxBaudrate - (fQspi / bestTq));
+    bestDelta = __absf(maxBaudrate - (fQspi / (ABCQMIN * bestTq)));
 
     for (abcq = ABCQMIN; abcq <= ABCQMAX; abcq++)
     {
-        realTQ      = fQspi / (maxBaudrate * abcq);
-        tq          = (uint32)(realTQ + 0.5);
-        achievedMax = fQspi / (tq * abcq);
+        realTQ = fQspi / (maxBaudrate * abcq);
+        tq     = (uint32)(realTQ + 0.5f);
+
+        if (tq < 1)
+        {
+            break;
+        }
+
+        achievedMax = (float)fQspi / (tq * abcq);
         deltaMax    = __absf(maxBaudrate - achievedMax);
 
-        if (__leqf(deltaMax, bestDelta) && (tq >= 1))
+        if (__leqf(deltaMax, bestDelta))
         {
             bestDelta = deltaMax;
             bestTq    = tq;
         }
 
-        if ((bestDelta == 0) || (tq < 1))
+        if (bestDelta == 0)
         {
             break; //exit the for loop
         }
@@ -448,18 +455,18 @@ void IfxQspi_write8(Ifx_QSPI *qspi, IfxQspi_ChannelId channelId, uint8 *data, If
 }
 
 
-void IfxQspi_calculateDelayConstants(const Ifx_QSPI *qspi, const IfxQspi_ChannelId channelId, const SpiIf_ChMode *chMode, IfxQspi_DelayConst *delayConst)
+void IfxQspi_calculateDelayConstants(const Ifx_QSPI *qspi, const IfxQspi_ChannelId channelId, const IfxQspi_chMode *chMode, IfxQspi_DelayConst *delayConst)
 {
-    uint32                            divFactor;
-    const SpiIf_SlsoTiming_HalfTsclk *dlyFactorPtr;
-    float32                           scaleTemp;
-    uint8                             preTemp;
-    uint8                             preFinal   = 0U;
-    uint8                             delayTemp;
-    uint8                             delayFinal = 0U;
-    boolean                           matchFound;
-    uint8                             index;
-    uint8                             cs = channelId % 8;
+    uint32                              divFactor;
+    const IfxQspi_SlsoTiming_HalfTsclk *dlyFactorPtr;
+    float32                             scaleTemp;
+    uint8                               preTemp;
+    uint8                               preFinal   = 0U;
+    uint8                               delayTemp;
+    uint8                               delayFinal = 0U;
+    boolean                             matchFound;
+    uint8                               index;
+    uint8                               cs = channelId % 8;
 
     /* obtain the peripheral frequency / sclk frequency multiplication factor */
     divFactor = (qspi->GLOBALCON.B.TQ + 1) * (qspi->ECON[cs].B.Q + 1) * (qspi->ECON[cs].B.A + 1 + qspi->ECON[cs].B.B + qspi->ECON[cs].B.C);
@@ -477,13 +484,13 @@ void IfxQspi_calculateDelayConstants(const Ifx_QSPI *qspi, const IfxQspi_Channel
 
         for (preTemp = 0; preTemp < 8; preTemp++)
         {
-            delayTemp = (uint8)((scaleTemp / (1 << (2 * preTemp))) + 0.5); /* divide the scale_temp by ( 4 ^ pre_temp) to find delay_temp */
+            delayTemp = (uint8)((scaleTemp / (1 << (2 * preTemp))) + 0.5f); /* divide the scale_temp by ( 4 ^ pre_temp) to find delay_temp */
 
-            if (delayTemp <= 8)                                            /* if delay_temp is <= 8; we can get a good value pair */
+            if (delayTemp <= 8)                                             /* if delay_temp is <= 8; we can get a good value pair */
             {
-                if ((float32)(delayTemp << (2 * preTemp)) >= scaleTemp)    /* greater delays are tolerated. less is not */
+                if ((float32)(delayTemp << (2 * preTemp)) >= scaleTemp)     /* greater delays are tolerated. less is not */
                 {
-                    delayFinal = __max(delayTemp - 1, 0);                  /* subtract 1 to set to register */
+                    delayFinal = __max(delayTemp - 1, 0);                   /* subtract 1 to set to register */
                     preFinal   = preTemp;
                     matchFound = TRUE;
                     break;

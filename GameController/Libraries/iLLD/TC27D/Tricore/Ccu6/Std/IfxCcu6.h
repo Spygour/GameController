@@ -3,8 +3,9 @@
  * \brief CCU6  basic functionality
  * \ingroup IfxLld_Ccu6
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2018 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  *
  * \defgroup IfxLld_Ccu6_Std_Enum Enumerations
@@ -984,13 +986,6 @@ IFX_INLINE void IfxCcu6_disableSingleShotMode(Ifx_CCU6 *ccu6, IfxCcu6_TimerId ti
  */
 IFX_INLINE void IfxCcu6_disableT13InvertedModulation(Ifx_CCU6 *ccu6);
 
-/** \brief Sets Timer12 block unavailable, A write access to T12PR is ignored
- * \param ccu6 Pointer to the base of CCU6 registers
- * \param timer Timer selection, ( Timer12 / Timer13 )
- * \return None
- */
-IFX_INLINE void IfxCcu6_disableTimer(Ifx_CCU6 *ccu6, IfxCcu6_TimerId timer);
-
 /** \brief Disables the trap functionality for the corresponding output signals
  * \param ccu6 Pointer to the base of CCU6 registers
  * \param channelOut Capture compare output selection
@@ -1051,12 +1046,6 @@ IFX_INLINE void IfxCcu6_enableInterrupt(Ifx_CCU6 *ccu6, IfxCcu6_InterruptSource 
  */
 IFX_INLINE void IfxCcu6_enableMultiChannelMode(Ifx_CCU6 *ccu6);
 
-/** \brief Enables the Multi Channel Mode Availability
- * \param ccu6 Pointer to the base of CCU6 registers
- * \return None
- */
-IFX_INLINE void IfxCcu6_enableMultiChannelModeAvailability(Ifx_CCU6 *ccu6);
-
 /** \brief Sets MCM_ST immediately to update bit field MCMP by the value of MCMPS.
  * \param ccu6 Pointer to the base of CCU6 registers
  * \return None
@@ -1105,13 +1094,6 @@ IFX_INLINE void IfxCcu6_enableSingleShotMode(Ifx_CCU6 *ccu6, IfxCcu6_TimerId tim
  * \return None
  */
 IFX_INLINE void IfxCcu6_enableT13InvertedModulation(Ifx_CCU6 *ccu6);
-
-/** \brief Sets Timer12 block available, A write access to T12PR is executed
- * \param ccu6 Pointer to the base of CCU6 registers
- * \param timer Timer selection, ( Timer12 / Timer13 )
- * \return None
- */
-IFX_INLINE void IfxCcu6_enableTimer(Ifx_CCU6 *ccu6, IfxCcu6_TimerId timer);
 
 /** \brief Enables the trap functionality for the corresponding output signals
  * \param ccu6 Pointer to the base of CCU6 registers
@@ -1498,13 +1480,6 @@ IFX_INLINE void IfxCcu6_disableT13InvertedModulation(Ifx_CCU6 *ccu6)
 }
 
 
-IFX_INLINE void IfxCcu6_disableTimer(Ifx_CCU6 *ccu6, IfxCcu6_TimerId timer)
-{
-    uint32 mask = (1U << timer);
-    ccu6->MCFG.U = ccu6->MCFG.U & ~(mask);
-}
-
-
 IFX_INLINE void IfxCcu6_disableTrap(Ifx_CCU6 *ccu6, IfxCcu6_ChannelOut channelOut)
 {
     uint32 shift = (8 + channelOut);    // offset at location TRPCTR.8 for output CC60
@@ -1570,12 +1545,6 @@ IFX_INLINE void IfxCcu6_enableMultiChannelMode(Ifx_CCU6 *ccu6)
 }
 
 
-IFX_INLINE void IfxCcu6_enableMultiChannelModeAvailability(Ifx_CCU6 *ccu6)
-{
-    ccu6->MCFG.B.MCM = 1;
-}
-
-
 IFX_INLINE void IfxCcu6_enableMultiChannelPwmPatternShadowTransfer(Ifx_CCU6 *ccu6)
 {
     ccu6->MCMOUTS.B.STRMCM = TRUE;
@@ -1620,13 +1589,6 @@ IFX_INLINE void IfxCcu6_enableSingleShotMode(Ifx_CCU6 *ccu6, IfxCcu6_TimerId tim
 IFX_INLINE void IfxCcu6_enableT13InvertedModulation(Ifx_CCU6 *ccu6)
 {
     ccu6->CMPSTAT.B.T13IM = TRUE;
-}
-
-
-IFX_INLINE void IfxCcu6_enableTimer(Ifx_CCU6 *ccu6, IfxCcu6_TimerId timer)
-{
-    uint32 mask = (1U << timer);
-    ccu6->MCFG.U = ccu6->MCFG.U | (mask);
 }
 
 

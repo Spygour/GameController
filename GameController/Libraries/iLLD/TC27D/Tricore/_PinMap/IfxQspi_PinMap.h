@@ -3,7 +3,7 @@
  * \brief QSPI I/O map
  * \ingroup IfxLld_Qspi
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2013 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -48,6 +48,7 @@
 #include <IfxQspi_reg.h>
 #include <_Impl/IfxQspi_cfg.h>
 #include <Port/Std/IfxPort.h>
+#include "Ifx_PinMap.h"
 
 /** \addtogroup IfxLld_Qspi_pinmap
  * \{ */

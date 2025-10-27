@@ -1,7 +1,7 @@
 /**
  * \file IfxCpu_IntrinsicsGnuc.h
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -62,6 +62,10 @@
 /******************************************************************************/
 /* *INDENT-OFF* */
 #define STRINGIFY(x)    #x
+
+/** Weak Function
+*/
+#define IFX_WEAK        __attribute__ ((weak))
 
 /** Function call without return
  */
@@ -1337,7 +1341,7 @@ IFX_INLINE sint8 Ifx__satb(sint32 a)
 
 /**  Return saturated uint8
  */
-IFX_INLINE uint8 Ifx__satbu(sint32 a)
+IFX_INLINE uint8 Ifx__satbu(uint32 a)
 {
     uint8 res;
     __asm__ volatile ("sat.bu %0,%1":"=d"(res):"d"(a));
@@ -1348,16 +1352,16 @@ IFX_INLINE uint8 Ifx__satbu(sint32 a)
  */
 IFX_INLINE sint16 Ifx__sath(sint32 a)
 {
-    sint8 res;
+    sint16 res;
     __asm__ volatile ("sat.h %0,%1":"=d"(res):"d"(a));
     return res;
 }
 
 /**  Return saturated unsigned halfword
  */
-IFX_INLINE uint16 Ifx__sathu(sint32 a)
+IFX_INLINE uint16 Ifx__sathu(uint32 a)
 {
-    sint8 res;
+    uint16 res;
     __asm__ volatile ("sat.hu %0,%1":"=d"(res):"d"(a));
     return res;
 }

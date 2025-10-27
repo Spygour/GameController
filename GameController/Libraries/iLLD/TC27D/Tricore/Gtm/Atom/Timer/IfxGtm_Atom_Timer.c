@@ -2,8 +2,9 @@
  * \file IfxGtm_Atom_Timer.c
  * \brief GTM TIMER details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2022 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  */
 
@@ -107,7 +109,7 @@ void IfxGtm_Atom_Timer_disableUpdate(IfxGtm_Atom_Timer *driver)
 
 float32 IfxGtm_Atom_Timer_getFrequency(IfxGtm_Atom_Timer *driver)
 {
-    return 1.0 / IfxStdIf_Timer_tickToS(driver->base.clockFreq, driver->base.period);
+    return 1.0f / IfxStdIf_Timer_tickToS(driver->base.clockFreq, driver->base.period);
 }
 
 
@@ -137,7 +139,7 @@ volatile uint32 *IfxGtm_Atom_Timer_getPointer(IfxGtm_Atom_Timer *driver)
 
 float32 IfxGtm_Atom_Timer_getResolution(IfxGtm_Atom_Timer *driver)
 {
-    return 1.0 / driver->base.clockFreq;
+    return 1.0f / driver->base.clockFreq;
 }
 
 
@@ -197,7 +199,7 @@ boolean IfxGtm_Atom_Timer_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Time
 
     IfxGtm_Atom_Timer_updateInputFrequency(driver);
 
-    if ((config->base.minResolution > 0) && ((1.0 / base->clockFreq) > config->base.minResolution))
+    if ((config->base.minResolution > 0) && ((1.0f / base->clockFreq) > config->base.minResolution))
     {
         result = FALSE;
         IFX_ASSERT(IFX_VERBOSE_LEVEL_ERROR, FALSE);
@@ -206,7 +208,7 @@ boolean IfxGtm_Atom_Timer_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Time
     {}
 
     IfxGtm_Atom_Timer_setFrequency(driver, config->base.frequency);
-    driver->offset = IfxStdIf_Timer_sToTick(driver->base.clockFreq, 1.0 / config->base.frequency * config->base.startOffset);
+    driver->offset = IfxStdIf_Timer_sToTick(driver->base.clockFreq, 1.0f / config->base.frequency * config->base.startOffset);
 
     IfxGtm_Atom_Ch_setCounterValue(driver->atom, driver->timerChannel, driver->offset);
 
@@ -292,8 +294,7 @@ boolean IfxGtm_Atom_Timer_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Time
     return result;
 }
 
-
-boolean IfxGtm_Atom_TimerSerial_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Timer_Config *config, uint32 bitShift)
+boolean IfxGtm_Atom_TimerSerial_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Timer_Config *config, uint32 bitShift, boolean AruEnable)
 {
   boolean                 result = TRUE;
   IfxGtm_Atom_Timer_Base *base   = &driver->base;
@@ -421,6 +422,136 @@ boolean IfxGtm_Atom_TimerSerial_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Ato
 }
 
 
+boolean IfxGtm_Atom_TimerPwmOutputSerial_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Timer_Config *config, uint32 bitShift, boolean AruEnable)
+{
+  boolean                 result = TRUE;
+  IfxGtm_Atom_Timer_Base *base   = &driver->base;
+
+  IFX_ASSERT(IFX_VERBOSE_LEVEL_ERROR, config->base.countDir == IfxStdIf_Timer_CountDir_up); /* only this mode is supported */
+
+  driver->gtm          = config->gtm;
+  driver->atomIndex    = config->atom;
+  driver->atom         = &config->gtm->ATOM[config->atom];
+  driver->timerChannel = config->timerChannel;
+
+  base->triggerEnabled = config->base.trigger.enabled;
+
+  if (base->triggerEnabled)
+  {
+    if (config->triggerOut != NULL_PTR)
+    {
+        driver->triggerChannel = config->triggerOut->channel;
+    }
+    else
+    {
+        result = FALSE;
+        IFX_ASSERT(IFX_VERBOSE_LEVEL_ERROR, result); /* triggerOut is required */
+    }
+  }
+  else
+  {
+    driver->triggerChannel = driver->timerChannel; // Set to timer channel to disable its use
+  }
+
+  driver->agc              = (Ifx_GTM_ATOM_AGC *)&driver->atom->AGC.GLB_CTRL;
+
+  driver->channelsMask     = 0;
+  driver->agcApplyUpdate   = 0;
+  driver->agcDisableUpdate = 0;
+
+  /* Initialize the timer part */
+  IfxGtm_Atom_Ch_configurePwmMode(driver->atom, driver->timerChannel, config->clock,
+    (Ifx_ActiveState)config->base.trigger.risingEdgeAtPeriod, IfxGtm_Atom_Ch_ResetEvent_onCm0,
+    IfxGtm_Atom_Ch_OutputTrigger_generate);
+
+  IfxGtm_Atom_Timer_setBitShift(driver, bitShift);
+  driver->offset = IfxStdIf_Timer_sToTick(driver->base.clockFreq, 1.0 / config->base.frequency * config->base.startOffset);
+
+  IfxGtm_Atom_Ch_setCounterValue(driver->atom, driver->timerChannel, driver->offset);
+
+  /* Initialize the trigger part */
+  IfxGtm_Atom_Timer_addToChannelMask(driver, driver->timerChannel);
+
+  if (base->triggerEnabled)
+  {
+    IfxGtm_Atom_Ch triggerChannel     = driver->triggerChannel;
+    uint16         triggerChannelMask = 1 << triggerChannel;
+
+    IfxGtm_Atom_Ch_setSignalLevel(driver->atom, triggerChannel, config->base.trigger.risingEdgeAtPeriod ? Ifx_ActiveState_high : Ifx_ActiveState_low);
+
+    IfxGtm_Atom_Ch_setCounterValue(driver->atom, triggerChannel, driver->offset);
+
+    if (triggerChannel != driver->timerChannel)
+    {
+      IfxGtm_Atom_Ch_configureOutputSerial(driver->atom, triggerChannel, config->clock,
+            (Ifx_ActiveState)config->base.trigger.risingEdgeAtPeriod, IfxGtm_Atom_AruInput_disabled);
+        IfxGtm_Atom_Agc_enableChannels(driver->agc, triggerChannelMask, 0, FALSE);
+        IfxGtm_Atom_Timer_addToChannelMask(driver, driver->triggerChannel);
+    }
+    else
+    {}
+
+    /* Signal must go out of the GTM even if the port outpout is not enabled */
+    IfxGtm_Atom_Agc_enableChannelsOutput(driver->agc, triggerChannelMask, 0, FALSE);
+
+    if ((config->base.trigger.outputEnabled) && (config->initPins == TRUE))
+    {
+        /* Initialize the port */
+        IfxGtm_PinMap_setAtomTout(config->triggerOut, config->base.trigger.outputMode, config->base.trigger.outputDriver);
+    }
+    else
+    {}
+
+    IfxGtm_Atom_Ch_setCompareOneShadow(driver->atom, driver->triggerChannel, config->base.trigger.triggerPoint);
+  }
+  else
+  {}
+
+  /* Interrupt configuration */
+  {
+      volatile Ifx_SRC_SRCR *src;
+      boolean                timerHasIrq   = config->base.isrPriority > 0;
+      boolean                triggerHasIrq = (config->base.trigger.isrPriority > 0) && base->triggerEnabled;
+
+      if (driver->triggerChannel == driver->timerChannel)
+      {
+          IfxGtm_Atom_Ch_setNotification(driver->atom, driver->timerChannel, timerHasIrq ? config->irqModeTimer : config->irqModeTrigger, timerHasIrq, triggerHasIrq);
+          src = IfxGtm_Atom_Ch_getSrcPointer(driver->gtm, config->atom, driver->timerChannel);
+          IfxSrc_init(src, timerHasIrq ? config->base.isrProvider : config->base.trigger.isrProvider, timerHasIrq ? config->base.isrPriority : config->base.trigger.isrPriority);
+          IfxSrc_enable(src);
+      }
+      else
+      {
+          IfxGtm_IrqMode irqMode = IfxGtm_IrqMode_pulseNotify;
+
+          if (timerHasIrq)
+          {
+              IfxGtm_Atom_Ch_setNotification(driver->atom, driver->timerChannel, irqMode, TRUE, FALSE);
+              src = IfxGtm_Atom_Ch_getSrcPointer(driver->gtm, config->atom, driver->timerChannel);
+              IfxSrc_init(src, config->base.isrProvider, config->base.isrPriority);
+              IfxSrc_enable(src);
+          }
+
+          if (triggerHasIrq)
+          {
+              IfxGtm_Atom_Ch_setNotification(driver->atom, driver->triggerChannel, irqMode, FALSE, TRUE);
+              src = IfxGtm_Atom_Ch_getSrcPointer(driver->gtm, config->atom, driver->triggerChannel);
+              IfxSrc_init(src, config->base.trigger.isrProvider, config->base.trigger.isrPriority);
+              IfxSrc_enable(src);
+          }
+      }
+  }
+
+  /* Transfer the shadow registers */
+  IfxGtm_Atom_Agc_setChannelsForceUpdate(driver->agc, driver->channelsMask, 0, 0, 0);
+  IfxGtm_Atom_Agc_trigger(driver->agc);
+  IfxGtm_Atom_Agc_setChannelsForceUpdate(driver->agc, 0, driver->channelsMask, 0, 0);
+
+  return result;
+}
+
+
+
 void IfxGtm_Atom_Timer_initConfig(IfxGtm_Atom_Timer_Config *config, Ifx_GTM *gtm)
 {
     IfxStdIf_Timer_initConfig(&config->base);
@@ -444,7 +575,7 @@ void IfxGtm_Atom_Timer_run(IfxGtm_Atom_Timer *driver)
 
 boolean IfxGtm_Atom_Timer_setFrequency(IfxGtm_Atom_Timer *driver, float32 frequency)
 {
-    Ifx_TimerValue period = IfxStdIf_Timer_sToTick(driver->base.clockFreq, 1.0 / frequency);
+    Ifx_TimerValue period = IfxStdIf_Timer_sToTick(driver->base.clockFreq, 1.0f / frequency);
 
     return IfxGtm_Atom_Timer_setPeriod(driver, period);
 }

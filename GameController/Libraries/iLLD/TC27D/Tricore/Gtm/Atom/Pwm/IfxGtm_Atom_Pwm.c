@@ -2,8 +2,9 @@
  * \file IfxGtm_Atom_Pwm.c
  * \brief GTM PWM details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2018 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2022 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
+ *
  */
 
 /******************************************************************************/
@@ -59,16 +61,15 @@ boolean IfxGtm_Atom_Pwm_init(IfxGtm_Atom_Pwm_Driver *driver, const IfxGtm_Atom_P
     Ifx_GTM_ATOM     *atomSFR = &config->gtm->ATOM[config->atom];
     driver->atom        = atomSFR;
     driver->atomChannel = config->atomChannel;
+
     Ifx_GTM_ATOM_AGC *agc = &atomSFR->AGC;
-    driver->agc         = agc;
+    driver->agc = agc;
 
     /* Initialize the timer part */
     if (config->synchronousUpdateEnabled == 1)
     {
         IfxGtm_Atom_Agc_enableChannelUpdate(agc, config->atomChannel, TRUE);
     }
-
-    IfxGtm_Atom_Agc_setChannelForceUpdate(agc, config->atomChannel, TRUE, TRUE);
 
     IfxGtm_Atom_Ch_setSignalLevel(atomSFR, config->atomChannel, config->signalLevel);
 

@@ -3,8 +3,9 @@
  * \brief SCU  basic functionality
  * \ingroup IfxLld_Scu
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2018 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  *
  * \defgroup IfxLld_Scu SCU
@@ -147,6 +149,10 @@ typedef void (*IfxScuCcu_PllStepsFunctionHook)(void);
 /******************************************************************************/
 /*--------------------------------Enumerations--------------------------------*/
 /******************************************************************************/
+
+/** \addtogroup IfxLld_Scu_Std_Ccu_Ccu
+ * \{ */
+/** \} */
 
 /** \addtogroup IfxLld_Scu_Std_Ccu_Enum
  * \{ */
@@ -710,6 +716,66 @@ typedef enum
 
 /** \} */
 
+/** \brief divider mode selection for EXTCLK0
+ */
+typedef enum
+{
+    IfxScuCcu_Clk0Mode_normal     = 1, /**< \brief Select normal mode */
+    IfxScuCcu_Clk0Mode_fractional = 2  /**< \brief Select fractional mode */
+} IfxScuCcu_Clk0Mode;
+
+/** \brief clock line negation selection for EXTCLK1
+ */
+typedef enum
+{
+    IfxScuCcu_Clk1Negation_inverted     = 0, /**< \brief Select inverted signal for EXTCLK1 */
+    IfxScuCcu_Clk1Negation_Clk1Negation = 1  /**< \brief Select non inverted signal for EXTCLK1 */
+} IfxScuCcu_Clk1Negation;
+
+/** \brief External Clock Selection for EXTCLK0
+ */
+typedef enum
+{
+    IfxScuCcu_ClkSel0_fOUT     = 0,  /**< \brief Select fOUT as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fPLL     = 1,  /**< \brief Select fPLL as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fPLLERAY = 2,  /**< \brief Select fPLLERAY as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fOSC0    = 3,  /**< \brief Select fOSC0 as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fBACK    = 4,  /**< \brief Select fBACK as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fETH     = 5,  /**< \brief Select fETH as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fBBB     = 6,  /**< \brief Select fBBB as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fBAUD1   = 7,  /**< \brief Select fBAUD1 as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fSRI     = 8,  /**< \brief Select fSRI as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fSPB     = 9,  /**< \brief Select fSPB as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fFSI     = 10, /**< \brief Select fFSI as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fSTM     = 11, /**< \brief Select fSTM as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fGTM     = 12, /**< \brief Select fGTM as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fTCK     = 13, /**< \brief Select fTCK as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fBAUD2   = 14, /**< \brief Select fBAUD2 as EXTCLK0 */
+    IfxScuCcu_ClkSel0_fMT0     = 15  /**< \brief Select fMT0 as EXTCLK0 */
+} IfxScuCcu_ClkSel0;
+
+/** \brief External Clock Selection for EXTCLK1
+ */
+typedef enum
+{
+    IfxScuCcu_ClkSel1_fOUT     = 0,   /**< \brief Select fOUT as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fPLL     = 1,   /**< \brief Select fPLL as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fPLLERAY = 2,   /**< \brief Select fPLLERAY as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fOSC0    = 3,   /**< \brief Select fOSC0 as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fBACK    = 4,   /**< \brief Select fBACK as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fETH     = 5,   /**< \brief Select fETH as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fBBB     = 6,   /**< \brief Select fBBB as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fASLINF  = 7,   /**< \brief Select fASLINF as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fSRI     = 8,   /**< \brief Select fSRI as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fSPB     = 9,   /**< \brief Select fSPB as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fFSI2    = 10,  /**< \brief Select fFSI2 as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fCAN     = 11,  /**< \brief Select fCAN as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fERAY    = 12,  /**< \brief Select fERAY as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fTCK     = 13,  /**< \brief Select fTCK as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fASCLINS = 14,  /**< \brief Select fASCLINS as EXTCLK1 */
+    IfxScuCcu_ClkSel1_fOSCFL   = 15   /**< \brief Select ffOSCFL as EXTCLK1 */
+} IfxScuCcu_ClkSel1;
+
 /******************************************************************************/
 /*-----------------------------Data Structures--------------------------------*/
 /******************************************************************************/
@@ -1062,10 +1128,25 @@ IFX_INLINE float32 IfxScuCcu_getGtmFrequency(void);
  */
 IFX_EXTERN float32 IfxScuCcu_setGtmFrequency(float32 gtmFreq);
 
+/** \brief Configure the external clock output 0
+ * \param Clk_Sel Select the output clock line
+ * \param freqHz Frequency in Hz for in case of Clk_Sel = IfxScuCcu_ClkSel0_fOUT
+ * \param mode Select the divider mode
+ * \return None
+ */
+IFX_EXTERN void IfxScuCcu_enableExtClockOut0(IfxScuCcu_ClkSel0 Clk_Sel, const uint32 freqHz, IfxScuCcu_Clk0Mode mode);
+
+/** \brief Configure the external clock output 1
+ * \param Clk_Sel Select the output clock line
+ * \param freqHz Frequency in Hz for in case of Clk_Sel = IfxScuCcu_ClkSel1_fOUT
+ * \param sel Output clock line negation selection
+ * \return None
+ */
+IFX_EXTERN void IfxScuCcu_enableExtClockOut1(IfxScuCcu_ClkSel1 Clk_Sel, const uint32 freqHz, IfxScuCcu_Clk1Negation sel);
+
 /******************************************************************************/
 /*-------------------Global Exported Variables/Constants----------------------*/
 /******************************************************************************/
-
 /** \brief Configuration structure for SCU CCU driver.
  * The values of this structure are defined as # defined macros in the implementation of Scu
  */
@@ -1132,7 +1213,7 @@ IFX_INLINE float32 IfxScuCcu_getCanFrequency(void)
 
     if (SCU_CCUCON1.B.CANDIV == 0)
     {
-        canFrequency = 0.0;
+        canFrequency = 0.0f;
     }
     else
     {

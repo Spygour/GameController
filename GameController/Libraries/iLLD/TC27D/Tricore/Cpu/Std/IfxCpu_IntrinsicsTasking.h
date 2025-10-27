@@ -1,7 +1,7 @@
 /**
  * \file IfxCpu_IntrinsicsTasking.h
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -47,6 +47,7 @@
 #include "Ifx_Types.h"
 /******************************************************************************/
 /* *INDENT-OFF* */
+#define IFX_WEAK        __attribute__ ((weak))
 
 #ifndef __cplusplus
 /** Function call without return
@@ -195,7 +196,43 @@ IFX_INLINE void Ifx__jumpBackToLink(void)
  * \ingroup IfxLld_Cpu_Intrinsics_Tasking
  * \{
  */
+#ifndef __cplusplus
+/**  Return saturated byte
+ */
+IFX_INLINE sint8 Ifx__satb(sint32 a)
+{
+    sint8 res;
+    __asm__ volatile ("sat.b %0,%1":"=d"(res):"d"(a));
+    return res;
+}
 
+/**  Return saturated uint8
+ */
+IFX_INLINE uint8 Ifx__satbu(uint32 a)
+{
+    uint8 res;
+    __asm__ volatile ("sat.bu %0,%1":"=d"(res):"d"(a));
+    return res;
+}
+
+/**  Return saturated halfword
+ */
+IFX_INLINE sint16 Ifx__sath(sint32 a)
+{
+    sint16 res;
+    __asm__ volatile ("sat.h %0,%1":"=d"(res):"d"(a));
+    return res;
+}
+
+/**  Return saturated unsigned halfword
+ */
+IFX_INLINE uint16 Ifx__sathu(uint32 a)
+{
+    uint16 res;
+    __asm__ volatile ("sat.hu %0,%1":"=d"(res):"d"(a));
+    return res;
+}
+#endif
 /** \} */
 
 /** \defgroup IfxLld_Cpu_Intrinsics_Tasking_packed Packed Data Type Support
@@ -223,13 +260,42 @@ IFX_INLINE void Ifx__jumpBackToLink(void)
  * \{
  */
 
-#define Ifx__adds(a,b)                 ((__sat int)(a)+(__sat int)(b))
+/** add signed with saturation
+ */
+IFX_INLINE sint32 Ifx__adds(sint32 a, sint32 b)
+{
+    sint32 res;
+    __asm__ volatile ("adds %0, %1, %2": "=d" (res) : "d" (a), "d" (b));
+    return res;
+}
 
-#define Ifx__addsu(a,b)                ((__sat unsigned int)(a)+(__sat unsigned int)(b))
+/** add unsigned with saturation
+ */
+IFX_INLINE uint32 Ifx__addsu(uint32 a, uint32 b)
+{
+    uint32 res;
+    __asm__ volatile ("adds.u %0, %1, %2": "=d" (res) : "d" (a), "d" (b));
+    return res;
+}
 
-#define Ifx__subs(a,b)                 ((__sat int)(a)-(__sat int)(b))
+/** substract signed with saturation
+ */
+IFX_INLINE sint32 Ifx__subs(sint32 a, sint32 b)
+{
+    sint32 res;
+    __asm__ volatile ("subs %0, %1, %2": "=d" (res) : "d" (a), "d" (b));
+    return res;
+}
 
-#define Ifx__subsu(a,b)                ((__sat unsigned int )(a)-(__sat unsigned int )(b))
+/** substract unsigned with saturation
+ */
+IFX_INLINE uint32 Ifx__subsu(uint32 a, uint32 b)
+{
+    uint32 res;
+    __asm__ volatile ("subs.u %0, %1, %2": "=d" (res) : "d" (a), "d" (b));
+    return res;
+}
+
 
 /** \} */
 
@@ -354,17 +420,17 @@ IFX_INLINE void Ifx__setStackPointer(void *stackAddr)
     __asm("mov.aa a10, %0": : "a" (stackAddr) :"a10");
 }
 
-IFX_INLINE uint32 IfxCpu_calculateCrc32(uint32 *startaddress, uint8 length) 
+IFX_INLINE uint32 IfxCpu_calculateCrc32(uint32 *startaddress, uint8 length)
 {
     uint32 returnvalue;
     __asm("MOV d0, #0x0"); /* set seed value to 0 */
-    for (;length > 0; length--) 
-    { 
-        /*calculate the CRC over all data */
-        __asm("MOV d1,%0" : : "d" (*startaddress)); 
-        __asm("CRC32 d0,d0,d1"); 
-        startaddress++; 
-    } 
+    for (;length > 0; length--)
+    {
+        /* calculate the CRC over all data */
+        __asm("LD.W d1,[%0]" : : "a" (startaddress));
+        __asm("CRC32 d0,d0,d1");
+        startaddress++;
+    }
     __asm("MOV %0,d0" : "=d" (returnvalue)); /* return result of CRC*/
     return returnvalue;
 }
@@ -543,6 +609,22 @@ IFX_INLINE sint32 Ifx__popcnt(sint32 a)
 
 #ifndef __mtcr_no_isync
 #define __mtcr_no_isync Ifx__mtcr_no_isync
+#endif
+
+#ifndef __satb
+#define __satb Ifx__satb
+#endif
+
+#ifndef __satbu
+#define __satbu Ifx__satbu
+#endif
+
+#ifndef __sath
+#define __sath Ifx__sath
+#endif
+
+#ifndef __sathu
+#define __sathu Ifx__sathu
 #endif
 
 #ifndef __adds

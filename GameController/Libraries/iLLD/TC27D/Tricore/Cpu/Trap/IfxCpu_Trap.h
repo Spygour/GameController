@@ -2,7 +2,7 @@
  * \file IfxCpu_Trap.c
  * \brief This file contains the APIs for Trap related functions.
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2012 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -200,7 +200,34 @@ typedef struct
  * this macro.
  * Refer to the documentation to extend the trap with hook functions. \ref IfxLld_Cpu_Trap_Usage
  */
-#if defined(__HIGHTEC__)
+#if defined(__TASKING__)
+#define IfxCpu_Tsr_CallTSR(serviceRoutine)                                              \
+    {                                                                                   \
+        __ALIGN_TRAP_TAB__;                                                             \
+        __asm("svlcx\n\tmov\td4,d15\n\tji\t%0\n" : : "a" (serviceRoutine) : "d4", "d15"); \
+    }
+#define __ALIGN_TRAP_TAB__ __asm(" .align 32");
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#define __ALIGN_TRAP_TAB__ __asm(" .align 5");
+#define IfxCpu_Tsr_CallTSR(serviceRoutine)         \
+    __asm(".align 5\n"                             \
+          "svlcx\n"                                \
+          "mov\t %d4, %d15\n"                      \
+          "movh.a\t %a15, hi:" #serviceRoutine "\n" \
+          "lea\t %a15, [%a15]lo:" #serviceRoutine "\n" \
+          "ji\t %a15\n"                            \
+          ".align 5\n");
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#define __ALIGN_TRAP_TAB__ __asm(" .align 5");
+#define IfxCpu_Tsr_CallTSR(serviceRoutine)         \
+    {                                              \
+        __ALIGN_TRAP_TAB__;                        \
+        __asm("svlcx\n");                          \
+        __asm("mov\t %d4, %d15");                  \
+        __asm("ji\t %0" : : "a" (serviceRoutine)); \
+        __asm("rfe");                              \
+    }
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
 #define __ALIGN_TRAP_TAB__ __asm(" .align 5");
 #define IfxCpu_Tsr_CallTSR(serviceRoutine)         \
     {                                              \
@@ -234,16 +261,34 @@ typedef struct
         __asm("#$$ep");                                     \
     }
 #define __ALIGN_TRAP_TAB__ __asm(" .align 5");
-#elif defined(__TASKING__)
-#define IfxCpu_Tsr_CallTSR(serviceRoutine)                                              \
-    {                                                                                   \
-        __ALIGN_TRAP_TAB__;                                                             \
-        __asm("svlcx\n\tmov\td4,d15\n\tji\t%0\n" : : "a" (serviceRoutine) : "d4", "d15"); \
-    }
-#define __ALIGN_TRAP_TAB__ __asm(" .align 32");
 #endif
 
-#if defined(__HIGHTEC__)
+#if defined(__TASKING__)
+#define IfxCpu_Tsr_CallCSATSR(serviceRoutine)                                              \
+    {                                                                                   \
+        __ALIGN_TRAP_TAB__;                                                             \
+        __asm("mov\td4,d15\n\tji\t%0\n" : : "a" (serviceRoutine) : "d4", "d15"); \
+    }
+#define __ALIGN_TRAP_TAB__ __asm(" .align 32");
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#define __ALIGN_TRAP_TAB__ __asm(" .align 5");
+#define IfxCpu_Tsr_CallCSATSR(serviceRoutine)         \
+    __asm(".align 5\n"                             \
+          "mov\t %d4, %d15\n"                      \
+          "movh.a\t %a15, hi:" #serviceRoutine "\n" \
+          "lea\t %a15, [%a15]lo:" #serviceRoutine "\n" \
+          "ji\t %a15\n"                            \
+          ".align 5\n");
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#define __ALIGN_TRAP_TAB__ __asm(" .align 5");
+#define IfxCpu_Tsr_CallCSATSR(serviceRoutine)         \
+    {                                              \
+        __ALIGN_TRAP_TAB__;                        \
+        __asm("mov\t %d4, %d15");                  \
+        __asm("ji\t %0" : : "a" (serviceRoutine)); \
+        __asm("rfe");                              \
+    }
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
 #define __ALIGN_TRAP_TAB__ __asm(" .align 5");
 #define IfxCpu_Tsr_CallCSATSR(serviceRoutine)         \
     {                                              \
@@ -274,13 +319,17 @@ typedef struct
         __asm("#$$ep");                                     \
     }
 #define __ALIGN_TRAP_TAB__ __asm(" .align 5");
-#elif defined(__TASKING__)
-#define IfxCpu_Tsr_CallCSATSR(serviceRoutine)                                              \
-    {                                                                                   \
-        __ALIGN_TRAP_TAB__;                                                             \
-        __asm("mov\td4,d15\n\tji\t%0\n" : : "a" (serviceRoutine) : "d4", "d15"); \
-    }
-#define __ALIGN_TRAP_TAB__ __asm(" .align 32");
+#endif
+
+#if defined(__HIGHTEC__) && defined(__clang__)
+#define IFX_TRAP_HANDLER __attribute__((interrupt_handler))
+#define IFX_TRAP_RET
+#else
+#define IFX_TRAP_HANDLER
+/* Restore lower context before returning. lower context was stored in the trap vector */
+#define IFX_TRAP_RET \
+    __asm("rslcx"); \
+    __asm("rfe")
 #endif
 
 /** \} */

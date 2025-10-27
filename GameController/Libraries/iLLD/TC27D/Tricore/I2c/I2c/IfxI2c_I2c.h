@@ -3,8 +3,8 @@
  * \brief I2C I2C details
  * \ingroup IfxLld_I2c
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -107,7 +107,6 @@
  *
  *     // set device specifig values.
  *     i2cDeviceConfig.deviceAddress = 0xa0;  // 8 bit device address
- *
  *     // initialize the i2c device handle
  *     IfxI2c_I2c_initDevice(&i2cDev, &i2cDeviceConfig);
  * \endcode
@@ -345,9 +344,11 @@ typedef struct
  */
 typedef struct
 {
-    Ifx_I2C               *i2c;            /**< \brief Module Pointer */
-    float32                baudrate;       /**< \brief Baudrate */
-    IFX_CONST IfxI2c_Pins *pins;           /**< \brief Pins */
+    Ifx_I2C               *i2c;                  /**< \brief Module Pointer */
+    float32                baudrate;             /**< \brief Baudrate */
+    IFX_CONST IfxI2c_Pins *pins;                 /**< \brief Pins */
+    IfxI2c_MasterNotSlave  peripheralMode;       /**< \brief master/not slave */
+    IfxI2c_Config          addrFifoCfg;          /**< \brief addr and fifo cfg */
 } IfxI2c_I2c_Config;
 
 /** \brief Structure with slave device data
@@ -423,28 +424,6 @@ IFX_EXTERN IfxI2c_I2c_Status IfxI2c_I2c_read(IfxI2c_I2c_Device *i2cDevice, volat
  */
 IFX_EXTERN IfxI2c_I2c_Status IfxI2c_I2c_write(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size);
 
-
-/** \brief Initializes the Module as Slave
- * \param i2c Handler
- * \param config Configuration structure
- * \return None
- *
- *
- */
-IFX_EXTERN void IfxI2c_I2c_initSlaveModule(IfxI2c_I2c *i2c, const IfxI2c_I2c_Config *config, uint8 I2cAddress);
 /** \} */
-
-
-/** \brief read function for the slave device
- *
- *
- */
-IFX_EXTERN IfxI2c_I2c_Status IfxI2c_I2c_SlaveRead(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size);
-
-/** \brief write function for the slave device
- *
- *
- */
-IFX_EXTERN IfxI2c_I2c_Status IfxI2c_I2c_SlaveWrite(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size);
 
 #endif /* IFXI2C_I2C_H */

@@ -2,8 +2,9 @@
  * \file IfxAsclin_Asc.c
  * \brief ASCLIN ASC details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2020 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  */
 
@@ -133,7 +135,7 @@ sint32 IfxAsclin_Asc_getReadCount(IfxAsclin_Asc *asclin)
 }
 
 
-IfxStdIf_DPipe_ReadEvent IfxAsclin_Asc_getReadEvent(IfxAsclin_Asc *asclin)
+volatile boolean *IfxAsclin_Asc_getReadEvent(IfxAsclin_Asc *asclin)
 {
     return &asclin->rx->eventWriter;
 }
@@ -157,7 +159,7 @@ sint32 IfxAsclin_Asc_getWriteCount(IfxAsclin_Asc *asclin)
 }
 
 
-IfxStdIf_DPipe_WriteEvent IfxAsclin_Asc_getWriteEvent(IfxAsclin_Asc *asclin)
+volatile boolean *IfxAsclin_Asc_getWriteEvent(IfxAsclin_Asc *asclin)
 {
     return &asclin->tx->eventWriter;
 }
@@ -274,11 +276,11 @@ IfxAsclin_Status IfxAsclin_Asc_initModule(IfxAsclin_Asc *asclin, const IfxAsclin
 
     switch (asclin->dataBufferMode)
     {
-    case Ifx_DataBufferMode_normal:
+    case IfxAsclin_DataBufferMode_normal:
         elementSize = 1;
         break;
-    case Ifx_DataBufferMode_timeStampSingle:
-        elementSize = sizeof(Ifx_DataBufferMode_TimeStampSingle);
+    case IfxAsclin_DataBufferMode_timeStampSingle:
+        elementSize = sizeof(IfxAsclin_DataBufferMode_TimeStampSingle);
         break;
     default:
         elementSize = 0;
@@ -395,7 +397,7 @@ void IfxAsclin_Asc_initModuleConfig(IfxAsclin_Asc_Config *config, Ifx_ASCLIN *as
     config->txBufferSize   = 0;                                                /* Rx Fifo buffer size*/
     config->rxBufferSize   = 0;                                                /* Rx Fifo buffer size*/
 
-    config->dataBufferMode = Ifx_DataBufferMode_normal;
+    config->dataBufferMode = IfxAsclin_DataBufferMode_normal;
 }
 
 
@@ -410,14 +412,14 @@ void IfxAsclin_Asc_initiateTransmission(IfxAsclin_Asc *asclin)
 
             switch (asclin->dataBufferMode)
             {
-            case Ifx_DataBufferMode_normal:
+            case IfxAsclin_DataBufferMode_normal:
             {
                 Ifx_Fifo_read(asclin->tx, &data, 1, TIME_NULL);
             }
             break;
-            case Ifx_DataBufferMode_timeStampSingle:
+            case IfxAsclin_DataBufferMode_timeStampSingle:
             {
-                Ifx_DataBufferMode_TimeStampSingle packedData;
+                IfxAsclin_DataBufferMode_TimeStampSingle packedData;
                 Ifx_Fifo_read(asclin->tx, &packedData, sizeof(packedData), TIME_NULL);
                 data = packedData.data;
             }
@@ -473,7 +475,7 @@ void IfxAsclin_Asc_isrReceive(IfxAsclin_Asc *asclin)
 
     switch (asclin->dataBufferMode)
     {
-    case Ifx_DataBufferMode_normal:
+    case IfxAsclin_DataBufferMode_normal:
     {
         uint8 count;
         count = IfxAsclin_getRxFifoFillLevel(asclin->asclin);
@@ -487,9 +489,9 @@ void IfxAsclin_Asc_isrReceive(IfxAsclin_Asc *asclin)
 
         break;
     }
-    case Ifx_DataBufferMode_timeStampSingle:
+    case IfxAsclin_DataBufferMode_timeStampSingle:
     {
-        Ifx_DataBufferMode_TimeStampSingle packedData;
+        IfxAsclin_DataBufferMode_TimeStampSingle packedData;
 
         while (IfxAsclin_getRxFifoFillLevel(asclin->asclin) > 0)
         {
@@ -518,7 +520,7 @@ void IfxAsclin_Asc_isrTransmit(IfxAsclin_Asc *asclin)
     {
         switch (asclin->dataBufferMode)
         {
-        case Ifx_DataBufferMode_normal:
+        case IfxAsclin_DataBufferMode_normal:
         {
             uint8          ascData[16];
             uint16         count            = 0, i_count = 0;
@@ -540,10 +542,10 @@ void IfxAsclin_Asc_isrTransmit(IfxAsclin_Asc *asclin)
         }
         break;
 
-        case Ifx_DataBufferMode_timeStampSingle:
+        case IfxAsclin_DataBufferMode_timeStampSingle:
         {
-            Ifx_DataBufferMode_TimeStampSingle packedData;
-            uint8                              ascData;
+            IfxAsclin_DataBufferMode_TimeStampSingle packedData;
+            uint8                                    ascData;
 
             Ifx_Fifo_read(asclin->tx, &packedData, sizeof(packedData), TIME_NULL);
 
@@ -574,35 +576,6 @@ boolean IfxAsclin_Asc_read(IfxAsclin_Asc *asclin, void *data, Ifx_SizeT *count, 
 void IfxAsclin_Asc_resetSendCount(IfxAsclin_Asc *asclin)
 {
     asclin->sendCount = 0;
-}
-
-
-boolean IfxAsclin_Asc_stdIfDPipeInit(IfxStdIf_DPipe *stdif, IfxAsclin_Asc *asclin)
-{
-    /* Ensure the stdif is reset to zeros */
-    memset(stdif, 0, sizeof(IfxStdIf_DPipe));
-
-    /* Set the API link */
-    stdif->driver         = asclin;
-    stdif->write          = (IfxStdIf_DPipe_Write) & IfxAsclin_Asc_write;
-    stdif->read           = (IfxStdIf_DPipe_Read) & IfxAsclin_Asc_read;
-    stdif->getReadCount   = (IfxStdIf_DPipe_GetReadCount) & IfxAsclin_Asc_getReadCount;
-    stdif->getReadEvent   = (IfxStdIf_DPipe_GetReadEvent) & IfxAsclin_Asc_getReadEvent;
-    stdif->getWriteCount  = (IfxStdIf_DPipe_GetWriteCount) & IfxAsclin_Asc_getWriteCount;
-    stdif->getWriteEvent  = (IfxStdIf_DPipe_GetWriteEvent) & IfxAsclin_Asc_getWriteEvent;
-    stdif->canReadCount   = (IfxStdIf_DPipe_CanReadCount) & IfxAsclin_Asc_canReadCount;
-    stdif->canWriteCount  = (IfxStdIf_DPipe_CanWriteCount) & IfxAsclin_Asc_canWriteCount;
-    stdif->flushTx        = (IfxStdIf_DPipe_FlushTx) & IfxAsclin_Asc_flushTx;
-    stdif->clearTx        = (IfxStdIf_DPipe_ClearTx) & IfxAsclin_Asc_clearTx;
-    stdif->clearRx        = (IfxStdIf_DPipe_ClearRx) & IfxAsclin_Asc_clearRx;
-    stdif->onReceive      = (IfxStdIf_DPipe_OnReceive) & IfxAsclin_Asc_isrReceive;
-    stdif->onTransmit     = (IfxStdIf_DPipe_OnTransmit) & IfxAsclin_Asc_isrTransmit;
-    stdif->onError        = (IfxStdIf_DPipe_OnError) & IfxAsclin_Asc_isrError;
-    stdif->getSendCount   = (IfxStdIf_DPipe_GetSendCount) & IfxAsclin_Asc_getSendCount;
-    stdif->getTxTimeStamp = (IfxStdIf_DPipe_GetTxTimeStamp) & IfxAsclin_Asc_getTxTimeStamp;
-    stdif->resetSendCount = (IfxStdIf_DPipe_ResetSendCount) & IfxAsclin_Asc_resetSendCount;
-    stdif->txDisabled     = FALSE;
-    return TRUE;
 }
 
 

@@ -77,7 +77,7 @@ static uint32 SpiRxBuffer[300];
 
    IfxQspi_SpiMaster_initModuleConfig(&spiMasterConfig, SpiMasterPins->SpiMosi->module); /* Initialize it with default values        */
 
-   spiMasterConfig.base.mode = SpiIf_Mode_master;                      /* Configure the mode                       */
+   spiMasterConfig.mode = IfxQspi_Mode_master;                      /* Configure the mode                       */
 
    /* Select the port pins for communication */
    const IfxQspi_SpiMaster_Pins SpiMasterPinsCfg = {
@@ -90,10 +90,10 @@ static uint32 SpiRxBuffer[300];
    spiMasterConfig.pins = &SpiMasterPinsCfg;                            /* Assign the Master's port pins            */
 
    /* Set the ISR priorities and the service provider */
-   spiMasterConfig.base.txPriority = MasterCfg->TxIsr;
-   spiMasterConfig.base.rxPriority = MasterCfg->RxIsr;
-   spiMasterConfig.base.erPriority = MasterCfg->ErIsr;
-   spiMasterConfig.base.isrProvider = IfxSrc_Tos_cpu0;
+   spiMasterConfig.txPriority = MasterCfg->TxIsr;
+   spiMasterConfig.rxPriority = MasterCfg->RxIsr;
+   spiMasterConfig.erPriority = MasterCfg->ErIsr;
+   spiMasterConfig.isrProvider = IfxSrc_Tos_cpu0;
    /* Initialize the QSPI Master module */
    IfxQspi_SpiMaster_initModule(MasterCfg->SpiMasterPtr, &spiMasterConfig);
 
@@ -119,13 +119,13 @@ static uint32 SpiRxBuffer[300];
    };
    spiMasterChannelConfig.sls.output = SpiSlaveSelect;
 
-   spiMasterChannelConfig.base.baudrate = ChannelConfig->Baudrate;    /* Set SCLK frequency to 10 MHz              */
-   spiMasterChannelConfig.base.mode.dataWidth = 32;        /* Set the transfer data width to 8 bits    */
-   spiMasterChannelConfig.base.mode.clockPolarity = ChannelConfig->ClockPolarity;
-   spiMasterChannelConfig.base.mode.shiftClock = ChannelConfig->ShiftClock;
-   spiMasterChannelConfig.base.mode.dataHeading = ChannelConfig->DataHeading;
-   spiMasterChannelConfig.base.mode.parityCheck = 0;
-   spiMasterChannelConfig.base.mode.autoCS = 0;
+   spiMasterChannelConfig.ch.baudrate = ChannelConfig->Baudrate;    /* Set SCLK frequency to 10 MHz              */
+   spiMasterChannelConfig.ch.mode.dataWidth = 32;        /* Set the transfer data width to 8 bits    */
+   spiMasterChannelConfig.ch.mode.clockPolarity = ChannelConfig->ClockPolarity;
+   spiMasterChannelConfig.ch.mode.shiftClock = ChannelConfig->ShiftClock;
+   spiMasterChannelConfig.ch.mode.dataHeading = ChannelConfig->DataHeading;
+   spiMasterChannelConfig.ch.mode.parityCheck = 0;
+   spiMasterChannelConfig.ch.mode.autoCS = 0;
 
    /* Select the port pin for the Chip Select signal */
 
@@ -142,12 +142,12 @@ static uint32 SpiRxBuffer[300];
   */
  void Spi_WriteRegister(SpiChannel_t* SpiChannel, uint32 Reg)
  {
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
    SpiTxBuffer[0] = Reg;
        // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], &SpiRxBuffer[0], 1);
 
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy);
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy);
 
  }
 
@@ -159,13 +159,13 @@ static uint32 SpiRxBuffer[300];
   */
  void Spi_WriteRegisterVal(SpiChannel_t* SpiChannel, uint32 Reg, uint32 Val)
  {
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
    SpiTxBuffer[0] = Reg;
    SpiTxBuffer[1] = Val;
        // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], &SpiRxBuffer[0], 2);
 
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy);
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy);
 
  }
 
@@ -177,14 +177,14 @@ static uint32 SpiRxBuffer[300];
   */
  void Spi_ReadRegister(SpiChannel_t* SpiChannel, uint32 Reg, uint32* regVal, uint16 size)
  {
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
    SpiTxBuffer[0] =  Reg;
    uint32 Val = 0xFFFFFFFF;
    memset_var(&SpiTxBuffer[1], &Val ,size);
        // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], &SpiRxBuffer[0], size+1);
 
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
 
    for(uint16 i=0; i<size;i++)
    {
@@ -201,14 +201,14 @@ static uint32 SpiRxBuffer[300];
  void Spi_WriteBytes(SpiChannel_t* SpiChannel, uint32* Src, uint16 size)
  {
 
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
    time = (float32)(IfxStm_get(&MODULE_STM0) / IfxStm_getFrequency(&MODULE_STM0));
    memcpy_sp(Src, SpiTxBuffer, size);
    time = (float32)(IfxStm_get(&MODULE_STM0) / IfxStm_getFrequency(&MODULE_STM0)) - time;
        // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], NULL_PTR, size);
 
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
  }
 
 
@@ -219,14 +219,14 @@ static uint32 SpiRxBuffer[300];
   */
  void Spi_ReadBytes(SpiChannel_t* SpiChannel,uint32* Src, uint16 SrcSize, uint32* Dest, uint16 DestSize)
  {
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
    uint32 Val = 0xFFFFFFFF;
    memcpy_sp(Src, SpiTxBuffer, SrcSize);
    memset_var(&SpiTxBuffer[SrcSize], &Val ,DestSize - SrcSize + 1);
        // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], &SpiRxBuffer[0], DestSize + 1);
 
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
    memcpy_sp(&SpiRxBuffer[1], Dest, DestSize);
  }
 
@@ -238,10 +238,10 @@ static uint32 SpiRxBuffer[300];
   */
  void Spi_WriteBuffer(SpiChannel_t* SpiChannel, uint16 size)
  {
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], NULL_PTR,size);
 
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
  }
 
 
@@ -252,7 +252,7 @@ static uint32 SpiRxBuffer[300];
   */
  void Spi_ReadBuffer(SpiChannel_t* SpiChannel,uint32* Src, uint16 SrcSize, uint16 size)
  {
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
 
    for(uint16 i=0;i<SrcSize;i++)
    {
@@ -266,7 +266,7 @@ static uint32 SpiRxBuffer[300];
    // receive new stream
    IfxQspi_SpiMaster_exchange(SpiChannel, &SpiTxBuffer[0], &SpiRxBuffer[0],(size+1));
 
-   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == SpiIf_Status_busy );
+   while( IfxQspi_SpiMaster_getStatus(SpiChannel) == IfxQspi_Status_busy );
  }
 
 

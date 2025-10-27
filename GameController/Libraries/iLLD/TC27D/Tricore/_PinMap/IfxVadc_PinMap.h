@@ -3,7 +3,7 @@
  * \brief VADC I/O map
  * \ingroup IfxLld_Vadc
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2013 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -48,6 +48,7 @@
 #include <IfxVadc_reg.h>
 #include <_Impl/IfxVadc_cfg.h>
 #include <Port/Std/IfxPort.h>
+#include "Ifx_PinMap.h"
 
 /** \addtogroup IfxLld_Vadc_pinmap
  * \{ */

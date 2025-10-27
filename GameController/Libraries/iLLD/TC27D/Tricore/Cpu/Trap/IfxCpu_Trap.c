@@ -3,7 +3,7 @@
  * \brief This file contains the APIs for Trap related functions.
  *
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2012 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -122,161 +122,160 @@ IFX_INLINE IfxCpu_Trap IfxCpu_Trap_extractTrapInfo(uint8 trapClass, uint32 tin)
     return trapInfo;
 }
 
-
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_memoryManagementError(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_memoryManagement, tin);
     IFX_CFG_CPU_TRAP_MME_HOOK(trapWatch);
     IFX_CFG_CPU_TRAP_DEBUG;
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 
-
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_internalProtectionError(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_internalProtection, tin);
     IFX_CFG_CPU_TRAP_IPE_HOOK(trapWatch);
     IFX_CFG_CPU_TRAP_DEBUG;
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 
-
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_instructionError(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_instructionErrors, tin);
     IFX_CFG_CPU_TRAP_IE_HOOK(trapWatch);
     IFX_CFG_CPU_TRAP_DEBUG;
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 
-
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_contextManagementError(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_contextManagement, tin);
     IFX_CFG_CPU_TRAP_CME_HOOK(trapWatch);
     IFX_CFG_CPU_TRAP_DEBUG;
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
+	#if defined(__HIGHTEC__) && defined(__clang__)
+    #else
     __asm("rfe");
+    #endif
 }
 
-
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_busError(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_bus, tin);
     IFX_CFG_CPU_TRAP_BE_HOOK(trapWatch);
     IFX_CFG_CPU_TRAP_DEBUG;
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 
-
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_assertion(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_assertion, tin);
     IFX_CFG_CPU_TRAP_ASSERT_HOOK(trapWatch);
     IFX_CFG_CPU_TRAP_DEBUG;
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 
-
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_systemCall_Cpu0(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_systemCall, tin);
     IFX_CFG_CPU_TRAP_SYSCALL_CPU0_HOOK(trapWatch);
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 
 #if IFXCPU_NUM_MODULES >= 2
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_systemCall_Cpu1(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_systemCall, tin);
     IFX_CFG_CPU_TRAP_SYSCALL_CPU1_HOOK(trapWatch);
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 #endif
 
 #if IFXCPU_NUM_MODULES >= 3
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_systemCall_Cpu2(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_systemCall, tin);
     IFX_CFG_CPU_TRAP_SYSCALL_CPU2_HOOK(trapWatch);
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 #endif
 
 #if IFXCPU_NUM_MODULES >= 4
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_systemCall_Cpu3(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_systemCall, tin);
     IFX_CFG_CPU_TRAP_SYSCALL_CPU3_HOOK(trapWatch);
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 #endif
 
 #if IFXCPU_NUM_MODULES >= 5
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_systemCall_Cpu4(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_systemCall, tin);
     IFX_CFG_CPU_TRAP_SYSCALL_CPU4_HOOK(trapWatch);
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 #endif
 
 #if IFXCPU_NUM_MODULES >= 6
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_systemCall_Cpu5(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_systemCall, tin);
     IFX_CFG_CPU_TRAP_SYSCALL_CPU5_HOOK(trapWatch);
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 #endif
 
+IFX_TRAP_HANDLER
 void IfxCpu_Trap_nonMaskableInterrupt(uint32 tin)
 {
     volatile IfxCpu_Trap trapWatch;
     trapWatch = IfxCpu_Trap_extractTrapInfo(IfxCpu_Trap_Class_nonMaskableInterrupt, tin);
     IFX_CFG_CPU_TRAP_NMI_HOOK(trapWatch);    
-    __asm("rslcx"); /* Restore lower context before returning. lower context was stored in the trap vector */
-    __asm("rfe");
+    IFX_TRAP_RET;
 }
 
 
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".traptab_cpu0" awx
-#pragma GCC optimize ("O2")
-#endif
-#if defined(__DCC__)
-#pragma section
-#pragma section CODE ".traptab_cpu0" X
-#endif
 #if defined(__TASKING__)
 #pragma protect on
 #pragma section code "traptab_cpu0"
-#endif
-#if defined(__ghs__)
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#pragma section
+#pragma section ".traptab_cpu0" ax
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#pragma clang section text=".traptab_cpu0"
+IFX_USED void IfxCpu_Trap_vectorTable0(void) __attribute__((naked,aligned(256)));
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".traptab_cpu0" ax
+#pragma GCC optimize ("O2")
+#elif defined(__DCC__)
+#pragma section
+#pragma section CODE ".traptab_cpu0" X
+#elif defined(__ghs__)
 #pragma ghs section
 #pragma ghs section text=".traptab_cpu0"
 #endif
@@ -294,18 +293,21 @@ void IfxCpu_Trap_vectorTable0(void)
 
 
 #if IFXCPU_NUM_MODULES >= 2
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".traptab_cpu1" awx
-#endif
-#if defined(__DCC__)
-#pragma section
-#pragma section CODE ".traptab_cpu1" X
-#endif
 #if defined(__TASKING__)
 #pragma section code "traptab_cpu1"
-#endif
-#if defined(__ghs__)
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#pragma section
+#pragma section ".traptab_cpu1" ax
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#pragma clang section text=".traptab_cpu1"
+IFX_USED void IfxCpu_Trap_vectorTable1(void) __attribute__((naked,aligned(256)));
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".traptab_cpu1" ax
+#elif defined(__DCC__)
+#pragma section
+#pragma section CODE ".traptab_cpu1" X
+#elif defined(__ghs__)
 #pragma ghs section
 #pragma ghs section text=".traptab_cpu1"
 #endif
@@ -325,18 +327,21 @@ void IfxCpu_Trap_vectorTable1(void)
 #endif
 
 #if IFXCPU_NUM_MODULES >= 3
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".traptab_cpu2" awx
-#endif
-#if defined(__DCC__)
-#pragma section
-#pragma section CODE ".traptab_cpu2" X
-#endif
 #if defined(__TASKING__)
 #pragma section code "traptab_cpu2"
-#endif
-#if defined(__ghs__)
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#pragma section
+#pragma section ".traptab_cpu2" ax
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#pragma clang section text=".traptab_cpu2"
+IFX_USED void IfxCpu_Trap_vectorTable2(void) __attribute__((naked,aligned(256)));
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".traptab_cpu2" ax
+#elif defined(__DCC__)
+#pragma section
+#pragma section CODE ".traptab_cpu2" X
+#elif defined(__ghs__)
 #pragma ghs section
 #pragma ghs section text=".traptab_cpu2"
 #endif
@@ -357,18 +362,21 @@ void IfxCpu_Trap_vectorTable2(void)
 #endif
 
 #if IFXCPU_NUM_MODULES >= 4
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".traptab_cpu3" awx
-#endif
-#if defined(__DCC__)
-#pragma section
-#pragma section CODE ".traptab_cpu3" X
-#endif
 #if defined(__TASKING__)
 #pragma section code "traptab_cpu3"
-#endif
-#if defined(__ghs__)
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#pragma section
+#pragma section ".traptab_cpu3" ax
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#pragma clang section text=".traptab_cpu3"
+IFX_USED void IfxCpu_Trap_vectorTable3(void) __attribute__((naked,aligned(256)));
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".traptab_cpu3" ax
+#elif defined(__DCC__)
+#pragma section
+#pragma section CODE ".traptab_cpu3" X
+#elif defined(__ghs__)
 #pragma ghs section
 #pragma ghs section text=".traptab_cpu3"
 #endif
@@ -390,18 +398,21 @@ void IfxCpu_Trap_vectorTable3(void)
 #endif
 
 #if IFXCPU_NUM_MODULES >= 5
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".traptab_cpu4" awx
-#endif
-#if defined(__DCC__)
-#pragma section
-#pragma section CODE ".traptab_cpu4" X
-#endif
 #if defined(__TASKING__)
 #pragma section code "traptab_cpu4"
-#endif
-#if defined(__ghs__)
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#pragma section
+#pragma section ".traptab_cpu4" ax
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#pragma clang section text=".traptab_cpu4"
+IFX_USED void IfxCpu_Trap_vectorTable4(void) __attribute__((naked,aligned(256)));
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".traptab_cpu4" ax
+#elif defined(__DCC__)
+#pragma section
+#pragma section CODE ".traptab_cpu4" X
+#elif defined(__ghs__)
 #pragma ghs section
 #pragma ghs section text=".traptab_cpu4"
 #endif
@@ -422,18 +433,21 @@ void IfxCpu_Trap_vectorTable4(void)
 #endif
 
 #if IFXCPU_NUM_MODULES >= 6
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".traptab_cpu5" awx
-#endif
-#if defined(__DCC__)
-#pragma section
-#pragma section CODE ".traptab_cpu5" X
-#endif
 #if defined(__TASKING__)
 #pragma section code "traptab_cpu5"
-#endif
-#if defined(__ghs__)
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#pragma section
+#pragma section ".traptab_cpu5" ax
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#pragma clang section text=".traptab_cpu5"
+IFX_USED void IfxCpu_Trap_vectorTable5(void) __attribute__((naked,aligned(256)));
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".traptab_cpu5" ax
+#elif defined(__DCC__)
+#pragma section
+#pragma section CODE ".traptab_cpu5" X
+#elif defined(__ghs__)
 #pragma ghs section
 #pragma ghs section text=".traptab_cpu5"
 #endif
@@ -453,18 +467,18 @@ void IfxCpu_Trap_vectorTable5(void)
 
 #endif
 
-#if defined(__HIGHTEC__)
-#pragma section
-#endif
-#if defined(__DCC__)
-#pragma section
-#endif
-#if defined(__DCC__)
-#pragma interrupt IfxInterruptEx
-#endif
 #if defined(__TASKING__)
 #pragma endprotect
-#endif
-#if defined(__ghs__)
+#elif defined(__HIGHTEC__) && !defined(__clang__)
+#pragma section
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#pragma clang section text=""
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#elif defined(__DCC__)
+#pragma section
+#elif defined(__DCC__)
+#pragma interrupt IfxInterruptEx
+#elif defined(__ghs__)
 #pragma ghs section
 #endif

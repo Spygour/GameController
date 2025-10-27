@@ -2,8 +2,9 @@
  * \file IfxScuCcu.c
  * \brief SCU  basic functionality
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2018 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  *
  */
@@ -258,7 +260,7 @@ float32 IfxScuCcu_getBbbFrequency(void)
 
         if (SCU_CCUCON2.B.BBBDIV == 0)
         {
-            bbbFrequency = 0.0;
+            bbbFrequency = 0.0f;
         }
         else
         {
@@ -279,7 +281,7 @@ float32 IfxScuCcu_getBbbFrequency(void)
         bbbFrequency = sourceFrequency / 240;
         break;
     default:
-        bbbFrequency = 0.0;
+        bbbFrequency = 0.0f;
         break;
     }
 
@@ -304,7 +306,7 @@ float32 IfxScuCcu_getCpuFrequency(const IfxCpu_ResourceCpu cpu)
         cpuDiv = SCU_CCUCON8.U;
         break;
     default:
-        frequency = 0.0;
+        frequency = 0.0f;
         break;
     }
 
@@ -396,7 +398,7 @@ float32 IfxScuCcu_getMaxFrequency(void)
         maxFrequency = sourceFrequency / 120;
         break;
     default:
-        maxFrequency = 0.0;
+        maxFrequency = 0.0f;
         break;
     }
 
@@ -450,7 +452,7 @@ float32 IfxScuCcu_getOscFrequency(void)
     else
     {
         /* Reserved values, this */
-        freq = 0.0;
+        freq = 0.0f;
     }
 
     return freq;
@@ -585,7 +587,7 @@ float32 IfxScuCcu_getSpbFrequency(void)
 
         if (SCU_CCUCON0.B.SPBDIV == 0)
         {
-            spbFrequency = 0.0;
+            spbFrequency = 0.0f;
         }
         else
         {
@@ -606,7 +608,7 @@ float32 IfxScuCcu_getSpbFrequency(void)
         spbFrequency = sourceFrequency / 240;
         break;
     default:
-        spbFrequency = 0.0;
+        spbFrequency = 0.0f;
         break;
     }
 
@@ -627,7 +629,7 @@ float32 IfxScuCcu_getSriFrequency(void)
 
         if (SCU_CCUCON0.B.SRIDIV == 0)
         {
-            sriFrequency = 0.0;
+            sriFrequency = 0.0f;
         }
         else
         {
@@ -648,7 +650,7 @@ float32 IfxScuCcu_getSriFrequency(void)
         sriFrequency = sourceFrequency / 240;
         break;
     default:
-        sriFrequency = 0.0;
+        sriFrequency = 0.0f;
         break;
     }
 
@@ -693,9 +695,9 @@ boolean IfxScuCcu_init(const IfxScuCcu_Config *cfg)
         /* Now PLL is in free running mode */
 
         /* Select Clock Source as PLL input clock */
-        while (SCU_CCUCON0.B.LCK != 0U)
+        while (SCU_CCUCON1.B.LCK != 0U)
         {
-            /*Wait till ccucon0 lock is set */
+            /*Wait till ccucon1 lock is set */
             /*No "timeout" required, because if it hangs, Safety Endinit will give a trap */
         }
 
@@ -1373,4 +1375,62 @@ IFX_STATIC void IfxScuCcu_wait(float32 timeSec)
          *     stmCountNow = 0x00000002 (before overflow)
          *     diff= stmCountNow - stmCountBegin = 4 as expected.*/
     }
+}
+
+
+void IfxScuCcu_enableExtClockOut0(IfxScuCcu_ClkSel0 Clk_Sel, const uint32 freqHz, IfxScuCcu_Clk0Mode mode)
+{
+    uint16 endinitSfty_pw;
+
+    endinitSfty_pw = IfxScuWdt_getSafetyWatchdogPassword();
+    IfxScuWdt_clearSafetyEndinit(endinitSfty_pw);
+
+    SCU_EXTCON.B.SEL0 = (uint32)Clk_Sel;
+
+    if (IfxScuCcu_ClkSel0_fOUT == Clk_Sel)
+    {
+        if (mode == IfxScuCcu_Clk0Mode_normal)
+        {
+            /* normal divider mode */
+            SCU_FDR.B.DM = 1U;
+
+            if (freqHz == (IfxScuCcu_getSpbFrequency() / 2))
+            {
+                SCU_FDR.B.STEP = 0x3FFu;
+            }
+            else
+            {
+                SCU_FDR.B.STEP = (uint32)(1024u - (IfxScuCcu_getSpbFrequency() / (2u * freqHz)));
+            }
+        }
+        else
+        {
+            /* fractional divider mode */
+            SCU_FDR.B.DM   = 2U;
+            SCU_FDR.B.STEP = (uint32)(((2u * freqHz) * 1024u) / (IfxScuCcu_getSpbFrequency()));
+        }
+    }
+
+    SCU_EXTCON.B.EN0 = 1U;
+    IfxScuWdt_setSafetyEndinit(endinitSfty_pw);
+}
+
+
+void IfxScuCcu_enableExtClockOut1(IfxScuCcu_ClkSel1 Clk_Sel, const uint32 freqHz, IfxScuCcu_Clk1Negation sel)
+{
+    uint16 endinitSfty_pw;
+
+    endinitSfty_pw = IfxScuWdt_getSafetyWatchdogPassword();
+    IfxScuWdt_clearSafetyEndinit(endinitSfty_pw);
+
+    SCU_EXTCON.B.SEL1 = (uint32)Clk_Sel;
+
+    if (IfxScuCcu_ClkSel1_fOUT == Clk_Sel)
+    {
+        SCU_EXTCON.B.DIV1 = (uint32)((IfxScuCcu_getSpbFrequency() / freqHz) - 1U);
+        SCU_EXTCON.B.NSEL = sel;
+    }
+
+    SCU_EXTCON.B.EN1 = 1U;
+    IfxScuWdt_setSafetyEndinit(endinitSfty_pw);
 }

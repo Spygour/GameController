@@ -2,7 +2,7 @@
  * \file Ifx_Types.h
  * \brief This files defines all types used by the IFX HAL and libraries
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_19_0
  * \copyright Copyright (c) 2018 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -103,38 +103,12 @@ typedef sint32 Ifx_SignedTimerVal; /**< \brief Used in signed timer values */
 
 typedef pvoid  Ifx_AddressValue;   /**< \brief Used in address values */
 
-typedef struct
-{
-    uint16 priority;
-    uint16 provider;
-} Ifx_IsrSetting;
-
 /** \brief Signal active state definition. */
 typedef enum
 {
     Ifx_ActiveState_low  = 0,       /**< \brief The signal is low active */
     Ifx_ActiveState_high = 1        /**< \brief The signal is high active */
 } Ifx_ActiveState;
-
-typedef enum
-{
-    Ifx_ParityMode_even = 0,
-    Ifx_ParityMode_odd  = 1
-} Ifx_ParityMode;
-
-/** \brief input multiplexer definition used in PinMaps
- */
-typedef enum
-{
-    Ifx_RxSel_a,
-    Ifx_RxSel_b,
-    Ifx_RxSel_c,
-    Ifx_RxSel_d,
-    Ifx_RxSel_e,
-    Ifx_RxSel_f,
-    Ifx_RxSel_g,
-    Ifx_RxSel_h
-} Ifx_RxSel;
 
 /** \brief Module address and index map */
 typedef struct
@@ -143,54 +117,20 @@ typedef struct
     sint32         index;       /**< \brief Module index */
 } IfxModule_IndexMap;
 
-typedef struct
-{
-    Ifx_TickTime timestamp;
-    uint8        data;
-}Ifx_DataBufferMode_TimeStampSingle;
-
-/*
- * typedef struct
- * {
- *  Ifx_TickTime timestamp;
- *  uint8 count[1];     // Number of valid data
- *  uint8 data[7];
- * }Ifx_DataBufferMode_TimeStampBurst;
- */
-
-typedef enum
-{
-    Ifx_DataBufferMode_normal = 0,           /**< \brief normal mode, each received byte is moved to the rx fifo */
-    Ifx_DataBufferMode_timeStampSingle,      /**< \brief Single byte type stamp mode. The rx fifo is filled in with Ifx_DataBufferMode_TimeStampSingle items. */
-//    Ifx_DataBufferMode_timeStameBurst      /**< \brief Burst byte type stamp mode. The rx fifo is filled in with Ifx_DataBufferMode_TimeStampBurst items. */
-}Ifx_DataBufferMode;
-
-/**
- * Defines the PWM modes
- *
- * The 1st member shall start with value 0, and the next members value shall be the previous member +1
- * pwmMode_off shall be the member with the higher index
- * \note enum order and values should not be modified, except Ifx_Pwm_Mode_init and Ifx_Pwm_Mode_count
- */
-typedef enum
-{
-    Ifx_Pwm_Mode_centerAligned         = 0, /**< \brief Center aligned mode */
-    Ifx_Pwm_Mode_centerAlignedInverted = 1, /**< \brief Center aligned inverted aligned mode */
-    Ifx_Pwm_Mode_leftAligned           = 2, /**< \brief Left aligned mode. The PWM period starts with a rising edge */
-    Ifx_Pwm_Mode_rightAligned          = 3, /**< \brief Right aligned mode. The PWM period starts with a falling edge*/
-    Ifx_Pwm_Mode_off                   = 4, /**< \brief All switch open */
-    Ifx_Pwm_Mode_init                  = 5, /**< \brief Initialisation mode, do not use at run time */
-    Ifx_Pwm_Mode_count                      /**< \brief Number of defined modes */
-} Ifx_Pwm_Mode;
-
 #ifdef __DCC__
 #include "Ifx_TypesDcc.h"
 
 #elif defined(__TASKING__)
 #include "Ifx_TypesTasking.h"
 
-#elif defined(__HIGHTEC__)
+#elif defined(__HIGHTEC__) && !defined(__clang__)
 #include "Ifx_TypesGnuc.h"
+
+#elif defined(__HIGHTEC__) && defined(__clang__)
+#include "Ifx_TypesHighTec.h"
+
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#include "Ifx_TypesGcc.h"
 
 #elif defined(__ghs__)
 #include "Ifx_TypesGhs.h"
@@ -216,6 +156,7 @@ typedef struct
 
 #define IFX_PI                  (3.1415926535897932384626433832795f)
 #define IFX_TWO_OVER_PI         (2.0 / IFX_PI)
+#define IFX_ONE_OVER_TWO_PI     (1.0f / (2.0f * IFX_PI))
 #define IFX_ONE_OVER_SQRT_THREE (0.57735026918962576450914878050196f)
 #define IFX_SQRT_TWO            (1.4142135623730950488016887242097f)
 #define IFX_SQRT_THREE          (1.7320508075688772935274463415059f)

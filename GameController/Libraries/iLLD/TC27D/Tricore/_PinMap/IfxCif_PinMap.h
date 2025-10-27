@@ -3,7 +3,7 @@
  * \brief CIF I/O map
  * \ingroup IfxLld_Cif
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2013 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -48,6 +48,7 @@
 #include <IfxCif_reg.h>
 #include <_Impl/IfxCif_cfg.h>
 #include <Port/Std/IfxPort.h>
+#include "Ifx_PinMap.h"
 
 /** \addtogroup IfxLld_Cif_pinmap
  * \{ */

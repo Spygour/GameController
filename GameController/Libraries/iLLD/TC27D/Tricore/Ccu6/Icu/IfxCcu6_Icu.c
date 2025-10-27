@@ -2,8 +2,9 @@
  * \file IfxCcu6_Icu.c
  * \brief CCU6 ICU details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2018 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  *
  */
@@ -236,14 +238,6 @@ void IfxCcu6_Icu_initModule(IfxCcu6_Icu *icu, const IfxCcu6_Icu_Config *config)
     if (IfxCcu6_isModuleEnabled(ccu6SFR) == FALSE)
     {
         IfxCcu6_enableModule(ccu6SFR);
-    }
-
-    /* -- timer initialisation -- */
-
-    // enable Timer12 if it hasn't been enabled by any other interface //
-    if (IfxCcu6_getTimerAvailabilityStatus(ccu6SFR, IfxCcu6_TimerId_t12) == FALSE)
-    {
-        IfxCcu6_enableTimer(ccu6SFR, IfxCcu6_TimerId_t12);
     }
 
     // clock initialization //

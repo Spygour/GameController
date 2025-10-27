@@ -3,8 +3,8 @@
  * \brief PSI5 PSI5 details
  * \ingroup IfxLld_Psi5
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -317,6 +317,7 @@ typedef struct
     IFX_CONST IfxPsi5_Psi5            *module;                                     /**< \brief Specifies pointer to the IfxPsi5_Psi5 module handle */
     uint32                             watchdogTimerLimit[IFXPSI5_NUM_WDTS];       /**< \brief Specifies the watchdog timer limit for each of the slots 0 to 6 */
     IfxPsi5_ChannelId                  channelId;                                  /**< \brief Specifies the channel index */
+    boolean                            enableChannel;                              /**< \brief TRUE: All channels will be enabled, FALSE: Specific channel needs to be explicitly enabled using the API IfxPsi5_enableChannel() */
     IfxPsi5_Psi5_PulseGeneration       pulseGeneration;                            /**< \brief Specifies the configuration for sync pulse generation */
     IfxPsi5_Psi5_ChannelTrigger        channelTrigger;                             /**< \brief Specifies the configuration for channel trigger */
     IfxPsi5_Psi5_ReceiveControl        receiveControl;                             /**< \brief Specifies the configuration for reception */

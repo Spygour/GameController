@@ -2,8 +2,9 @@
  * \file IfxDts_Dts.c
  * \brief DTS DTS details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2017 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2022 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
+ *
  */
 
 /******************************************************************************/
@@ -51,7 +53,7 @@
 
 uint16 IfxDts_Dts_convertFromCelsius(float32 temperatureValue)
 {
-    sint32 dtsValue = (sint32)(temperatureValue + 285.5) / 0.467;
+    sint32 dtsValue = (sint32)(temperatureValue + 285.5f) / 0.467f;
 
     if (dtsValue < 0)
     {
@@ -68,7 +70,7 @@ uint16 IfxDts_Dts_convertFromCelsius(float32 temperatureValue)
 
 float32 IfxDts_Dts_convertToCelsius(uint16 dtsValue)
 {
-    return ((float32)dtsValue * 0.467) - 285.5;
+    return ((float32)dtsValue * 0.467f) - 285.5f;
 }
 
 
@@ -125,8 +127,8 @@ void IfxDts_Dts_initModule(const IfxDts_Dts_Config *config)
 void IfxDts_Dts_initModuleConfig(IfxDts_Dts_Config *config)
 {
     config->sensorControlDisabled = FALSE;
-    config->lowerTemperatureLimit = -40.0; // Celsius
-    config->upperTemperatureLimit = 170.0; // Celsius
+    config->lowerTemperatureLimit = -40.0f; // Celsius
+    config->upperTemperatureLimit = 170.0f; // Celsius
 
     config->isrTypeOfService      = IfxSrc_Tos_cpu0;
     config->isrPriority           = 0;

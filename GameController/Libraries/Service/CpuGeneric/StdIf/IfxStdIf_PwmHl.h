@@ -74,6 +74,24 @@
 #include "IfxStdIf.h"
 #include "IfxStdIf_Timer.h"
 
+/**
+ * Defines the PWM modes
+ *
+ * The 1st member shall start with value 0, and the next members value shall be the previous member +1
+ * pwmMode_off shall be the member with the higher index
+ * \note enum order and values should not be modified, except Ifx_Pwm_Mode_init and Ifx_Pwm_Mode_count
+ */
+typedef enum
+{
+    Ifx_Pwm_Mode_centerAligned         = 0, /**< \brief Center aligned mode */
+    Ifx_Pwm_Mode_centerAlignedInverted = 1, /**< \brief Center aligned inverted aligned mode */
+    Ifx_Pwm_Mode_leftAligned           = 2, /**< \brief Left aligned mode. The PWM period starts with a rising edge */
+    Ifx_Pwm_Mode_rightAligned          = 3, /**< \brief Right aligned mode. The PWM period starts with a falling edge*/
+    Ifx_Pwm_Mode_off                   = 4, /**< \brief All switch open */
+    Ifx_Pwm_Mode_init                  = 5, /**< \brief Initialisation mode, do not use at run time */
+    Ifx_Pwm_Mode_count                      /**< \brief Number of defined modes */
+} Ifx_Pwm_Mode;
+
 /** \brief Forward declaration */
 typedef struct IfxStdIf_PwmHl_ IfxStdIf_PwmHl;
 

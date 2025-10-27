@@ -3,7 +3,7 @@
  * \brief PSI5S I/O map
  * \ingroup IfxLld_Psi5s
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2013 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -48,6 +48,7 @@
 #include <IfxPsi5s_reg.h>
 #include <_Impl/IfxPsi5s_cfg.h>
 #include <Port/Std/IfxPort.h>
+#include "Ifx_PinMap.h"
 
 /** \addtogroup IfxLld_Psi5s_pinmap
  * \{ */

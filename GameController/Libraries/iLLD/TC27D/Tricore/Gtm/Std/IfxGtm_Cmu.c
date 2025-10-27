@@ -2,8 +2,9 @@
  * \file IfxGtm_Cmu.c
  * \brief GTM  basic functionality
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  */
 
@@ -102,13 +104,13 @@ float32 IfxGtm_Cmu_getClkFrequency(Ifx_GTM *gtm, IfxGtm_Cmu_Clk clkIndex, boolea
 
             break;
         default:
-            frequency = 0.0;
+            frequency = 0.0f;
             break;
         }
     }
     else
     {
-        frequency = 0.0;
+        frequency = 0.0f;
     }
 
     return frequency;
@@ -128,7 +130,7 @@ float32 IfxGtm_Cmu_getEclkFrequency(Ifx_GTM *gtm, IfxGtm_Cmu_Eclk clkIndex, bool
     }
     else
     {
-        frequency = 0.0;
+        frequency = 0.0f;
     }
 
     return frequency;
@@ -144,21 +146,13 @@ float32 IfxGtm_Cmu_getFxClkFrequency(Ifx_GTM *gtm, IfxGtm_Cmu_Fxclk clkIndex, bo
     {
         fxSelect = gtm->CMU.FXCLK.CTRL.B.FXCLK_SEL;
 
-        if (fxSelect == 0)
+        if (fxSelect == 0u)
         {
             frequency = IfxGtm_Cmu_getGclkFrequency(gtm);
         }
-        else if (fxSelect <= 6)
+        else if (fxSelect <= 8u)
         {
-            frequency = IfxGtm_Cmu_getClkFrequency(gtm, IfxGtm_Cmu_Clk_5, assumeEnabled);
-        }
-        else if (fxSelect == 7)
-        {
-            frequency = IfxGtm_Cmu_getClkFrequency(gtm, IfxGtm_Cmu_Clk_6, assumeEnabled);
-        }
-        else if (fxSelect == 8)
-        {
-            frequency = IfxGtm_Cmu_getClkFrequency(gtm, IfxGtm_Cmu_Clk_7, assumeEnabled);
+            frequency = IfxGtm_Cmu_getClkFrequency(gtm, (IfxGtm_Cmu_Clk)(fxSelect - 1u), assumeEnabled);
         }
         else
         {
@@ -183,13 +177,13 @@ float32 IfxGtm_Cmu_getFxClkFrequency(Ifx_GTM *gtm, IfxGtm_Cmu_Fxclk clkIndex, bo
             frequency = frequency / 65536;
             break;
         default:
-            frequency = 0.0;
+            frequency = 0.0f;
             break;
         }
     }
     else
     {
-        frequency = 0.0;
+        frequency = 0.0f;
     }
 
     return frequency;
@@ -232,6 +226,7 @@ boolean IfxGtm_Cmu_isFxClockEnabled(Ifx_GTM *gtm)
 
 void IfxGtm_Cmu_selectClkInput(Ifx_GTM *gtm, IfxGtm_Cmu_Clk clkIndex, boolean useGlobal)
 {
+    /* FIXME is endinit required? */
     switch (clkIndex)
     {
     case IfxGtm_Cmu_Clk_6:
@@ -251,12 +246,13 @@ void IfxGtm_Cmu_setClkFrequency(Ifx_GTM *gtm, IfxGtm_Cmu_Clk clkIndex, float32 f
     float32 t   = (IfxGtm_Cmu_getGclkFrequency(gtm) / frequency) - 1;
     uint32  cnt = (uint32)t;
 
-    if ((t - (float32)cnt) > 0.5)
+    if ((t - (float32)cnt) > 0.5f)
     {                           /* Round to nearest */
         cnt++;
     }
 
     uint16 psw = IfxScuWdt_getCpuWatchdogPassword();
+/* FIXME is endinit required ? */
     IfxScuWdt_clearCpuEndinit(psw);
 
     switch (clkIndex)
@@ -309,7 +305,7 @@ void IfxGtm_Cmu_setEclkFrequency(Ifx_GTM *gtm, IfxGtm_Cmu_Eclk clkIndex, float32
                 zBest        = z;
             }
 
-            if (bestDistance < 0.1)
+            if (bestDistance < 0.1f)
             {
                 endLoop = TRUE;
                 break;
@@ -323,6 +319,7 @@ void IfxGtm_Cmu_setEclkFrequency(Ifx_GTM *gtm, IfxGtm_Cmu_Eclk clkIndex, float32
     }
 
     uint16 psw = IfxScuWdt_getCpuWatchdogPassword();
+/* FIXME is endinit required ? */
     IfxScuWdt_clearCpuEndinit(psw);
     gtm->CMU.ECLK[clkIndex].NUM.B.ECLK_NUM = zBest;
     gtm->CMU.ECLK[clkIndex].NUM.B.ECLK_NUM = zBest; /* write twice to be sure */
@@ -360,7 +357,7 @@ void IfxGtm_Cmu_setGclkFrequency(Ifx_GTM *gtm, float32 frequency)
                 zBest        = z;
             }
 
-            if (bestDistance < 0.1)
+            if (bestDistance < 0.1f)
             {
                 endLoop = TRUE;
                 break;
@@ -404,7 +401,7 @@ void IfxGtm_Cmu_setGclkFrequency(Ifx_GTM *gtm, float32 frequency)
             zBest        = z;
         }
 
-        if (bestDistance == 0.0)
+        if (bestDistance == 0.0f)
         {
             break;
         }
@@ -413,6 +410,7 @@ void IfxGtm_Cmu_setGclkFrequency(Ifx_GTM *gtm, float32 frequency)
 #endif
 
     uint16 psw = IfxScuWdt_getCpuWatchdogPassword();
+/* FIXME is endinit required ? */
     IfxScuWdt_clearCpuEndinit(psw);
     gtm->CMU.GCLK_NUM.B.GCLK_NUM = zBest;
     gtm->CMU.GCLK_NUM.B.GCLK_NUM = zBest;   /* write twice to be sure */

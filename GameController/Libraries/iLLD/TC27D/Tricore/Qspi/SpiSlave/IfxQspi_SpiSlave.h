@@ -3,8 +3,8 @@
  * \brief QSPI SPISLAVE details
  * \ingroup IfxLld_Qspi
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -178,13 +178,13 @@
  *     IfxQspi_SpiSlave_initModuleConfig(&spiSlaveConfig, &MODULE_QSPI2);
  *
  *     // set the maximum baudrate
- *     spiSlaveConfig.base.maximumBaudrate  = 10000000;
+ *     spiSlaveConfig.maximumBaudrate  = 10000000;
  *
  *     // ISR priorities and interrupt target
- *     spiSlaveConfig.base.txPriority       = IFX_INTPRIO_QSPI2_TX;
- *     spiSlaveConfig.base.rxPriority       = IFX_INTPRIO_QSPI2_RX;
- *     spiSlaveConfig.base.erPriority       = IFX_INTPRIO_QSPI2_ER;
- *     spiSlaveConfig.base.isrProvider      = IfxCpu_Irq_getTos(IfxCpu_getCoreIndex());
+ *     spiSlaveConfig.txPriority       = IFX_INTPRIO_QSPI2_TX;
+ *     spiSlaveConfig.rxPriority       = IFX_INTPRIO_QSPI2_RX;
+ *     spiSlaveConfig.erPriority       = IFX_INTPRIO_QSPI2_ER;
+ *     spiSlaveConfig.isrProvider     = IfxCpu_Irq_getTos(IfxCpu_getCoreIndex());
  *
  *     // pin configuration
  *     const IfxQspi_SpiSlave_Pins slavePins = {
@@ -212,12 +212,12 @@
  *     IfxQspi_SpiSlave_initModuleConfig(&spiSlaveConfig, &MODULE_QSPI2);
  *
  *     // set the maximum baudrate
- *     spiSlaveConfig.base.maximumBaudrate  = 10000000;
+ *     spiSlaveConfig.maximumBaudrate  = 10000000;
  *
  *     // ISR priorities and interrupt target (with dma usage)
- *     spiSlaveConfig.base.txPriority       = IFX_INTPRIO_DMA_CH3;
- *     spiSlaveConfig.base.rxPriority       = IFX_INTPRIO_DMA_CH4;
- *     spiSlaveConfig.base.erPriority       = IFX_INTPRIO_QSPI2_ER;
+ *     spiSlaveConfig.txPriority       = IFX_INTPRIO_DMA_CH3;
+ *     spiSlaveConfig.rxPriority       = IFX_INTPRIO_DMA_CH4;
+ *     spiSlaveConfig.erPriority       = IFX_INTPRIO_QSPI2_ER;
  *
  *       spiSlaveConfig.dma.txDmaChannelId = IfxDma_ChannelId_3;
  *        spiSlaveConfig.dma.rxDmaChannelId = IfxDma_ChannelId_4;
@@ -255,7 +255,7 @@
  * \code
  *      int i = 0;
  *     // wait until transfer of previous data stream is finished
- *     while( IfxQspi_SpiSlave_getStatus(&spi) == SpiIf_Status_busy );
+ *     while( IfxQspi_SpiSlave_getStatus(&spi) == IfxQspi_Status_busy );
  *
  *     // send/receive new stream
  *     IfxQspi_SpiSlave_exchange(&spi, &spiTxBuffer[i], &spiRxBuffer[i], SPI_BUFFER_SIZE);
@@ -265,7 +265,7 @@
  * \code
  *
  *     // wait until transfer of previous data stream is finished
- *     while( IfxQspi_SpiSlave_getStatus(&spi) == SpiIf_Status_busy );
+ *     while( IfxQspi_SpiSlave_getStatus(&spi) == IfxQspi_Status_busy );
  *
  *     // send new stream
  *     IfxQspi_SpiSlave_exchange(&spi, &spiTxBuffer[i], NULL_PTR, SPI_BUFFER_SIZE);
@@ -274,7 +274,7 @@
  * Receive only, send all-1
  * \code
  *     // wait until transfer of previous data stream is finished
- *     while( IfxQspi_SpiSlave_getStatus(&spi) == SpiIf_Status_busy );
+ *     while( IfxQspi_SpiSlave_getStatus(&spi) == IfxQspi_Status_busy );
  *
  *     // receive new stream
  *     IfxQspi_SpiSlave_exchange(&spi, NULL_PTR, &spiRxBuffer[i], SPI_BUFFER_SIZE);
@@ -338,15 +338,15 @@ typedef struct
  */
 typedef struct
 {
-    uint16 parityError : 1;                   /**< \brief [0:0] Parity Error */
-    uint16 configurationError : 1;            /**< \brief [1:1] Configuration Error */
-    uint16 baudrateError : 1;                 /**< \brief [2:2] baudrate Error */
-    uint16 txFifoOverflowError : 1;           /**< \brief [3:3] TxFifo Overflow Error */
-    uint16 txFifoUnderflowError : 1;          /**< \brief [4:4] TxFifo underflow Error */
-    uint16 rxFifoOverflowError : 1;           /**< \brief [5:5] RxFifo Overflow Error */
-    uint16 rxFifoUnderflowError : 1;          /**< \brief [6:6] RxFifo underflow Error */
-    uint16 expectTimeoutError : 1;            /**< \brief [7:7] Expect Timeout Error */
-    uint16 slsiMisplacedInactivation : 1;     /**< \brief [8:8] SLSI misplaced inactivation (slave mode) */
+    boolean parityError;                     /**< \brief [0:0] Parity Error */
+    boolean configurationError;              /**< \brief [1:1] Configuration Error */
+    boolean baudrateError;                   /**< \brief [2:2] baudrate Error */
+    boolean txFifoOverflowError;             /**< \brief [3:3] TxFifo Overflow Error */
+    boolean txFifoUnderflowError;            /**< \brief [4:4] TxFifo underflow Error */
+    boolean rxFifoOverflowError;             /**< \brief [5:5] RxFifo Overflow Error */
+    boolean rxFifoUnderflowError;            /**< \brief [6:6] RxFifo underflow Error */
+    boolean expectTimeoutError;              /**< \brief [7:7] Expect Timeout Error */
+    boolean slsiMisplacedInactivation;       /**< \brief [8:8] SLSI misplaced inactivation (slave mode) */
 } IfxQspi_SpiSlave_ErrorFlags;
 
 /** \brief Slave pin IO configuration structure
@@ -368,11 +368,11 @@ typedef struct
  */
 typedef struct
 {
-    SpiIf_ClockPolarity clockPolarity;       /**< \brief Specifies the clock polarity */
-    SpiIf_ShiftClock    shiftClock;          /**< \brief Specifies the clock phase */
-    SpiIf_DataHeading   dataHeading;         /**< \brief Specifies MSB or LSB first */
-    uint8               dataWidth;           /**< \brief range 2 .. 32 bits (note 2 = 2-bits, 3 = 3-bits ... */
-    Ifx_ParityMode      parityMode;          /**< \brief Specifies the parity mode */
+    IfxQspi_ClockPolarity clockPolarity;       /**< \brief Specifies the clock polarity */
+    IfxQspi_ShiftClock    shiftClock;          /**< \brief Specifies the clock phase */
+    IfxQspi_DataHeading   dataHeading;         /**< \brief Specifies MSB or LSB first */
+    uint8                 dataWidth;           /**< \brief range 2 .. 32 bits (note 2 = 2-bits, 3 = 3-bits ... */
+    IfxQspi_ParityMode    parityMode;          /**< \brief Specifies the parity mode */
 } IfxQspi_SpiSlave_Protocol;
 
 /** \} */
@@ -383,11 +383,10 @@ typedef struct
  */
 typedef struct
 {
-    SpiIf                       base;             /**< \brief Module SPI interface handle */
     Ifx_QSPI                   *qspi;             /**< \brief Pointer to QSPI module registers */
     uint8                       dataWidth;        /**< \brief Number of bits which will be written into the FIFO */
-    SpiIf_Job                   rxJob;            /**< \brief Rx Stream which has been received */
-    SpiIf_Job                   txJob;            /**< \brief Tx Stream which should be sent */
+    IfxQspi_Job                 rxJob;            /**< \brief Rx Stream which has been received */
+    IfxQspi_Job                 txJob;            /**< \brief Tx Stream which should be sent */
     boolean                     onTransfer;       /**< \brief set to TRUE during ongoing transfer */
     IfxQspi_SpiSlave_Dma        dma;              /**< \brief Dma handle */
     IfxQspi_SpiSlave_ErrorFlags errorFlags;       /**< \brief Spi Slave Error Flags */
@@ -397,7 +396,19 @@ typedef struct
  */
 typedef struct
 {
-    SpiIf_Config                     base;                             /**< \brief SPI interface configuration structure */
+    IfxQspi_Mode mode;                                                 /**< \brief Specifies the interface operation mode */
+    Ifx_Priority rxPriority;                                           /**< \brief Specifies the priority of the receive interrupt */
+    Ifx_Priority txPriority;                                           /**< \brief Specifies the priority of the transmit interrupt */
+    Ifx_Priority erPriority;                                           /**< \brief Specifies the priority of the error interrupt */
+    IfxSrc_Tos   isrProvider;                                          /**< \brief Specifies the handler of the interrupts */
+    Ifx_SizeT    bufferSize;                                           /**< \brief Specifies the number of channels that can be buffered. If 0, buffering is disabled */
+    void        *buffer;                                               /**< \brief Specifies the buffer location.The buffer parameter must point on a free
+                                                                        * memory location where the buffer object will be initialised.
+                                                                        * The Size of this area must be at least equals to "Size + sizeof(Ifx_Fifo) + 8",
+                                                                        * with "Size=config->bufferSize * Ifx_AlignOn32(sizeof(IfxQspi_chConfig*))".
+                                                                        * Not taking this in account may result in unpredictable behaviour. */
+    float32                          maximumBaudrate;                  /**< \brief Maximum baudrate used by the channels,
+                                                                        * this value is used to optimise the SPI internal clock */
     Ifx_QSPI                        *qspi;                             /**< \brief Pointer to QSPI module registers */
     boolean                          allowSleepMode;                   /**< \brief Specifies module sleep mode */
     boolean                          pauseOnBaudrateSpikeErrors;       /**< \brief Specifies module pause on baudrate or spike errors */
@@ -456,10 +467,15 @@ IFX_EXTERN void IfxQspi_SpiSlave_initModuleConfig(IfxQspi_SpiSlave_Config *confi
  * \param count Number of data in pending
  * \return Status of exchange of data
  *
- * Usage example: see \ref IfxLld_Qspi_SpiSlave_Usage
+ * Usage example: see \ref IfxLld_Qspi_SpiSlave_Usage .
+ *
+ * Limitations:
+ *
+ *  1. Simplex data transfer is not supported from slave to master
+ *  2. High Speed (HS) mode is not supported
  *
  */
-IFX_EXTERN SpiIf_Status IfxQspi_SpiSlave_exchange(IfxQspi_SpiSlave *handle, const void *src, void *dest, Ifx_SizeT count);
+IFX_EXTERN IfxQspi_Status IfxQspi_SpiSlave_exchange(IfxQspi_SpiSlave *handle, const void *src, void *dest, Ifx_SizeT count);
 
 /** \brief Gets the transmission status
  * \param handle Module handle
@@ -468,7 +484,7 @@ IFX_EXTERN SpiIf_Status IfxQspi_SpiSlave_exchange(IfxQspi_SpiSlave *handle, cons
  * Usage example: see \ref IfxLld_Qspi_SpiSlave_Usage
  *
  */
-IFX_EXTERN SpiIf_Status IfxQspi_SpiSlave_getStatus(IfxQspi_SpiSlave *handle);
+IFX_EXTERN IfxQspi_Status IfxQspi_SpiSlave_getStatus(IfxQspi_SpiSlave *handle);
 
 /** \} */
 
@@ -532,6 +548,23 @@ IFX_INLINE uint32 IfxQspi_SpiSlave_readReceiveFifo(IfxQspi_SpiSlave *handle);
 IFX_INLINE void IfxQspi_SpiSlave_writeTransmitFifo(IfxQspi_SpiSlave *handle, uint32 data);
 
 /** \} */
+
+/******************************************************************************/
+/*-------------------------Global Function Prototypes-------------------------*/
+/******************************************************************************/
+
+/** \brief Initialize the pins for the spi in slave mode
+ * \param pins pins pointer to the pin configuration table
+ * \return None
+ */
+IFX_EXTERN void IfxQspi_SpiSlave_initPin(const IfxQspi_SpiSlave_Pins *pins);
+
+/** \brief Initializes the interrupts for the configured peripherals
+ * \param qspiSFR QSpi SFR handle
+ * \param config config pointer to the spi slave configuration table
+ * \return None
+ */
+IFX_EXTERN void IfxQspi_SpiSlave_initInterrupt(Ifx_QSPI *qspiSFR, const IfxQspi_SpiSlave_Config *config);
 
 /******************************************************************************/
 /*---------------------Inline Function Implementations------------------------*/

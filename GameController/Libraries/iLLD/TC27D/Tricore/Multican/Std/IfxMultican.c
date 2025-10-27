@@ -2,8 +2,9 @@
  * \file IfxMultican.c
  * \brief MULTICAN  basic functionality
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  */
 
@@ -695,7 +697,7 @@ void IfxMultican_Node_setBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq, uint32
 
     sint32  tempBRP, tempSJW, tempTSEG1, tempTBAUD;
     sint32  bestBRP   = 0, bestSJW = 1, bestTBAUD = 8, bestTSEG1 = 3, bestTSEG2 = 2;
-    float32 bestError = 10000.0;
+    float32 bestError = 10000.0f;
 
     /*
      * Bit timing & sampling
@@ -714,7 +716,7 @@ void IfxMultican_Node_setBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq, uint32
      */
 
     /* search for best baudrate */
-    bestError = baudrate * 0.05; /* 5% tolerance in baudrate as max error */
+    bestError = baudrate * 0.05f; /* 5% tolerance in baudrate as max error */
 
     for (tempBRP = 1; tempBRP <= maxBRP; tempBRP++)
     {
@@ -740,7 +742,7 @@ void IfxMultican_Node_setBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq, uint32
             bestTBAUD = tempTBAUD;
             bestError = error;
 
-            if ((tempTBAUD <= 20) && (error < 0.1))
+            if ((tempTBAUD <= 20) && (error < 0.1f))
             {
                 break;      /* optimal condition */
             }
@@ -762,7 +764,7 @@ void IfxMultican_Node_setBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq, uint32
     }
 
     /* search for best sample point */
-    bestError = samplePoint * 0.15; /* 15% tolerance in sample point as max error */
+    bestError = samplePoint * 0.15f; /* 15% tolerance in sample point as max error */
 
     bestTSEG1 = maxTSEG1;
 
@@ -855,7 +857,7 @@ void IfxMultican_Node_setFastBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq, ui
 
     sint32  tempBRP, tempSJW, tempTSEG1, tempTBAUD;
     sint32  bestBRP   = 0, bestSJW = 1, bestTBAUD = 8, bestTSEG1 = 3, bestTSEG2 = 2;
-    float32 bestError = 10000.0;
+    float32 bestError = 10000.0f;
     /*
      * Bit timing & sampling
      * Tq = (BRP+1)/Fcan if DIV8 = 0
@@ -873,7 +875,7 @@ void IfxMultican_Node_setFastBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq, ui
      */
 
     /* search for best baudrate */
-    bestError = baudrate * 0.05; /* 5% tolerance in baudrate as max error */
+    bestError = baudrate * 0.05f; /* 5% tolerance in baudrate as max error */
 
     for (tempBRP = 1; tempBRP <= maxBRP; tempBRP++)
     {
@@ -899,7 +901,7 @@ void IfxMultican_Node_setFastBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq, ui
             bestTBAUD = tempTBAUD;
             bestError = (float)error;
 
-            if ((tempTBAUD <= 20) && (error < 0.1))
+            if ((tempTBAUD <= 20) && (error < 0.1f))
             {
                 break;      /* optimal condition */
             }
@@ -921,7 +923,7 @@ void IfxMultican_Node_setFastBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq, ui
     }
 
     /* search for best sample point */
-    bestError = samplePoint * 0.15; /* 15% tolerance in sample point as max error */
+    bestError = samplePoint * 0.15f; /* 15% tolerance in sample point as max error */
 
     bestTSEG1 = maxTSEG1;
 
@@ -1012,7 +1014,7 @@ void IfxMultican_Node_setNominalBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq,
 
     sint32  tempBRP, tempSJW, tempTSEG1, tempTBAUD;
     sint32  bestBRP   = 0, bestSJW = 1, bestTBAUD = 8, bestTSEG1 = 3, bestTSEG2 = 2;
-    float32 bestError = 10000.0;
+    float32 bestError = 10000.0f;
     /*
      * Bit timing & sampling
      * Tq = (BRP+1)/Fcan if DIV8 = 0
@@ -1030,7 +1032,7 @@ void IfxMultican_Node_setNominalBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq,
      */
 
     /* search for best baudrate */
-    bestError = baudrate * 0.05; /* 5% tolerance in baudrate as max error */
+    bestError = baudrate * 0.05f; /* 5% tolerance in baudrate as max error */
 
     for (tempBRP = 1; tempBRP <= maxBRP; tempBRP++)
     {
@@ -1056,7 +1058,7 @@ void IfxMultican_Node_setNominalBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq,
             bestTBAUD = tempTBAUD;
             bestError = (float)error;
 
-            if ((tempTBAUD <= 20) && (error < 0.1))
+            if ((tempTBAUD <= 20) && (error < 0.1f))
             {
                 break;      /* optimal condition */
             }
@@ -1078,7 +1080,7 @@ void IfxMultican_Node_setNominalBitTiming(Ifx_CAN_N *hwNode, float32 moduleFreq,
     }
 
     /* search for best sample point */
-    bestError = samplePoint * 0.15; /* 15% tolerance in sample point as max error */
+    bestError = samplePoint * 0.15f; /* 15% tolerance in sample point as max error */
 
     bestTSEG1 = maxTSEG1;
 

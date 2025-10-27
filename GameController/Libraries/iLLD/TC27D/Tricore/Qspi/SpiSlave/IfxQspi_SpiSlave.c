@@ -2,8 +2,8 @@
  * \file IfxQspi_SpiSlave.c
  * \brief QSPI SPISLAVE details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -89,14 +89,14 @@ IFX_STATIC IFX_CONST uint32 IfxQspi_SpiSlave_dummyTxValue = ~0;
 /*-------------------------Function Implementations---------------------------*/
 /******************************************************************************/
 
-SpiIf_Status IfxQspi_SpiSlave_exchange(IfxQspi_SpiSlave *handle, const void *src, void *dest, Ifx_SizeT count)
+IfxQspi_Status IfxQspi_SpiSlave_exchange(IfxQspi_SpiSlave *handle, const void *src, void *dest, Ifx_SizeT count)
 {
-    SpiIf_Status status = SpiIf_Status_busy;
+    IfxQspi_Status status = IfxQspi_Status_busy;
 
     /* initiate transfer when resource is free */
     if (handle->onTransfer == FALSE)
     {
-        status                  = SpiIf_Status_ok;
+        status                  = IfxQspi_Status_ok;
 
         handle->onTransfer      = TRUE;
         handle->txJob.data      = (void *)src;
@@ -110,13 +110,13 @@ SpiIf_Status IfxQspi_SpiSlave_exchange(IfxQspi_SpiSlave *handle, const void *src
 }
 
 
-SpiIf_Status IfxQspi_SpiSlave_getStatus(IfxQspi_SpiSlave *handle)
+IfxQspi_Status IfxQspi_SpiSlave_getStatus(IfxQspi_SpiSlave *handle)
 {
-    SpiIf_Status status = SpiIf_Status_ok;
+    IfxQspi_Status status = IfxQspi_Status_ok;
 
     if (handle->onTransfer != 0)
     {
-        status = SpiIf_Status_busy;
+        status = IfxQspi_Status_busy;
     }
 
     return status;
@@ -139,27 +139,21 @@ void IfxQspi_SpiSlave_initModule(IfxQspi_SpiSlave *handle, const IfxQspi_SpiSlav
 
     {                                                        /* Configure GLOBAL, Note: at the moment default values for GLOBAL */
         Ifx_QSPI_GLOBALCON globalcon;
-        globalcon.U        = 0;
-        globalcon.B.TQ     = IfxQspi_calculateTimeQuantumLength(qspiSFR, config->base.maximumBaudrate);
-        globalcon.B.EXPECT = IfxQspi_ExpectTimeout_2097152;  /* 2^(EXPECT+6) : timeout for expect phase in Tqspi */
-        //globalcon.B.LB      = 0;                             /* 0 : disable loop-back w*/
-        globalcon.B.DEL0    = 1;                             /* 0 : disable delayed mode for SLSO 0 */
-        globalcon.B.STROBE  = 0x01;                             /* (STROBE+1) : strobe delay for SLSO 0 in Tq */
-        //globalcon.B.SRF     = 0;                             /* 0 : disable stop-on-RXFIFO full feature */
-        globalcon.B.STIP    = 1;                             /* 0 : MRST = 0 when QSPI is deselected in slave mode */
-        globalcon.B.EN      = 0;                             /* 0 : PAUSE requested, 1 : RUN requested */
-        globalcon.B.MS       = IfxQspi_Mode_master; /* select master mode during configuration - we will switch to slave mode at the end of this function */
+        globalcon.U          = 0;
+        globalcon.B.TQ       = IfxQspi_calculateTimeQuantumLength(qspiSFR, config->maximumBaudrate);
+        globalcon.B.EXPECT   = IfxQspi_ExpectTimeout_2097152; /* 2^(EXPECT+6) : timeout for expect phase in Tqspi */
+        globalcon.B.MS       = IfxQspi_Mode_master;           /* select master mode during configuration - we will switch to slave mode at the end of this function */
         globalcon.B.AREN     = (config->pauseOnBaudrateSpikeErrors != FALSE) ? 1U : 0U;
-        globalcon.B.RESETS   = 1;                   /* Reset SM and FIFOs */
+        globalcon.B.RESETS   = 1;                             /* Reset SM and FIFOs */
         qspiSFR->GLOBALCON.U = globalcon.U;
     }
 
     {   /* Configure interrupt requests */
         Ifx_QSPI_GLOBALCON1 globalcon1;
         globalcon1.U           = 0;
-        globalcon1.B.ERRORENS  = (config->base.erPriority > 0) ? IFXQSPI_ERRORENABLEMASK : 0;
-        globalcon1.B.TXEN      = (config->base.txPriority > 0) || (config->dma.useDma);
-        globalcon1.B.RXEN      = (config->base.rxPriority > 0) || (config->dma.useDma);
+        globalcon1.B.ERRORENS  = (config->erPriority > 0) ? IFXQSPI_ERRORENABLEMASK : 0;
+        globalcon1.B.TXEN      = (config->txPriority > 0) || (config->dma.useDma);
+        globalcon1.B.RXEN      = (config->rxPriority > 0) || (config->dma.useDma);
         globalcon1.B.TXFIFOINT = config->txFifoThreshold;
         globalcon1.B.RXFIFOINT = config->rxFifoThreshold;
         globalcon1.B.TXFM      = config->txFifoMode;
@@ -168,29 +162,43 @@ void IfxQspi_SpiSlave_initModule(IfxQspi_SpiSlave *handle, const IfxQspi_SpiSlav
         qspiSFR->GLOBALCON1.U  = globalcon1.U;
     }
 
-    handle->qspi               = qspiSFR;
-    handle->base.driver        = handle;
-    handle->base.sending       = 0U;
-    handle->base.activeChannel = NULL_PTR;
+    handle->qspi = qspiSFR;
 
     /* Protocol Configuration */
     {
         IfxQspi_SpiSlave_Protocol *protocol = (IfxQspi_SpiSlave_Protocol *)&config->protocol;
 
-        SpiIf_ChConfig             chConfig;
-        SpiIf_initChannelConfig(&chConfig, NULL_PTR);
-        chConfig.mode.clockPolarity = protocol->clockPolarity;
-        chConfig.mode.shiftClock    = protocol->shiftClock;
-        chConfig.mode.dataHeading   = protocol->dataHeading;
-        chConfig.mode.dataWidth     = protocol->dataWidth;
-        chConfig.mode.parityMode    = protocol->parityMode;
+        IfxQspi_chConfig           chConfig;
+        chConfig.baudrate             = 0;
+        chConfig.mode.enabled         = 1;
+        chConfig.mode.autoCS          = 1;
+        chConfig.mode.loopback        = 0;
+        chConfig.mode.clockPolarity   = IfxQspi_ClockPolarity_idleLow;
+        chConfig.mode.shiftClock      = IfxQspi_ShiftClock_shiftTransmitDataOnLeadingEdge;
+        chConfig.mode.dataHeading     = IfxQspi_DataHeading_msbFirst;
+        chConfig.mode.dataWidth       = 8;
+        chConfig.mode.csActiveLevel   = Ifx_ActiveState_low;
+        chConfig.mode.csLeadDelay     = IfxQspi_SlsoTiming_0;
+        chConfig.mode.csTrailDelay    = IfxQspi_SlsoTiming_0;
+        chConfig.mode.csInactiveDelay = IfxQspi_SlsoTiming_0;
+        chConfig.mode.parityCheck     = 0;
+        chConfig.mode.parityMode      = IfxQspi_ParityMode_even;
+        chConfig.errorChecks.baudrate = 0;
+        chConfig.errorChecks.phase    = 0;
+        chConfig.errorChecks.receive  = 0;
+        chConfig.errorChecks.transmit = 0;
+        chConfig.mode.clockPolarity   = protocol->clockPolarity;
+        chConfig.mode.shiftClock      = protocol->shiftClock;
+        chConfig.mode.dataHeading     = protocol->dataHeading;
+        chConfig.mode.dataWidth       = protocol->dataWidth;
+        chConfig.mode.parityMode      = protocol->parityMode;
 
         {
             Ifx_QSPI_BACON bacon;
             uint8          cs = 0; // not relevant for slave
 
             qspiSFR->ECON[cs].U = IfxQspi_calculateExtendedConfigurationValue(qspiSFR, cs, &chConfig);
-            bacon.U             = IfxQspi_calculateBasicConfigurationValue(qspiSFR, IfxQspi_ChannelId_0, &chConfig.mode, config->base.maximumBaudrate);
+            bacon.U             = IfxQspi_calculateBasicConfigurationValue(qspiSFR, IfxQspi_ChannelId_0, &chConfig.mode, config->maximumBaudrate);
             IfxQspi_writeBasicConfigurationBeginStream(qspiSFR, bacon.U);
         }
         handle->dataWidth = protocol->dataWidth;
@@ -203,38 +211,7 @@ void IfxQspi_SpiSlave_initModule(IfxQspi_SpiSlave *handle, const IfxQspi_SpiSlav
     handle->onTransfer      = FALSE;
 
     /* Configure I/O pins for slave mode */
-    const IfxQspi_SpiSlave_Pins *pins = config->pins;
-
-    if (pins != NULL_PTR)
-    {
-        const IfxQspi_Sclk_In *sclkIn = pins->sclk;
-
-        if (sclkIn != NULL_PTR)
-        {
-            IfxQspi_initSclkInPinWithPadLevel(sclkIn, pins->sclkMode, pins->pinDriver);
-        }
-
-        const IfxQspi_Mtsr_In *mtsrIn = pins->mtsr;
-
-        if (mtsrIn != NULL_PTR)
-        {
-            IfxQspi_initMtsrInPinWithPadLevel(mtsrIn, pins->mtsrMode, pins->pinDriver);
-        }
-
-        const IfxQspi_Mrst_Out *mrstOut = pins->mrst;
-
-        if (mrstOut != NULL_PTR)
-        {
-            IfxQspi_initMrstOutPin(mrstOut, pins->mrstMode, pins->pinDriver);
-        }
-
-        const IfxQspi_Slsi_In *slsiIn = pins->slsi;
-
-        if (slsiIn != NULL_PTR)
-        {
-            IfxQspi_initSlsiWithPadLevel(slsiIn, pins->slsiMode, pins->pinDriver);
-        }
-    }
+    IfxQspi_SpiSlave_initPin(config->pins);
 
     if (config->dma.useDma)
     {
@@ -296,53 +273,18 @@ void IfxQspi_SpiSlave_initModule(IfxQspi_SpiSlave *handle, const IfxQspi_SpiSlav
         /* Dma channel interrupt configuration */
         {
             volatile Ifx_SRC_SRCR *src = IfxDma_getSrcPointer(dmaSFR, (IfxDma_ChannelId)config->dma.txDmaChannelId);
-            IfxSrc_init(src, config->base.isrProvider, config->base.txPriority);
+            IfxSrc_init(src, config->isrProvider, config->txPriority);
             IfxSrc_enable(src);
 
             src = IfxDma_getSrcPointer(dmaSFR, (IfxDma_ChannelId)config->dma.rxDmaChannelId);
-            IfxSrc_init(src, config->base.isrProvider, config->base.rxPriority);
+            IfxSrc_init(src, config->isrProvider, config->rxPriority);
             IfxSrc_enable(src);
         }
     }
 
     /* interrupt configuration */
-    {
-        IfxQspi_clearAllEventFlags(qspiSFR);
+    IfxQspi_SpiSlave_initInterrupt(qspiSFR, config);
 
-        if (handle->dma.useDma)
-        {
-            volatile Ifx_SRC_SRCR *src = IfxQspi_getTransmitSrc(qspiSFR);
-            IfxSrc_init(src, IfxSrc_Tos_dma, (Ifx_Priority)config->dma.txDmaChannelId);
-            IfxSrc_enable(src);
-
-            src = IfxQspi_getReceiveSrc(qspiSFR);
-            IfxSrc_init(src, IfxSrc_Tos_dma, (Ifx_Priority)config->dma.rxDmaChannelId);
-            IfxSrc_enable(src);
-        }
-        else
-        {
-            if (config->base.txPriority != 0)
-            {
-                volatile Ifx_SRC_SRCR *src = IfxQspi_getTransmitSrc(qspiSFR);
-                IfxSrc_init(src, config->base.isrProvider, config->base.txPriority);
-                IfxSrc_enable(src);
-            }
-
-            if (config->base.rxPriority != 0)
-            {
-                volatile Ifx_SRC_SRCR *src = IfxQspi_getReceiveSrc(qspiSFR);
-                IfxSrc_init(src, config->base.isrProvider, config->base.rxPriority);
-                IfxSrc_enable(src);
-            }
-
-            if (config->base.erPriority != 0)
-            {
-                volatile Ifx_SRC_SRCR *src = IfxQspi_getErrorSrc(qspiSFR);
-                IfxSrc_init(src, config->base.isrProvider, config->base.erPriority);
-                IfxSrc_enable(src);
-            }
-        }
-    }
     /* finally switch to slave mode */
     qspiSFR->GLOBALCON.B.MS = IfxQspi_Mode_slave;
     IfxQspi_run(qspiSFR);
@@ -352,14 +294,21 @@ void IfxQspi_SpiSlave_initModule(IfxQspi_SpiSlave *handle, const IfxQspi_SpiSlav
 void IfxQspi_SpiSlave_initModuleConfig(IfxQspi_SpiSlave_Config *config, Ifx_QSPI *qspi)
 {
     const IfxQspi_SpiSlave_Protocol defaultProtocol = {
-        .clockPolarity = SpiIf_ClockPolarity_idleLow,
-        .shiftClock    = SpiIf_ShiftClock_shiftTransmitDataOnLeadingEdge,
-        .dataHeading   = SpiIf_DataHeading_msbFirst,
+        .clockPolarity = IfxQspi_ClockPolarity_idleLow,
+        .shiftClock    = IfxQspi_ShiftClock_shiftTransmitDataOnLeadingEdge,
+        .dataHeading   = IfxQspi_DataHeading_msbFirst,
         .dataWidth     = 8,
-        .parityMode    = Ifx_ParityMode_even
+        .parityMode    = IfxQspi_ParityMode_even
     };
 
-    SpiIf_initConfig(&config->base);
+    config->mode                       = IfxQspi_Mode_slave;
+    config->rxPriority                 = 0;
+    config->txPriority                 = 0;
+    config->erPriority                 = 0;
+    config->isrProvider                = IfxSrc_Tos_cpu0;
+    config->bufferSize                 = 0;
+    config->buffer                     = NULL_PTR;
+    config->maximumBaudrate            = 0;
 
     config->qspi                       = qspi;
     config->allowSleepMode             = FALSE;
@@ -483,9 +432,9 @@ void IfxQspi_SpiSlave_isrTransmit(IfxQspi_SpiSlave *handle)
 
 IFX_STATIC void IfxQspi_SpiSlave_read(IfxQspi_SpiSlave *handle)
 {
-    Ifx_QSPI  *qspiSFR = handle->qspi;
-    SpiIf_Job *job     = &handle->rxJob;
-    Ifx_SizeT  count   = (Ifx_SizeT)IfxQspi_getReceiveFifoLevel(qspiSFR);
+    Ifx_QSPI    *qspiSFR = handle->qspi;
+    IfxQspi_Job *job     = &handle->rxJob;
+    Ifx_SizeT    count   = (Ifx_SizeT)IfxQspi_getReceiveFifoLevel(qspiSFR);
     count = __min(job->remaining, count);
 
     if (job->data == NULL_PTR)
@@ -528,12 +477,12 @@ IFX_STATIC void IfxQspi_SpiSlave_read(IfxQspi_SpiSlave *handle)
 
 IFX_STATIC void IfxQspi_SpiSlave_write(IfxQspi_SpiSlave *handle)
 {
-    SpiIf_Job *job = &handle->txJob;
+    IfxQspi_Job *job = &handle->txJob;
 
     if (handle->dma.useDma)
     {
         Ifx_DMA               *dmaSFR         = &MODULE_DMA;
-        SpiIf_Job             *jobrx          = &handle->rxJob;
+        IfxQspi_Job           *jobrx          = &handle->rxJob;
 
         Ifx_QSPI              *qspiSFR        = handle->qspi;
         volatile Ifx_SRC_SRCR *src            = IfxQspi_getTransmitSrc(qspiSFR);
@@ -666,6 +615,81 @@ IFX_STATIC void IfxQspi_SpiSlave_write(IfxQspi_SpiSlave *handle)
             }
 
             IfxCpu_restoreInterrupts(interruptState);
+        }
+    }
+}
+
+
+void IfxQspi_SpiSlave_initPin(const IfxQspi_SpiSlave_Pins *pins)
+{
+    if (pins != NULL_PTR)
+    {
+        const IfxQspi_Sclk_In *sclkIn = pins->sclk;
+
+        if (sclkIn != NULL_PTR)
+        {
+            IfxQspi_initSclkInPinWithPadLevel(sclkIn, pins->sclkMode, pins->pinDriver);
+        }
+
+        const IfxQspi_Mtsr_In *mtsrIn = pins->mtsr;
+
+        if (mtsrIn != NULL_PTR)
+        {
+            IfxQspi_initMtsrInPinWithPadLevel(mtsrIn, pins->mtsrMode, pins->pinDriver);
+        }
+
+        const IfxQspi_Mrst_Out *mrstOut = pins->mrst;
+
+        if (mrstOut != NULL_PTR)
+        {
+            IfxQspi_initMrstOutPin(mrstOut, pins->mrstMode, pins->pinDriver);
+        }
+
+        const IfxQspi_Slsi_In *slsiIn = pins->slsi;
+
+        if (slsiIn != NULL_PTR)
+        {
+            IfxQspi_initSlsiWithPadLevel(slsiIn, pins->slsiMode, pins->pinDriver);
+        }
+    }
+}
+
+
+void IfxQspi_SpiSlave_initInterrupt(Ifx_QSPI *qspiSFR, const IfxQspi_SpiSlave_Config *config)
+{
+    IfxQspi_clearAllEventFlags(qspiSFR);
+
+    if (config->dma.useDma)
+    {
+        volatile Ifx_SRC_SRCR *src = IfxQspi_getTransmitSrc(qspiSFR);
+        IfxSrc_init(src, IfxSrc_Tos_dma, (Ifx_Priority)config->dma.txDmaChannelId);
+        IfxSrc_enable(src);
+
+        src = IfxQspi_getReceiveSrc(qspiSFR);
+        IfxSrc_init(src, IfxSrc_Tos_dma, (Ifx_Priority)config->dma.rxDmaChannelId);
+        IfxSrc_enable(src);
+    }
+    else
+    {
+        if (config->txPriority != 0)
+        {
+            volatile Ifx_SRC_SRCR *src = IfxQspi_getTransmitSrc(qspiSFR);
+            IfxSrc_init(src, config->isrProvider, config->txPriority);
+            IfxSrc_enable(src);
+        }
+
+        if (config->rxPriority != 0)
+        {
+            volatile Ifx_SRC_SRCR *src = IfxQspi_getReceiveSrc(qspiSFR);
+            IfxSrc_init(src, config->isrProvider, config->rxPriority);
+            IfxSrc_enable(src);
+        }
+
+        if (config->erPriority != 0)
+        {
+            volatile Ifx_SRC_SRCR *src = IfxQspi_getErrorSrc(qspiSFR);
+            IfxSrc_init(src, config->isrProvider, config->erPriority);
+            IfxSrc_enable(src);
         }
     }
 }

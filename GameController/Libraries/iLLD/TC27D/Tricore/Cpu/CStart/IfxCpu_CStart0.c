@@ -1,7 +1,7 @@
 /**
  * \file IfxCpu_Cstart0.c
  * \brief This file contains the Core startup sequence for Cpu0.
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2012 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -86,7 +86,17 @@
 IFXCOMPILER_COMMON_LINKER_SYMBOLS()
 IFXCOMPILER_CORE_LINKER_SYMBOLS(0)
 
-IFX_EXTERN void core0_main(void);
+/** \brief Initialize the C/Cpp runtime environment */
+static void Ifx_Cpp_Init(void);
+
+#ifdef IFX_CFG_RETURN_FROM_MAIN
+/** \brief De-initialize the C/Cpp runtime environment */
+static void Ifx_Cpp_Exit(int status);
+#endif /*IFX_CFG_RETURN_FROM_MAIN*/
+
+/* Hook Functions */
+extern __attribute__ ((weak)) void hardware_init_hook(void);
+extern __attribute__ ((weak)) void software_init_hook(void);
 #if defined(__TASKING__)
 __asm("\t .extern core0_main");
 #endif
@@ -102,7 +112,15 @@ __asm("\t .extern core0_main");
 *********************************************************************************/
 #if defined(__HIGHTEC__)
 #pragma GCC optimize ("-O2")
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma GCC optimize ("-O2")
 #endif
+
+__attribute__ ((weak)) void hardware_init_hook(void)
+{}
+
+__attribute__ ((weak)) void software_init_hook(void)
+{}
 
 void _Core0_start(void)
 {
@@ -160,7 +178,11 @@ void _Core0_start(void)
         IfxScuWdt_disableCpuWatchdog(cpuWdtPassword);
         IfxScuWdt_disableSafetyWatchdog(safetyWdtPassword);
 
-        Ifx_C_Init();           /*Initialization of C runtime variables */
+       	hardware_init_hook();
+
+        Ifx_Cpp_Init();
+
+       	software_init_hook();
 
         IfxScuWdt_enableCpuWatchdog(cpuWdtPassword);
         IfxScuWdt_enableSafetyWatchdog(safetyWdtPassword);
@@ -183,25 +205,37 @@ void _Core0_start(void)
     IfxCpu_setCoreMode(&MODULE_CPU0, IfxCpu_CoreMode_idle);
 #endif
 
-    /*Call main function of Cpu0 */
+#ifdef IFX_CFG_RETURN_FROM_MAIN
+    {
+        extern int core0_main(void);
+        int status= core0_main();          /* Call main function of CPU0 */
+        Ifx_Cpp_Exit(status);
+        while(1);
+    }
+#else /* IFX_CFG_RETURN_FROM_MAIN */
+    extern void core0_main(void);
     __non_return_call(core0_main);
+#endif /* IFX_CFG_RETURN_FROM_MAIN */
 }
 
 #if defined(__HIGHTEC__)
+#pragma GCC reset_options
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
 #pragma GCC reset_options
 #endif
 /******************************************************************************
  * reset vector address, user section to inform linker to locate the code at 0x8000 0020
  *****************************************************************************/
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".start" x
-#endif
 #if defined(__TASKING__)
 #pragma protect on
 #pragma section code "start"
-#endif
-#if defined(__DCC__)
+#elif defined(__HIGHTEC__)
+#pragma section
+#pragma section ".start" x
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".start" x
+#elif defined(__DCC__)
 #pragma section CODE ".start" X
 #endif
 
@@ -212,14 +246,14 @@ void _START(void)
 
 
 /* reset the sections defined above, to normal region */
-#if defined(__HIGHTEC__)
-#pragma section
-#endif
 #if defined(__TASKING__)
 #pragma protect restore
 #pragma section code restore
-#endif
-#if defined(__DCC__)
+#elif defined(__HIGHTEC__)
+#pragma section
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#elif defined(__DCC__)
 #pragma section CODE
 #endif
 
@@ -229,15 +263,16 @@ void _START(void)
 /*Boot Mode Header 0 sections to inform linker to locate them at 0x8000 0000 */
 #ifndef IFX_CFG_CPUCSTART_BMHD_NOT_NEEDED
 
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".bmhd_0" a
-#endif
 #if defined(__TASKING__)
 #pragma protect on
 #pragma section farrom "bmhd_0"
-#endif
-#if defined(__DCC__)
+#elif defined(__HIGHTEC__)
+#pragma section
+#pragma section ".bmhd_0" a
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".bmhd_0" a
+#elif defined(__DCC__)
 #pragma section CONST ".bmhd_0" R
 #endif
 /** \brief Boot Mode Header 0
@@ -255,28 +290,29 @@ const uint32 BootModeHeader_0[] = {
 };
 
 /*reset the sections defined above */
-#if defined(__HIGHTEC__)
-#pragma section
-#endif
 #if defined(__TASKING__)
 #pragma protect restore
 #pragma section farrom restore
-#endif
-#if defined(__DCC__)
+#elif defined(__HIGHTEC__)
+#pragma section
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#elif defined(__DCC__)
 #pragma section CONST
 #endif
 
 #ifndef IFX_CFG_CPUCSTART_BMI01_NOT_NEEDED
 /*Boot Mode Header 1 sections to inform linker to locate them at 0x8002 0000 */
-#if defined(__HIGHTEC__)
-#pragma section
-#pragma section ".bmhd_1" a
-#endif
 #if defined(__TASKING__)
 #pragma protect on
 #pragma section farrom "bmhd_1"
-#endif
-#if defined(__DCC__)
+#elif defined(__HIGHTEC__)
+#pragma section
+#pragma section ".bmhd_1" a
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#pragma section ".bmhd_1" a
+#elif defined(__DCC__)
 #pragma section CONST ".bmhd_1" R
 #endif
 
@@ -295,16 +331,45 @@ const uint32 BootModeHeader_1[] = {
 };
 
 /*reset the sections defined above */
-#if defined(__HIGHTEC__)
-#pragma section
-#endif
 #if defined(__TASKING__)
 #pragma protect restore
 #pragma section farrom restore
-#endif
-#if defined(__DCC__)
+#elif defined(__HIGHTEC__)
+#pragma section
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma section
+#elif defined(__DCC__)
 #pragma section CONST
 #endif
+static void Ifx_Cpp_Init(void)
+{
+    Ifx_C_Init();           /*Initialization of C runtime variables */
+#if defined (__TASKING__)
+extern void _main(void); /* cpp initialization */
+    _main();
+#elif defined (__HIGHTEC__)
+extern void _init(void); /* cpp initialization */
+    _init();
+#elif defined (__GNUC__) && !defined(__HIGHTEC__)
+    extern void _init(void); /* cpp initialization */
+    _init();
+#endif
+}
+#ifdef IFX_CFG_RETURN_FROM_MAIN
+static void Ifx_Cpp_Exit(int status)
+{
+#if defined (__TASKING__)
+extern void _doexit(void); /* cpp deinitialization */
+    _doexit();
+#elif defined (__HIGHTEC__)
+extern void exit(int);     /* cpp deinitialization */
+    exit(status);
+#elif defined (__GNUC__) && !defined(__HIGHTEC__)
+    extern void _init(void); /* cpp initialization */
+    _init();
+#endif
+}
+#endif /*IFX_CFG_RETURN_FROM_MAIN*/
 #endif /*IFX_CFG_CPUCSTART_BMI01_NOT_NEEDED*/
 
 #endif /*IFX_CFG_CPUCSTART_BMHD_NOT_NEEDED*/

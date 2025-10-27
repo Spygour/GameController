@@ -3,8 +3,8 @@
  * \brief QSPI  basic functionality
  * \ingroup IfxLld_Qspi
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -61,7 +61,6 @@
 
 #include "_Impl/IfxQspi_cfg.h"
 #include "Cpu/Std/IfxCpu_Intrinsics.h"
-#include "If/SpiIf.h"
 #include "Scu/Std/IfxScuCcu.h"
 #include "Src/Std/IfxSrc.h"
 #include "_PinMap/IfxQspi_PinMap.h"
@@ -82,6 +81,14 @@
 /** \brief Errors enable mask for ERRORENS
  */
 #define IFXQSPI_ERRORENABLEMASK ((uint32)0x1FF)
+
+/******************************************************************************/
+/*------------------------------Type Definitions------------------------------*/
+/******************************************************************************/
+
+/** \brief typedefine of slso timing
+ */
+typedef uint32 IfxQspi_SlsoTiming_HalfTsclk;
 
 /******************************************************************************/
 /*--------------------------------Enumerations--------------------------------*/
@@ -107,8 +114,25 @@ typedef enum
     IfxQspi_ChannelId_11,    /**< \brief Channel #11  */
     IfxQspi_ChannelId_12,    /**< \brief Channel #12  */
     IfxQspi_ChannelId_13,    /**< \brief Channel #13  */
-    IfxQspi_ChannelId_14     /**< \brief Channel #14  */
+    IfxQspi_ChannelId_14,    /**< \brief Channel #14  */
+    IfxQspi_ChannelId_15     /**< \brief Channel #15  */
 } IfxQspi_ChannelId;
+
+/** \brief Clock Polarity
+ */
+typedef enum
+{
+    IfxQspi_ClockPolarity_idleLow = 0,  /**< \brief Idle clock line is low */
+    IfxQspi_ClockPolarity_idleHigh      /**< \brief Idle clock line is high */
+} IfxQspi_ClockPolarity;
+
+/** \brief Data heading endianess
+ */
+typedef enum
+{
+    IfxQspi_DataHeading_lsbFirst = 0,  /**< \brief LSB First */
+    IfxQspi_DataHeading_msbFirst = 1   /**< \brief MSB First */
+} IfxQspi_DataHeading;
 
 /** \brief Data length unit of a frame (BACON.BYTE)
  */
@@ -117,6 +141,38 @@ typedef enum
     IfxQspi_DataLengthUnit_bit  = 0, /**< \brief Data Length in Bits */
     IfxQspi_DataLengthUnit_byte = 1  /**< \brief Data length in Bytes */
 } IfxQspi_DataLengthUnit;
+
+/** \brief Length of Delay for Idle, Leading and Trailing Delays
+ * Length in TPER units. Length = Value + 1. Refer Figure "Calculation of the delays".
+ * Definition in BACON.B.IDLE, BACON.B.LEAD and BACON.B.TRAIL
+ */
+typedef enum
+{
+    IfxQspi_DelayLength_1 = 0,  /**< \brief length of 1 TPER unit */
+    IfxQspi_DelayLength_2 = 1,  /**< \brief length of 2 TPER units */
+    IfxQspi_DelayLength_3 = 2,  /**< \brief length of 3 TPER units */
+    IfxQspi_DelayLength_4 = 3,  /**< \brief length of 4 TPER units */
+    IfxQspi_DelayLength_5 = 4,  /**< \brief length of 5 TPER units */
+    IfxQspi_DelayLength_6 = 5,  /**< \brief length of 6 TPER units */
+    IfxQspi_DelayLength_7 = 6,  /**< \brief length of 7 TPER units */
+    IfxQspi_DelayLength_8 = 7   /**< \brief length of 8 TPER units */
+} IfxQspi_DelayLength;
+
+/** \brief Prescalar for Delay Parameters (Idle Delay, Leading Delay and Trailing Delay)
+ * Length in TPER units. Prescalar = 4^(Value). Refer Figure "Calculation of the delays".
+ * Definition in BACON.B.IPRE, BACON.B.LPRE and BACON.B.TPRE
+ */
+typedef enum
+{
+    IfxQspi_DelayPrescalar_1     = 0, /**< \brief prescalar of 1 */
+    IfxQspi_DelayPrescalar_4     = 1, /**< \brief prescalar of 4 */
+    IfxQspi_DelayPrescalar_16    = 2, /**< \brief prescalar of 16 */
+    IfxQspi_DelayPrescalar_64    = 3, /**< \brief prescalar of 64 */
+    IfxQspi_DelayPrescalar_256   = 4, /**< \brief prescalar of 256 */
+    IfxQspi_DelayPrescalar_1024  = 5, /**< \brief prescalar of 1024 */
+    IfxQspi_DelayPrescalar_4096  = 6, /**< \brief prescalar of 4096 */
+    IfxQspi_DelayPrescalar_16384 = 7  /**< \brief prescalar of 16384 */
+} IfxQspi_DelayPrescalar;
 
 /** \brief QSPI Error Flags (STATUS.ERRORFLAGS)
  */
@@ -164,6 +220,14 @@ typedef enum
     IfxQspi_Mode_pwmOverQspi = 1,  /**< \brief QSPI in "PWM over QSPI" mode */
     IfxQspi_Mode_slave       = 2   /**< \brief QSPI in "slave" mode */
 } IfxQspi_Mode;
+
+/** \brief Parity type
+ */
+typedef enum
+{
+    IfxQspi_ParityMode_even = 0,  /**< \brief Even Parity */
+    IfxQspi_ParityMode_odd        /**< \brief Odd Parity */
+} IfxQspi_ParityMode;
 
 /** \brief Request between pause and Run transition
  */
@@ -221,6 +285,14 @@ typedef enum
     IfxQspi_RxFifoInt_3      /**< \brief RxFifo Interrupt Threshold  #3  */
 } IfxQspi_RxFifoInt;
 
+/** \brief Clock phase
+ */
+typedef enum
+{
+    IfxQspi_ShiftClock_shiftTransmitDataOnLeadingEdge = 0,  /**< \brief Shift Tx data on leading edge */
+    IfxQspi_ShiftClock_shiftTransmitDataOnTrailingEdge      /**< \brief Shift Tx data on trailing edge */
+} IfxQspi_ShiftClock;
+
 /** \brief Enable/disable the sensitivity of the module to sleep signal\n
  * Definition in Ifx_QSPI.CLC.B.EDIS
  */
@@ -229,6 +301,29 @@ typedef enum
     IfxQspi_SleepMode_enable  = 0, /**< \brief Sleep Mode enabled */
     IfxQspi_SleepMode_disable = 1  /**< \brief Sleep Mode disabled */
 } IfxQspi_SleepMode;
+
+/** \brief Slave select output timing
+ */
+typedef enum
+{
+    IfxQspi_SlsoTiming_0 = 0,  /**< \brief zero clock delay */
+    IfxQspi_SlsoTiming_1 = 1,  /**< \brief 1 half-clock delay */
+    IfxQspi_SlsoTiming_2 = 2,  /**< \brief 2 half-clock delay */
+    IfxQspi_SlsoTiming_3 = 3,  /**< \brief 3 half-clock delay */
+    IfxQspi_SlsoTiming_4 = 4,  /**< \brief 4 half-clock delay */
+    IfxQspi_SlsoTiming_5 = 5,  /**< \brief 5 half-clock delay */
+    IfxQspi_SlsoTiming_6 = 6,  /**< \brief 6 half-clock delay */
+    IfxQspi_SlsoTiming_7 = 7   /**< \brief 7 half-clock delay */
+} IfxQspi_SlsoTiming;
+
+/** \brief SPI Interface return status
+ */
+typedef enum
+{
+    IfxQspi_Status_ok      = 0, /**< \brief status is OK */
+    IfxQspi_Status_busy    = 1, /**< \brief status is BUSY */
+    IfxQspi_Status_unknown = 2  /**< \brief status is UNKNOWN */
+} IfxQspi_Status;
 
 /** \brief STROBE delay for SLSO in delayed mode (GLOBALCON.STROBE)
  */
@@ -302,6 +397,35 @@ typedef enum
 /*-----------------------------Data Structures--------------------------------*/
 /******************************************************************************/
 
+/** \brief Qspi exchange error checks
+ */
+typedef struct
+{
+    boolean baudrate;       /**< \brief TRUE = checked, FALSE = ignored */
+    boolean phase;          /**< \brief TRUE = checked, FALSE = ignored */
+    boolean receive;        /**< \brief TRUE = checked, FALSE = ignored */
+    boolean transmit;       /**< \brief TRUE = checked, FALSE = ignored */
+} IfxQspi_ErrorChecks;
+
+/** \brief Qspi master/slave channel modes
+ */
+typedef struct
+{
+    IfxQspi_SlsoTiming_HalfTsclk csInactiveDelay;       /**< \brief CS Inactive Delay in Tsclk/2 units */
+    IfxQspi_SlsoTiming_HalfTsclk csLeadDelay;           /**< \brief CS Lead Delay in Tsclk/2 units */
+    IfxQspi_SlsoTiming_HalfTsclk csTrailDelay;          /**< \brief CS Trail Delay in Tsclk/2 units */
+    boolean                      enabled;               /**< \brief 1 = channel enabled, 0 = channel disabled */
+    boolean                      autoCS;                /**< \brief 1 = chip select is controlled by the hardware module or, 0 = by software */
+    boolean                      loopback;              /**< \brief 0 = normal mode, 1 = loopback mode. In loopback mode, channel 0 is selected as default */
+    boolean                      clockPolarity;         /**< \brief \ref IfxQspi_ClockPolarity */
+    boolean                      shiftClock;            /**< \brief \ref IfxQspi_ShiftClock */
+    boolean                      dataHeading;           /**< \brief \ref IfxQspi_DataHeading */
+    uint8                        dataWidth;             /**< \brief range 2 .. 32 bits (note 2 = 2-bits, 3 = 3-bits ... */
+    boolean                      csActiveLevel;         /**< \brief \ref Ifx_ActiveState */
+    boolean                      parityCheck;           /**< \brief 0 = disabled, 1 = enabled */
+    boolean                      parityMode;            /**< \brief \ref IfxQspi_ParityMode */
+} IfxQspi_chMode;
+
 /** \brief Structure holding the "pre" and "delay" values.
  * To be populated into BACON register after delay calculation.
  */
@@ -310,6 +434,45 @@ typedef struct
     uint8 pre;         /**< \brief specifies the prescalar value */
     uint8 delay;       /**< \brief delay multiplier */
 } IfxQspi_DelayConst;
+
+/** \brief Delay Parameters for Idle, Leading and Trailing Delays
+ * To be populated into BACON register and handle after delay calculation by application.
+ */
+typedef struct
+{
+    IfxQspi_DelayPrescalar idlePrescalar;           /**< \brief prescalar value for Idle delay */
+    IfxQspi_DelayLength    idleDelay;               /**< \brief length of Idle delay */
+    IfxQspi_DelayPrescalar leadingPrescalar;        /**< \brief prescalar value for Leading delay */
+    IfxQspi_DelayLength    leadingDelay;            /**< \brief length of Leading delay */
+    IfxQspi_DelayPrescalar trailingPrescalar;       /**< \brief prescalar value for Trailing delay */
+    IfxQspi_DelayLength    trailingDelay;           /**< \brief length of Trailing delay */
+} IfxQspi_DelayParameters;
+
+/** \brief Qspi channel data access flags
+ */
+typedef struct
+{
+    boolean onTransfer;       /**< \brief Channel status: On transfer */
+    boolean byteAccess;       /**< \brief Channel status: 8bit / 16 bit access */
+} IfxQspi_Flags;
+
+/** \brief Qspi transmit/receive job parameters
+ */
+typedef struct
+{
+    void     *data;            /**< \brief data pointer */
+    Ifx_SizeT remaining;       /**< \brief data left to transfer */
+} IfxQspi_Job;
+
+/** \brief
+ */
+typedef struct
+{
+    float32             baudrate;          /**< \brief Specifies the SPI baudrate */
+    IfxQspi_chMode      mode;              /**< \brief channel mode */
+    IfxQspi_ErrorChecks errorChecks;       /**< \brief error checks */
+    IfxQspi_ChannelId   channelId;         /**< \brief channel identification number for the qspi channel */
+} IfxQspi_chConfig;
 
 /** \addtogroup IfxLld_Qspi_Std_Operative
  * \{ */
@@ -632,7 +795,7 @@ IFX_EXTERN float IfxQspi_calcRealBaudrate(Ifx_QSPI *qspi, IfxQspi_ChannelId chan
  * \param baudrate The desired baudrate
  * \return Calculated BACON value
  */
-IFX_EXTERN uint32 IfxQspi_calculateBasicConfigurationValue(Ifx_QSPI *qspi, const IfxQspi_ChannelId channelId, const SpiIf_ChMode *chMode, const float baudrate);
+IFX_EXTERN uint32 IfxQspi_calculateBasicConfigurationValue(Ifx_QSPI *qspi, const IfxQspi_ChannelId channelId, const IfxQspi_chMode *chMode, const float baudrate);
 
 /** \brief Function to calculate ECON register values
  * \param qspi Pointer to QSPI module registers
@@ -640,7 +803,7 @@ IFX_EXTERN uint32 IfxQspi_calculateBasicConfigurationValue(Ifx_QSPI *qspi, const
  * \param chConfig SPI Channel Configuration
  * \return Calculated ECON[CS] value
  */
-IFX_EXTERN uint32 IfxQspi_calculateExtendedConfigurationValue(Ifx_QSPI *qspi, const uint8 cs, const SpiIf_ChConfig *chConfig);
+IFX_EXTERN uint32 IfxQspi_calculateExtendedConfigurationValue(Ifx_QSPI *qspi, const uint8 cs, const IfxQspi_chConfig *chConfig);
 
 /** \brief Function to calculate prescaler
  * \param qspi Pointer to QSPI module registers
@@ -693,7 +856,7 @@ IFX_EXTERN void IfxQspi_setSlaveSelectOutputControl(Ifx_QSPI *qspi, IfxQspi_Chan
  * \param delayConst Pointer to the Delay Consant Array
  * \return None
  */
-IFX_EXTERN void IfxQspi_calculateDelayConstants(const Ifx_QSPI *qspi, const IfxQspi_ChannelId channelId, const SpiIf_ChMode *chMode, IfxQspi_DelayConst *delayConst);
+IFX_EXTERN void IfxQspi_calculateDelayConstants(const Ifx_QSPI *qspi, const IfxQspi_ChannelId channelId, const IfxQspi_chMode *chMode, IfxQspi_DelayConst *delayConst);
 
 /** \} */
 
@@ -895,6 +1058,13 @@ IFX_INLINE void IfxQspi_initSclkInPinWithPadLevel(const IfxQspi_Sclk_In *sclkIn,
  * \return None
  */
 IFX_INLINE void IfxQspi_initSlsiWithPadLevel(const IfxQspi_Slsi_In *slsi, IfxPort_InputMode slsiMode, IfxPort_PadDriver padDriver);
+
+/** \brief Write delay parameters into BACON register. Recommended to use the interface API IfxQspi_SpiMaster_updateDelayParameters, which will update both handle and sfr.
+ * \param qspi Pointer to QSPI module registers
+ * \param config delay values to be entered into BACON register
+ * \return None
+ */
+IFX_INLINE void IfxQspi_setBaconDelayParameters(Ifx_QSPI *qspi, IfxQspi_DelayParameters *config);
 
 /******************************************************************************/
 /*---------------------Inline Function Implementations------------------------*/
@@ -1298,6 +1468,21 @@ IFX_INLINE void IfxQspi_initSlsiWithPadLevel(const IfxQspi_Slsi_In *slsi, IfxPor
     /* PISEL */
     IfxPort_setPinPadDriver(slsi->pin.port, slsi->pin.pinIndex, padDriver);
     slsi->module->PISEL.B.SLSIS = slsi->select + 1;
+}
+
+
+IFX_INLINE void IfxQspi_setBaconDelayParameters(Ifx_QSPI *qspi, IfxQspi_DelayParameters *config)
+{
+    Ifx_QSPI_BACON bacon;
+    bacon.U            = qspi->BACON.U;
+    bacon.B.IPRE       = config->idlePrescalar;
+    bacon.B.IDLE       = config->idleDelay;
+    bacon.B.LPRE       = config->leadingPrescalar;
+    bacon.B.LEAD       = config->leadingDelay;
+    bacon.B.TPRE       = config->trailingPrescalar;
+    bacon.B.TRAIL      = config->trailingDelay;
+
+    qspi->BACONENTRY.U = bacon.U;
 }
 
 

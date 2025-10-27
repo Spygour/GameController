@@ -3,8 +3,9 @@
  * \brief ERAY  basic functionality
  * \ingroup IfxLld_Eray
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  * \defgroup IfxLld_Eray_Std_Enumerations Enumerations
  * \ingroup IfxLld_Eray_Std
@@ -263,19 +265,21 @@ typedef enum
  */
 typedef enum
 {
-    IfxEray_PocCommand_notAccepted = 0,  /**< \brief command not accepted. */
-    IfxEray_PocCommand_config      = 1,  /**< \brief command to controller to enter CONFIG */
-    IfxEray_PocCommand_ready       = 2,  /**< \brief command to controller to enter READY. */
-    IfxEray_PocCommand_wakeup      = 3,  /**< \brief command to controller to enter WAKEUP */
-    IfxEray_PocCommand_run         = 4,  /**< \brief command to controller to enter RUN */
-    IfxEray_PocCommand_allSlots    = 5,  /**< \brief command to controller to enter ALL_SLOTS */
-    IfxEray_PocCommand_halt        = 6,  /**< \brief command to controller to enter HALT */
-    IfxEray_PocCommand_freeze      = 7,  /**< \brief command to controller to enter FREEZE */
-    IfxEray_PocCommand_sendMts     = 8,  /**< \brief command to controller to enter SEND_MTS */
-    IfxEray_PocCommand_coldStart   = 9,  /**< \brief command to controller to enter COLD_START */
-    IfxEray_PocCommand_reset       = 10, /**< \brief command to controller to enter RESET */
-    IfxEray_PocCommand_monitor     = 11, /**< \brief command to controller to enter MONITOR */
-    IfxEray_PocCommand_clearRam    = 12  /**< \brief command to controller to enter CLEAR_RAM */
+    IfxEray_PocCommand_notAccepted  = 0,   /**< \brief command not accepted. */
+    IfxEray_PocCommand_config       = 1,   /**< \brief command to controller to enter CONFIG */
+    IfxEray_PocCommand_ready        = 2,   /**< \brief command to controller to enter READY. */
+    IfxEray_PocCommand_wakeup       = 3,   /**< \brief command to controller to enter WAKEUP */
+    IfxEray_PocCommand_run          = 4,   /**< \brief command to controller to enter RUN */
+    IfxEray_PocCommand_allSlots     = 5,   /**< \brief command to controller to enter ALL_SLOTS */
+    IfxEray_PocCommand_halt         = 6,   /**< \brief command to controller to enter HALT */
+    IfxEray_PocCommand_freeze       = 7,   /**< \brief command to controller to enter FREEZE */
+    IfxEray_PocCommand_sendMts      = 8,   /**< \brief command to controller to enter SEND_MTS */
+    IfxEray_PocCommand_coldStart    = 9,   /**< \brief command to controller to enter COLD_START */
+    IfxEray_PocCommand_reset        = 10,  /**< \brief command to controller to enter RESET */
+    IfxEray_PocCommand_monitor      = 11,  /**< \brief command to controller to enter MONITOR */
+    IfxEray_PocCommand_clearRam     = 12,  /**< \brief command to controller to enter CLEAR_RAM */
+    IfxEray_PocCommand_asynchronous = 14,  /**< \brief command to controller to enter asynchronous transmit mode */
+    IfxEray_PocCommand_loopBack     = 15   /**< \brief command to controller to enter Loop back mode */
 } IfxEray_PocCommand;
 
 /** \brief State of Communication Controller Protocol operation control, defined in MODULE_ERAY0.CCSV.B.POCS.
@@ -288,6 +292,8 @@ typedef enum
     IfxEray_PocState_normalPassive               = 3,   /**< \brief controller entered normal-passive state */
     IfxEray_PocState_halt                        = 4,   /**< \brief controller entered halt state */
     IfxEray_PocState_monitor                     = 5,   /**< \brief controller entered monitor state */
+    IfxEray_PocState_loopBack                    = 13,  /**< \brief controller entered loop back mode. */
+    IfxEray_PocState_asynchronous                = 14,  /**< \brief controller entered asynchronous transfer mode. */
     IfxEray_PocState_config                      = 15,  /**< \brief controller entered config state */
     IfxEray_PocState_wakeupStandby               = 16,  /**< \brief controller entered wakeup standby state */
     IfxEray_PocState_wakeupListen                = 17,  /**< \brief controller entered wakeup-listen state */
@@ -303,8 +309,8 @@ typedef enum
     IfxEray_PocState_integrationListen           = 39,  /**< \brief controller entered integration-listen state. */
     IfxEray_PocState_integrationConsistencyCheck = 40,  /**< \brief controller entered integration consistency check state */
     IfxEray_PocState_initializeSchedule          = 41,  /**< \brief controller entered initialise schedule state */
-    IfxEray_PocState_staruAborted                = 42,  /**< \brief controller entered startup-abort state */
-    IfxEray_PocState_startupSucced               = 43   /**< \brief controller entered startup succeed state. */
+    IfxEray_PocState_startupAborted              = 42,  /**< \brief controller entered startup-abort state */
+    IfxEray_PocState_startupSucceed              = 43   /**< \brief controller entered startup succeed state. */
 } IfxEray_PocState;
 
 /** \brief Receiving channel, defined in MODULE_ERAY0.FRF.B.CH.
@@ -957,7 +963,7 @@ IFX_INLINE void IfxEray_setMessageBufferCount(Ifx_ERAY *eray, uint8 numberOfMess
  * \param latestTransmissionStart dynamic slots befor transmission of inhibit frame in dynamic segment.
  * \return None
  */
-IFX_INLINE void IfxEray_setMessageHandlerConfigurations(Ifx_ERAY *eray, uint8 staticFramepayload, uint8 latestTransmissionStart);
+IFX_INLINE void IfxEray_setMessageHandlerConfigurations(Ifx_ERAY *eray, uint8 staticFramepayload, uint16 latestTransmissionStart);
 
 /** \brief Sets network start Idle time.
  * \param eray pointer to ERAY module registers.
@@ -1198,6 +1204,12 @@ IFX_INLINE void IfxEray_setSuspendMode(Ifx_ERAY *eray, IfxEray_SuspendMode mode)
  * \return None
  */
 IFX_INLINE void IfxEray_initRxPinWithPadLevel(const IfxEray_Rxd_In *rx, IfxPort_InputMode rxMode, IfxPort_PadDriver padDriver);
+
+/** \brief Returns the Cycle Counter Value
+ * \param eray pointer to ERAY module registers.
+ * \return Cycle Count Value
+ */
+IFX_INLINE uint8 IfxEray_getCycleCountValue(Ifx_ERAY *eray);
 
 /******************************************************************************/
 /*---------------------Inline Function Implementations------------------------*/
@@ -1663,7 +1675,7 @@ IFX_INLINE void IfxEray_setMessageBufferCount(Ifx_ERAY *eray, uint8 numberOfMess
 }
 
 
-IFX_INLINE void IfxEray_setMessageHandlerConfigurations(Ifx_ERAY *eray, uint8 staticFramepayload, uint8 latestTransmissionStart)
+IFX_INLINE void IfxEray_setMessageHandlerConfigurations(Ifx_ERAY *eray, uint8 staticFramepayload, uint16 latestTransmissionStart)
 {
     Ifx_ERAY_MHDC mhdc;
     mhdc.U       = 0;
@@ -1836,6 +1848,12 @@ IFX_INLINE void IfxEray_initRxPinWithPadLevel(const IfxEray_Rxd_In *rx, IfxPort_
     {
         rx->module->CUST1.B.RISB = rx->select;
     }
+}
+
+
+IFX_INLINE uint8 IfxEray_getCycleCountValue(Ifx_ERAY *eray)
+{
+    return (uint8)eray->MTCCV.B.CCV;
 }
 
 

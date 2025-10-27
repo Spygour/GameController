@@ -1,7 +1,7 @@
 /**
  * \file IfxCpu_Cstart1.c
  * \brief This file contains the Core startup sequence for Cpu1.
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2012 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -84,6 +84,8 @@ __asm("\t .extern core1_main");
 *********************************************************************************/
 #if defined(__HIGHTEC__)
 #pragma GCC optimize ("-O2")
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
+#pragma GCC optimize ("-O2")
 #endif
 
 void _Core1_start(void)
@@ -140,6 +142,8 @@ void _Core1_start(void)
 }
 
 #if defined(__HIGHTEC__)
+#pragma GCC reset_options
+#elif defined(__GNUC__) && !defined(__HIGHTEC__)
 #pragma GCC reset_options
 #endif
 #endif /*#ifndef IFX_CFG_USE_COMPILER_DEFAULT_LINKER */

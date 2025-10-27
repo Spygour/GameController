@@ -2,8 +2,8 @@
  * \file IfxAsclin_Spi.c
  * \brief ASCLIN SPI details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -79,17 +79,18 @@ void IfxAsclin_Spi_disableModule(IfxAsclin_Spi *asclin)
 
 IfxAsclin_Spi_Status IfxAsclin_Spi_exchange(IfxAsclin_Spi *asclin, void *src, void *dest, uint32 count)
 {
-    IfxAsclin_Spi_Status status = IfxAsclin_Spi_lock(asclin);   /* lock the driver until the communication is done */
+    IfxAsclin_Spi_Status status     = IfxAsclin_Spi_lock(asclin); /* lock the driver until the communication is done */
+    uint32               count_8_16 = ((count / asclin->dataWidth) + (count % asclin->dataWidth));
 
     if (status == IfxAsclin_Spi_Status_ok)
     {
-        asclin->transferInProgress = 1;     /* setting transfer in progress status */
-        asclin->txJob.data         = src;   /* data to be transmitted */
-        asclin->txJob.pending      = count; /* count of Tx data */
-        asclin->rxJob.data         = dest;  /* empty buffer to receive data */
-        asclin->rxJob.pending      = count; /* count of Rx data */
+        asclin->transferInProgress = 1;          /* setting transfer in progress status */
+        asclin->txJob.data         = src;        /* data to be transmitted */
+        asclin->txJob.pending      = count_8_16; /* count of Tx data based on data width configured */
+        asclin->rxJob.data         = dest;       /* empty buffer to receive data */
+        asclin->rxJob.pending      = count_8_16; /* count of Rx data based on data width configured*/
 
-        IfxAsclin_Spi_write(asclin);        /* write data into Tx fifo */
+        IfxAsclin_Spi_write(asclin);             /* write data into Tx fifo */
     }
 
     return status;
@@ -272,7 +273,7 @@ void IfxAsclin_Spi_initModuleConfig(IfxAsclin_Spi_Config *config, Ifx_ASCLIN *as
 
         /* Default values for baudrate */
         .baudrate                 = {
-            .baudrate     = 100000.0,                       /* default baudrate (the fractional dividier setup will be calculated in initModule) */
+            .baudrate     = 100000.0f,                      /* default baudrate (the fractional dividier setup will be calculated in initModule) */
             .prescaler    = 2,                              /* default prescaler */
             .oversampling = IfxAsclin_OversamplingFactor_8, /* default oversampling factor */
         },

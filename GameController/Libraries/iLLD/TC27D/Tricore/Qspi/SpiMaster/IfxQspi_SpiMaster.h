@@ -3,8 +3,8 @@
  * \brief QSPI SPIMASTER details
  * \ingroup IfxLld_Qspi
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2020 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -182,14 +182,14 @@
  *     IfxQspi_SpiMaster_initModuleConfig(&spiMasterConfig, &MODULE_QSPI0);
  *
  *     // set the desired mode and maximum baudrate
- *     spiMasterConfig.base.mode             = SpiIf_Mode_master;
- *     spiMasterConfig.base.maximumBaudrate  = 10000000;
+ *     spiMasterConfig.mode             = IfxQspi_Mode_master;
+ *     spiMasterConfig.maximumBaudrate  = 10000000;
  *
  *     // ISR priorities and interrupt target
- *     spiMasterConfig.base.txPriority       = IFX_INTPRIO_QSPI0_TX;
- *     spiMasterConfig.base.rxPriority       = IFX_INTPRIO_QSPI0_RX;
- *     spiMasterConfig.base.erPriority       = IFX_INTPRIO_QSPI0_ER;
- *     spiMasterConfig.base.isrProvider      = IfxCpu_Irq_getTos(IfxCpu_getCoreIndex());
+ *     spiMasterConfig.txPriority       = IFX_INTPRIO_QSPI0_TX;
+ *     spiMasterConfig.rxPriority       = IFX_INTPRIO_QSPI0_RX;
+ *     spiMasterConfig.erPriority       = IFX_INTPRIO_QSPI0_ER;
+ *     spiMasterConfig.isrProvider      = IfxCpu_Irq_getTos(IfxCpu_getCoreIndex());
  *
  *     // pin configuration
  *     const IfxQspi_SpiMaster_Pins pins = {
@@ -216,13 +216,13 @@
  *     IfxQspi_SpiMaster_initModuleConfig(&spiMasterConfig, &MODULE_QSPI0);
  *
  *     // set the desired mode and maximum baudrate
- *     spiMasterConfig.base.mode             = SpiIf_Mode_master;
- *     spiMasterConfig.base.maximumBaudrate  = 10000000;
+ *     spiMasterConfig.mode             = IfxQspi_Mode_master;
+ *     spiMasterConfig.maximumBaudrate  = 10000000;
  *
  *     // ISR priorities and interrupt target (with Dma usage)
- *     spiMasterConfig.base.txPriority       = IFX_INTPRIO_DMA_CH1;
- *     spiMasterConfig.base.rxPriority       = IFX_INTPRIO_DMA_CH2;
- *     spiMasterConfig.base.erPriority       = IFX_INTPRIO_QSPI0_ER;
+ *     spiMasterConfig.txPriority       = IFX_INTPRIO_DMA_CH1;
+ *     spiMasterConfig.rxPriority       = IFX_INTPRIO_DMA_CH2;
+ *     spiMasterConfig.erPriority       = IFX_INTPRIO_QSPI0_ER;
  *
  *     // dma configuration.
  *     spiMasterConfig.dma.txDmaChannelId = IfxDma_ChannelId_1;
@@ -257,7 +257,7 @@
  *     IfxQspi_SpiMaster_initChannelConfig(&spiMasterChannelConfig, &spi);
  *
  *     // set the baudrate for this channel
- *     spiMasterChannelConfig.base.baudrate = 5000000;
+ *     spiMasterChannelConfig.baudrate = 5000000;
  *
  *     // select pin configuration
  *     const IfxQspi_SpiMaster_Output slsOutput = {
@@ -289,7 +289,7 @@
  * \code
  *      int i=0;
  *     // wait until transfer of previous data stream is finished
- *     while( IfxQspi_SpiMaster_getStatus(&spiChannel) == SpiIf_Status_busy );
+ *     while( IfxQspi_SpiMaster_getStatus(&spiChannel) == IfxQspi_Status_busy );
  *
  *     // send/receive new stream
  *     IfxQspi_SpiMaster_exchange(&spiChannel, &spiTxBuffer[i], &spiRxBuffer[i], SPI_BUFFER_SIZE);
@@ -299,7 +299,7 @@
  * \code
  *
  *     // wait until transfer of previous data stream is finished
- *     while( IfxQspi_SpiMaster_getStatus(&spiChannel) == SpiIf_Status_busy );
+ *     while( IfxQspi_SpiMaster_getStatus(&spiChannel) == IfxQspi_Status_busy );
  *
  *     // send new stream
  *     IfxQspi_SpiMaster_exchange(&spiChannel, &spiTxBuffer[i], NULL_PTR, SPI_BUFFER_SIZE);
@@ -308,7 +308,7 @@
  * Receive only, send all-1
  * \code
  *     // wait until transfer of previous data stream is finished
- *     while( IfxQspi_SpiMaster_getStatus(&spiChannel) == SpiIf_Status_busy );
+ *     while( IfxQspi_SpiMaster_getStatus(&spiChannel) == IfxQspi_Status_busy );
  *
  *     // receive new stream
  *     IfxQspi_SpiMaster_exchange(&spiChannel, NULL_PTR, &spiRxBuffer[i], SPI_BUFFER_SIZE);
@@ -401,13 +401,13 @@
  *     IfxQspi_SpiMaster_initModuleConfig(&spiMasterConfig, &MODULE_QSPI0);
  *
  *     // set the desired mode and maximum baudrate
- *     spiMasterConfig.base.mode             = SpiIf_Mode_master;
- *     spiMasterConfig.base.maximumBaudrate  = 10000000;
+ *     spiMasterConfig.mode             = IfxQspi_Mode_master;
+ *     spiMasterConfig.maximumBaudrate  = 10000000;
  *
  *     // ISR priorities and interrupt target (with Dma usage)
- *     spiMasterConfig.base.txPriority       = IFX_INTPRIO_DMA_CH1;
- *     spiMasterConfig.base.rxPriority       = IFX_INTPRIO_DMA_CH2;
- *     spiMasterConfig.base.erPriority       = IFX_INTPRIO_QSPI0_ER;
+ *     spiMasterConfig.txPriority       = IFX_INTPRIO_DMA_CH1;
+ *     spiMasterConfig.rxPriority       = IFX_INTPRIO_DMA_CH2;
+ *     spiMasterConfig.erPriority       = IFX_INTPRIO_QSPI0_ER;
  *
  *     // dma configuration.
  *     spiMasterConfig.dma.txDmaChannelId = IfxDma_ChannelId_1;
@@ -442,7 +442,7 @@
  *     IfxQspi_SpiMaster_initChannelConfig(&spiMasterChannelConfig, &spi);
  *
  *     // set the baudrate for this channel
- *     spiMasterChannelConfig.base.baudrate = 5000000;
+ *     spiMasterChannelConfig.baudrate = 5000000;
  *
  *     // select pin configuration
  *     const IfxQspi_SpiMaster_Output slsOutput = {
@@ -466,7 +466,7 @@
  *     IfxQspi_SpiMaster_packLongModeBuffer(&spiMasterChannel, spi0TxBuffer, spi0TxLongBuffer, SPI_BUFFER_SIZE);
  *
  *     // wait until transfer of previous data stream is finished
- *     while( IfxQspi_SpiMaster_getStatus(&spiChannel) == SpiIf_Status_busy );
+ *     while( IfxQspi_SpiMaster_getStatus(&spiChannel) == IfxQspi_Status_busy );
  *
  *     // send/receive new stream
  *     IfxQspi_SpiMaster_exchange(&spiChannel, &spiTxBuffer[i], &spiRxBuffer[i], SPI_BUFFER_SIZE);
@@ -475,7 +475,7 @@
  * ** NOTE for loopback mode **
  * In case you want to configure and test a SPI channel in loopback, you have to
  * select:
- * spiMasterChannelConfig.base.mode.loopback = 1
+ * spiMasterChannelConfig.mode.loopback = 1
  *
  * If an output pin is configured in loopback mode, the  SPI channel number will be extracted from the pin map configuration.
  *
@@ -516,9 +516,7 @@
 /*------------------------------Type Definitions------------------------------*/
 /******************************************************************************/
 
-typedef struct IfxQspi_SpiMaster_Channel_s IfxQspi_SpiMaster_Channel;
-
-typedef void                             (*IfxQspi_SpiMaster_AutoSlso)(IfxQspi_SpiMaster_Channel *chHandle);
+typedef struct IfxQspi_SpiMaster_s IfxQspi_SpiMaster;
 
 /******************************************************************************/
 /*--------------------------------Enumerations--------------------------------*/
@@ -594,14 +592,14 @@ typedef struct
  */
 typedef struct
 {
-    uint16 parityError : 1;              /**< \brief [0:0] Parity Error */
-    uint16 configurationError : 1;       /**< \brief [1:1] Configuration Error */
-    uint16 baudrateError : 1;            /**< \brief [2:2] baudrate Error */
-    uint16 txFifoOverflowError : 1;      /**< \brief [3:3] TxFifo Overflow Error */
-    uint16 txFifoUnderflowError : 1;     /**< \brief [4:4] TxFifo underflow Error */
-    uint16 rxFifoOverflowError : 1;      /**< \brief [5:5] RxFifo Overflow Error */
-    uint16 rxFifoUnderflowError : 1;     /**< \brief [6:6] RxFifo underflow Error */
-    uint16 expectTimeoutError : 1;       /**< \brief [7:7] Expect Timeout Error */
+    boolean parityError;                /**< \brief [0:0] Parity Error */
+    boolean configurationError;         /**< \brief [1:1] Configuration Error */
+    boolean baudrateError;              /**< \brief [2:2] baudrate Error */
+    boolean txFifoOverflowError;        /**< \brief [3:3] TxFifo Overflow Error */
+    boolean txFifoUnderflowError;       /**< \brief [4:4] TxFifo underflow Error */
+    boolean rxFifoOverflowError;        /**< \brief [5:5] RxFifo Overflow Error */
+    boolean rxFifoUnderflowError;       /**< \brief [6:6] RxFifo underflow Error */
+    boolean expectTimeoutError;         /**< \brief [7:7] Expect Timeout Error */
 } IfxQspi_SpiMaster_ErrorFlags;
 
 /** \brief Union of Slave Select pins
@@ -629,37 +627,13 @@ typedef struct
 
 /** \addtogroup IfxLld_Qspi_SpiMaster_DataStructures
  * \{ */
-/** \brief Module handle data structure
- */
-typedef struct
-{
-    SpiIf                 base;                  /**< \brief Module SPI interface handle */
-    Ifx_QSPI             *qspi;                  /**< \brief Pointer to QSPI module registers */
-    IfxQspi_SpiMaster_Dma dma;                   /**< \brief dma handle */
-    float32               maximumBaudrate;       /**< \brief Maximum Baud Rate for the SPI Module. */
-} IfxQspi_SpiMaster;
-
-/** \brief Module Channel configuration structure
- */
-typedef struct
-{
-    SpiIf_ChConfig                   base;                 /**< \brief SPI interface channel configuration structure */
-    uint32                           dummyTxValue;         /**< \brief Dummy TX value to be sent for "recieve only" modes */
-    uint32                           dummyRxValue;         /**< \brief Dummy RX value for transmit only modes */
-    IfxQspi_SpiMaster_InputOutput    sls;                  /**< \brief Union of Slave Select pins */
-    IfxQspi_SpiMaster_ChannelBasedCs channelBasedCs;       /**< \brief define the slso behaviour */
-    IfxQspi_SpiMaster_Mode           mode;                 /**< \brief Qspi Operating Mode */
-} IfxQspi_SpiMaster_ChannelConfig;
-
 /** \brief Module Channel handle structure
  */
-struct IfxQspi_SpiMaster_Channel_s
+typedef struct
 {
-    SpiIf_Ch                         base;                  /**< \brief SPI interface channel handle structure */
+    IfxQspi_SpiMaster               *spiMaster;             /**< \brief Pointer to the master configuration */
     Ifx_QSPI_BACON                   bacon;                 /**< \brief basic configuration register */
     IfxPort_Pin                      slso;                  /**< \brief Defines SLSO pin */
-    IfxQspi_SpiMaster_AutoSlso       activateSlso;          /**< \brief Specifies  function for Auto SLSO activation */
-    IfxQspi_SpiMaster_AutoSlso       deactivateSlso;        /**< \brief Specifies  function for Auto SLSO deactivation */
     uint32                           dummyTxValue;          /**< \brief Dummy TX value, which will be sent for "recieve only" mode. */
     uint32                           dummyRxValue;          /**< \brief Dummy Rx value, for "transmit only" modes */
     IfxQspi_ChannelId                channelId;             /**< \brief QSPI channel Number */
@@ -669,13 +643,36 @@ struct IfxQspi_SpiMaster_Channel_s
     IfxQspi_SpiMaster_ChannelBasedCs channelBasedCs;        /**< \brief define the slso behaviour */
     IfxQspi_SpiMaster_Mode           mode;                  /**< \brief Qspi Operating Mode */
     IfxQspi_SpiMaster_ErrorFlags     errorFlags;            /**< \brief Spi Master Error Flags */
-};
+    uint32                           txCount;               /**< \brief keeps track of transmission */
+    uint32                           rxCount;               /**< \brief keeps track of reception */
+    IfxQspi_Flags                    flags;                 /**< \brief flags */
+    IfxQspi_ErrorChecks              errorChecks;           /**< \brief error checks */
+    uint32                           baudrate;              /**< \brief actual baud rate */
+    IfxQspi_Job                      tx;                    /**< \brief Transmit Handle */
+    IfxQspi_Job                      rx;                    /**< \brief Receive Handle */
+    boolean                          useSlso;               /**< \brief indicates Auto SLSO activation */
+} IfxQspi_SpiMaster_Channel;
+
+/** \brief Module Channel configuration structure
+ */
+typedef struct
+{
+    IfxQspi_chConfig                 ch;                   /**< \brief SPI interface channel configuration structure */
+    uint32                           dummyTxValue;         /**< \brief Dummy TX value to be sent for "recieve only" modes */
+    uint32                           dummyRxValue;         /**< \brief Dummy RX value for transmit only modes */
+    IfxQspi_SpiMaster_InputOutput    sls;                  /**< \brief Union of Slave Select pins */
+    IfxQspi_SpiMaster_ChannelBasedCs channelBasedCs;       /**< \brief define the slso behaviour */
+    IfxQspi_SpiMaster_Mode           mode;                 /**< \brief Qspi Operating Mode */
+    IfxQspi_SpiMaster               *spiMaster;            /**< \brief Pointer to the master configuration */
+    Ifx_QSPI                        *qspi;                 /**< \brief Pointer to QSPI module registers */
+    IfxQspi_SpiMaster_Dma           *dma;                  /**< \brief dma handle */
+} IfxQspi_SpiMaster_ChannelConfig;
 
 /** \brief Module configuration structure
  */
 typedef struct
 {
-    SpiIf_Config                      base;                             /**< \brief SPI interface configuration structure */
+    IfxQspi_Mode                      mode;                             /**< \brief Specifies the interface operation mode */
     Ifx_QSPI                         *qspi;                             /**< \brief Pointer to QSPI module registers */
     boolean                           allowSleepMode;                   /**< \brief Specifies module sleep mode */
     boolean                           pauseOnBaudrateSpikeErrors;       /**< \brief Specifies module pause on baudrate or spike errors */
@@ -686,9 +683,40 @@ typedef struct
     IfxQspi_SpiMaster_DmaConfig       dma;                              /**< \brief Dma configuration */
     IfxQspi_FifoMode                  txFifoMode;                       /**< \brief Specifies the transmit FIFO mode */
     IfxQspi_FifoMode                  rxFifoMode;                       /**< \brief Specifies the Receive FIFO mode */
+    Ifx_Priority                      rxPriority;                       /**< \brief Specifies the priority of the receive interrupt */
+    Ifx_Priority                      txPriority;                       /**< \brief Specifies the priority of the transmit interrupt */
+    Ifx_Priority                      erPriority;                       /**< \brief Specifies the priority of the error interrupt */
+    Ifx_SizeT                         bufferSize;                       /**< \brief Specifies the number of channels that can be buffered. If 0, buffering is disabled */
+    void                             *buffer;                           /**< \brief Specifies the buffer location.The buffer parameter must point on a free memory location where thebuffer object will be initialised.
+                                                                         * The Size of this area must be at least equals to "Size + sizeof(Ifx_Fifo) + 8",with "Size=config->bufferSize * Ifx_AlignOn32(sizeof(Spi_Ch*))".
+                                                                         * Not tackingthis in account may result in unpredictable behaviour */
+    float32    maximumBaudrate;                                         /**< \brief Maximum baudrate used by the channels, this value is used to optimise the SPI internal clock */
+    IfxSrc_Tos isrProvider;                                             /**< \brief Specifies the handler of the interrupts */
 } IfxQspi_SpiMaster_Config;
 
+/** \brief Module handle data structure
+ */
+struct IfxQspi_SpiMaster_s
+{
+    IfxQspi_SpiMaster_Channel *activeChannel;         /**< \brief Pointer to the active master channel configuration */
+    Ifx_QSPI                  *qspi;                  /**< \brief Pointer to QSPI module registers */
+    IfxQspi_SpiMaster_Dma      dma;                   /**< \brief dma handle */
+    float32                    maximumBaudrate;       /**< \brief Maximum Baud Rate for the SPI Module. */
+    uint32                     sending;               /**< \brief set when there is any active transmission */
+};
+
 /** \} */
+
+/** \brief structure holding bit-fields data for direct used baud rate configuration
+ */
+typedef struct
+{
+    uint8 globalTQ;       /**< \brief Global Time Quantum (clock divider) value for QSPI Instance */
+    uint8 channelQ;       /**< \brief Channel specific clock divider */
+    uint8 aSegment;       /**< \brief Value for the A Segment of the clock */
+    uint8 bSegment;       /**< \brief Value for the B Segment of the clock */
+    uint8 cSegment;       /**< \brief Value for the C Segment of the clock */
+} IfxQspi_SpiMaster_BitTiming;
 
 /** \addtogroup IfxLld_Qspi_SpiMaster_Module
  * \{ */
@@ -734,7 +762,7 @@ IFX_EXTERN void IfxQspi_SpiMaster_initModuleConfig(IfxQspi_SpiMaster_Config *con
  * Usage example: see \ref IfxLld_Qspi_SpiMaster_Usage
  *
  */
-IFX_EXTERN SpiIf_Status IfxQspi_SpiMaster_initChannel(IfxQspi_SpiMaster_Channel *chHandle, const IfxQspi_SpiMaster_ChannelConfig *chConfig);
+IFX_EXTERN IfxQspi_Status IfxQspi_SpiMaster_initChannel(IfxQspi_SpiMaster_Channel *chHandle, const IfxQspi_SpiMaster_ChannelConfig *chConfig);
 
 /** \brief Fills the config structure with default values
  * \param chConfig Configuration structure which should be initialized.
@@ -762,10 +790,14 @@ IFX_EXTERN void IfxQspi_SpiMaster_initChannelConfig(IfxQspi_SpiMaster_ChannelCon
  * \param count Number of data in pending
  * \return Status of exchange of data
  *
- * Usage example: see \ref IfxLld_Qspi_SpiMaster_Usage
+ * Usage example: see \ref IfxLld_Qspi_SpiMaster_Usage .
+ * Limitations:
+ *
+ *  1. Simplex data transfer is not supported from slave to master
+ *  2. High Speed (HS) mode is not supported
  *
  */
-IFX_EXTERN SpiIf_Status IfxQspi_SpiMaster_exchange(IfxQspi_SpiMaster_Channel *chHandle, const void *src, void *dest, Ifx_SizeT count);
+IFX_EXTERN IfxQspi_Status IfxQspi_SpiMaster_exchange(IfxQspi_SpiMaster_Channel *chHandle, const void *src, void *dest, Ifx_SizeT count);
 
 /** \brief Gets the transmission status
  * \param chHandle Module Channel handle
@@ -774,7 +806,7 @@ IFX_EXTERN SpiIf_Status IfxQspi_SpiMaster_exchange(IfxQspi_SpiMaster_Channel *ch
  * Usage example: see \ref IfxLld_Qspi_SpiMaster_Usage
  *
  */
-IFX_EXTERN SpiIf_Status IfxQspi_SpiMaster_getStatus(IfxQspi_SpiMaster_Channel *chHandle);
+IFX_EXTERN IfxQspi_Status IfxQspi_SpiMaster_getStatus(IfxQspi_SpiMaster_Channel *chHandle);
 
 /** \} */
 
@@ -893,14 +925,56 @@ IFX_EXTERN void IfxQspi_SpiMaster_packLongModeBuffer(IfxQspi_SpiMaster_Channel *
  * \param chHandle Module Channel handle
  * \return Channel configuration
  */
-IFX_EXTERN SpiIf_ChConfig IfxQspi_SpiMaster_getChannelConfig(IfxQspi_SpiMaster_Channel *chHandle);
+IFX_EXTERN IfxQspi_chConfig IfxQspi_SpiMaster_getChannelConfig(IfxQspi_SpiMaster_Channel *chHandle);
 
 /** \brief Set the channel baudrate
  * \param chHandle Module Channel handle
  * \param baudrate Baudrate to be configured (in Baud)
  * \return Status of Channel (busy or ok or failure)
  */
-IFX_EXTERN SpiIf_Status IfxQspi_SpiMaster_setChannelBaudrate(IfxQspi_SpiMaster_Channel *chHandle, float32 baudrate);
+IFX_EXTERN IfxQspi_Status IfxQspi_SpiMaster_setChannelBaudrate(IfxQspi_SpiMaster_Channel *chHandle, float32 baudrate);
+
+/** \brief Reads the delay parameters (Idle, Leading and Trailing Delays) configured in handle and populates the params structure. To be called after call to IfxQspi_SpiMaster_initChannel or IfxQspi_SpiMaster_updateDelayParameters.
+ * \param chHandle Module Channel handle
+ * \param params structure pointer to store Bacon delay parameters by API
+ * \return None
+ */
+IFX_EXTERN void IfxQspi_SpiMaster_getHandleDelayParameters(IfxQspi_SpiMaster_Channel *chHandle, IfxQspi_DelayParameters *params);
+
+/** \brief Update the delay parameters (Idle, Leading and Trailing Delays) in handle and SFR. To be called after call to IfxQspi_SpiMaster_initChannel. Used for re-configuring by application (optional).
+ * \param chHandle Module Channel handle
+ * \param config structure pointer to store Bacon delay parameters for input to the API
+ * \return None
+ */
+IFX_EXTERN void IfxQspi_SpiMaster_updateDelayParameters(IfxQspi_SpiMaster_Channel *chHandle, IfxQspi_DelayParameters *config);
+
+/** \brief Initialize pins based on configuration. To be called in IfxQspi_SpiMaster_initChannel
+ * \param pins pins Pointer to structure holding the pin configuration
+ * \return None
+ */
+IFX_EXTERN void IfxQspi_SpiMaster_initPin(const IfxQspi_SpiMaster_Pins *pins);
+
+/** \brief Initialize interrupts based on configuration. To be called in IfxQspi_SpiMaster_initChannel
+ * \param qspiSFR qspiSFR SPI module's SFR handle
+ * \param config config Pointer to structure holding the SPI Master configuration table
+ * \return None
+ */
+IFX_EXTERN void IfxQspi_SpiMaster_initInterrupt(Ifx_QSPI *qspiSFR, const IfxQspi_SpiMaster_Config *config);
+
+/**
+ * \param handle handle Module handle
+ * \param bitTimingParams bitTimingParams Pointer to the structure holding the bitfields to be configured
+ * \return None
+ */
+IFX_EXTERN void IfxQspi_SpiMaster_setBaudRateGlobalBitFields(IfxQspi_SpiMaster *handle, const IfxQspi_SpiMaster_BitTiming *bitTimingParams);
+
+/**
+ * \param handle handle Module handle
+ * \param channelId channelId Channel Id of the active channel
+ * \param bitTimingParams bitTimingParams Pointer to the structure holding the bitfields to be configured
+ * \return None
+ */
+IFX_EXTERN void IfxQspi_SpiMaster_setBaudRateChannelBitFields(IfxQspi_SpiMaster *handle, const IfxQspi_ChannelId channelId, const IfxQspi_SpiMaster_BitTiming *bitTimingParams);
 
 /******************************************************************************/
 /*---------------------Inline Function Implementations------------------------*/
@@ -923,8 +997,8 @@ IFX_INLINE void IfxQspi_SpiMaster_writeBasicConfiguration(IfxQspi_SpiMaster *han
 
 IFX_INLINE void IfxQspi_SpiMaster_writeExtendedConfiguration(IfxQspi_SpiMaster_Channel *chHandle, uint32 econVal)
 {
-    IfxQspi_SpiMaster *handle = (IfxQspi_SpiMaster *)chHandle->base.driver;
-    IfxQspi_writeExtendedConfiguration(handle->qspi, chHandle->channelId, econVal);
+    IfxQspi_SpiMaster *spiMaster = (IfxQspi_SpiMaster *)chHandle->spiMaster;
+    IfxQspi_writeExtendedConfiguration(spiMaster->qspi, chHandle->channelId, econVal);
 }
 
 
@@ -937,8 +1011,8 @@ IFX_INLINE void IfxQspi_SpiMaster_writeMixedDataConfiguration(IfxQspi_SpiMaster 
 
 IFX_INLINE void IfxQspi_SpiMaster_writeTransmitFifo(IfxQspi_SpiMaster_Channel *chHandle, uint32 data)
 {
-    IfxQspi_SpiMaster *handle = (IfxQspi_SpiMaster *)chHandle->base.driver;
-    IfxQspi_writeTransmitFifo(handle->qspi, data);
+    IfxQspi_SpiMaster *spiMaster = (IfxQspi_SpiMaster *)chHandle->spiMaster;
+    IfxQspi_writeTransmitFifo(spiMaster->qspi, data);
 }
 
 

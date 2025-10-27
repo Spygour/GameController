@@ -3,8 +3,8 @@
  * \brief ASCLIN  basic functionality
  * \ingroup IfxLld_Asclin
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -126,6 +126,12 @@ typedef enum
     IfxAsclin_CtsInputSelect_2,     /**< \brief CTS input pin 2  */
     IfxAsclin_CtsInputSelect_3      /**< \brief CTS input pin 3  */
 } IfxAsclin_CtsInputSelect;
+
+typedef enum
+{
+    IfxAsclin_DataBufferMode_normal = 0,      /**< \brief normal mode, each received byte is moved to the rx fifo */
+    IfxAsclin_DataBufferMode_timeStampSingle  /**< \brief Single byte type stamp mode. The rx fifo is filled in with Ifx_DataBufferMode_TimeStampSingle items. */
+} IfxAsclin_DataBufferMode;
 
 /** \brief Number of bits per transfer\n
  * Definition in Ifx_ASCLIN.FRAMECON.B.DATALEN
@@ -444,6 +450,16 @@ typedef enum
 } IfxAsclin_TxFifoInterruptLevel;
 
 /** \} */
+
+/******************************************************************************/
+/*-----------------------------Data Structures--------------------------------*/
+/******************************************************************************/
+
+typedef struct
+{
+    Ifx_TickTime timestamp;
+    uint8        data;
+} IfxAsclin_DataBufferMode_TimeStampSingle;
 
 /** \addtogroup IfxLld_Asclin_Std_Operative
  * \{ */

@@ -42,7 +42,8 @@
 #include "IfxScuWdt.h"
 #include "../Asw/PixelSend/PixelSend.h"
 #include "Bsp.h"
-IfxCpu_syncEvent g_cpuSyncEvent = 0;
+
+IfxCpu_syncEvent cpuSyncEvent = 0;
 
 int core0_main(void)
 {
@@ -55,8 +56,8 @@ int core0_main(void)
     IfxScuWdt_disableSafetyWatchdog(IfxScuWdt_getSafetyWatchdogPassword());
     
     /* Wait for CPU sync event */
-    IfxCpu_emitEvent(&g_cpuSyncEvent);
-    IfxCpu_waitEvent(&g_cpuSyncEvent, 1);
+    IfxCpu_emitEvent(&cpuSyncEvent);
+    IfxCpu_waitEvent(&cpuSyncEvent, 1);
     Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
     while(1)
     {

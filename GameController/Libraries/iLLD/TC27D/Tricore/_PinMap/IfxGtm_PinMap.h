@@ -3,7 +3,7 @@
  * \brief GTM I/O map
  * \ingroup IfxLld_Gtm
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2013 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -48,6 +48,7 @@
 #include <IfxGtm_reg.h>
 #include <_Impl/IfxGtm_cfg.h>
 #include <Port/Std/IfxPort.h>
+#include "Ifx_PinMap.h"
 #include <Gtm/Std/IfxGtm_Atom.h>
 #include <Gtm/Std/IfxGtm_Tom.h>
 #include <Gtm/Std/IfxGtm_Tim.h>

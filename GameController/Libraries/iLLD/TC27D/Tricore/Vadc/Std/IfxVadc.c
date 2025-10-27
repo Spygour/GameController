@@ -2,8 +2,9 @@
  * \file IfxVadc.c
  * \brief VADC  basic functionality
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2017 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  */
 
@@ -218,7 +220,7 @@ IfxVadc_Status IfxVadc_getBackgroundScanStatus(Ifx_VADC *vadc)
 
 float32 IfxVadc_getChannelConversionTime(Ifx_VADC *vadc, IfxVadc_GroupId group, IfxVadc_InputClasses inputClass, float32 analogFrequency, float32 moduleFrequency, IfxVadc_ConversionType conversionMode)
 {
-    float32                   conversionTime = 0.0;
+    float32                   conversionTime = 0.0f;
     Ifx_VADC_G               *vadcG          = &vadc->G[group];
     uint32                    stcs;
     IfxVadc_ChannelResolution resolution;
@@ -264,12 +266,12 @@ float32 IfxVadc_getChannelConversionTime(Ifx_VADC *vadc, IfxVadc_GroupId group, 
         {
             /* Standard conversion */
             uint32 pc = IfxVadc_isPostCalibration(vadc, group) ? 2 : 0;
-            conversionTime = (float32)(2 + stcs + n + pc) / analogFrequency + 2.0 / moduleFrequency;
+            conversionTime = (float32)(2 + stcs + n + pc) / analogFrequency + 2.0f / moduleFrequency;
         }
         else
         {
             /* Fast compare mode */
-            conversionTime = (float32)(2 + stcs + 2) / analogFrequency + 2.0 / moduleFrequency;
+            conversionTime = (float32)(2 + stcs + 2) / analogFrequency + 2.0f / moduleFrequency;
         }
     }
     else

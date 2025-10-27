@@ -3,7 +3,7 @@
  * \brief ETH I/O map
  * \ingroup IfxLld_Eth
  *
- * \version iLLD_1_0_1_12_0
+ * \version iLLD_1_20_0
  * \copyright Copyright (c) 2013 Infineon Technologies AG. All rights reserved.
  *
  *
@@ -48,6 +48,7 @@
 #include <IfxEth_reg.h>
 #include <_Impl/IfxEth_cfg.h>
 #include <Port/Std/IfxPort.h>
+#include "Ifx_PinMap.h"
 
 /** \addtogroup IfxLld_Eth_pinmap
  * \{ */

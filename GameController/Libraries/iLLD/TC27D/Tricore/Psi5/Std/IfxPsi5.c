@@ -2,8 +2,8 @@
  * \file IfxPsi5.c
  * \brief PSI5  basic functionality
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -87,4 +87,16 @@ void IfxPsi5_enableModule(Ifx_PSI5 *psi5)
 
     if (psi5->CLC.U)
     {}
+}
+
+
+void IfxPsi5_enableChannel(Ifx_PSI5 *psi5, IfxPsi5_ChannelId channelId)
+{
+    uint16 passwd = IfxScuWdt_getCpuWatchdogPassword();
+
+    IfxScuWdt_clearCpuEndinit(passwd);
+
+    psi5->GCR.U |= (IFXPSI5_ENABLE_CHANNEL << channelId);
+
+    IfxScuWdt_setCpuEndinit(passwd);
 }

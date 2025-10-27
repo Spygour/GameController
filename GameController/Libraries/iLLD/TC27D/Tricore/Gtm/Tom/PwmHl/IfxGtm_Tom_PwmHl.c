@@ -2,8 +2,9 @@
  * \file IfxGtm_Tom_PwmHl.c
  * \brief GTM PWMHL details
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  */
 
@@ -450,16 +452,16 @@ IFX_STATIC void IfxGtm_Tom_PwmHl_updateAndShiftOff(IfxGtm_Tom_PwmHl *driver, Ifx
 IFX_STATIC void IfxGtm_Tom_PwmHl_updateCenterAligned(IfxGtm_Tom_PwmHl *driver, Ifx_TimerValue *tOn)
 {
     uint8          channelIndex;
-    Ifx_TimerValue period;
-    Ifx_TimerValue deadtime = driver->base.deadtime;
+    uint16 period;
+    uint16 deadtime = (uint16)driver->base.deadtime;
 
-    period = driver->timer->base.period;
+    period = (uint16)driver->timer->base.period;
 
     for (channelIndex = 0; channelIndex < driver->base.channelCount; channelIndex++)
     {
-        Ifx_TimerValue x;             /* x=period*dutyCycle, x=OnTime+deadTime */
-        Ifx_TimerValue cm0, cm1;
-        x = tOn[channelIndex];
+        uint16 x;             /* x=period*dutyCycle, x=OnTime+deadTime */
+        uint16 cm0, cm1;
+        x = (uint16)tOn[channelIndex];
 
         if (driver->base.inverted != FALSE)
         {
@@ -510,16 +512,16 @@ IFX_STATIC void IfxGtm_Tom_PwmHl_updateCenterAligned(IfxGtm_Tom_PwmHl *driver, I
 IFX_STATIC void IfxGtm_Tom_PwmHl_updateEdgeAligned(IfxGtm_Tom_PwmHl *driver, Ifx_TimerValue *tOn)
 {
     uint8          channelIndex;
-    Ifx_TimerValue period;
-    Ifx_TimerValue deadtime = driver->base.deadtime;
+    uint16 period;
+    uint16 deadtime = (uint16)driver->base.deadtime;
 
-    period = driver->timer->base.period;
+    period = (uint16)driver->timer->base.period;
 
     for (channelIndex = 0; channelIndex < driver->base.channelCount; channelIndex++)
     {
-        Ifx_TimerValue x;             /* x=period*dutyCycle, x=OnTime+deadTime */
-        Ifx_TimerValue cm0, cm1;
-        x = tOn[channelIndex];
+        uint16 x;             /* x=period*dutyCycle, x=OnTime+deadTime */
+        uint16 cm0, cm1;
+        x = (uint16)tOn[channelIndex];
 
         if (driver->base.inverted != FALSE)
         {
@@ -571,9 +573,9 @@ IFX_STATIC void IfxGtm_Tom_PwmHl_updateOff(IfxGtm_Tom_PwmHl *driver, Ifx_TimerVa
 {
     IFX_UNUSED_PARAMETER(tOn)
     uint8 channelIndex;
-    Ifx_TimerValue period;
+    uint16 period;
 
-    period = driver->timer->base.period;
+    period = (uint16)driver->timer->base.period;
 
     for (channelIndex = 0; channelIndex < driver->base.channelCount; channelIndex++)
     {
@@ -587,19 +589,19 @@ IFX_STATIC void IfxGtm_Tom_PwmHl_updateOff(IfxGtm_Tom_PwmHl *driver, Ifx_TimerVa
 IFX_STATIC void IfxGtm_Tom_PwmHl_updatePulse(IfxGtm_Tom_PwmHl *driver, float32 *tOn, float32 *offset)
 {
     uint8          channelIndex;
-    Ifx_TimerValue period;
+    uint16 period;
 
-    period = driver->timer->base.period;
+    period = (uint16)driver->timer->base.period;
 
     /* Top channels */
     for (channelIndex = 0; channelIndex < driver->base.channelCount; channelIndex++)
     {
-        Ifx_TimerValue x; /* x=period*dutyCycle, x=OnTime+deadTime */
-        Ifx_TimerValue o;
-        Ifx_TimerValue cm0, cm1;
+        uint16 x; /* x=period*dutyCycle, x=OnTime+deadTime */
+        uint16 o;
+        uint16 cm0, cm1;
 
-        x = IfxStdIf_Timer_sToTick(driver->timer->base.clockFreq, tOn[channelIndex]);
-        o = IfxStdIf_Timer_sToTick(driver->timer->base.clockFreq, offset[channelIndex]);
+        x = (uint16)IfxStdIf_Timer_sToTick(driver->timer->base.clockFreq, tOn[channelIndex]);
+        o = (uint16)IfxStdIf_Timer_sToTick(driver->timer->base.clockFreq, offset[channelIndex]);
 
         if (driver->base.inverted != FALSE)
         {
@@ -643,12 +645,12 @@ IFX_STATIC void IfxGtm_Tom_PwmHl_updatePulse(IfxGtm_Tom_PwmHl *driver, float32 *
     /* Bottom channels */
     for (channelIndex = 0; channelIndex < driver->base.channelCount; channelIndex++)
     {
-        Ifx_TimerValue x; /* x=period*dutyCycle, x=OnTime+deadTime */
-        Ifx_TimerValue o;
-        Ifx_TimerValue cm0, cm1;
+        uint16 x; /* x=period*dutyCycle, x=OnTime+deadTime */
+        uint16 o;
+        uint16 cm0, cm1;
 
-        x = IfxStdIf_Timer_sToTick(driver->timer->base.clockFreq, tOn[channelIndex + driver->base.channelCount]);
-        o = IfxStdIf_Timer_sToTick(driver->timer->base.clockFreq, offset[channelIndex + driver->base.channelCount]);
+        x = (uint16)IfxStdIf_Timer_sToTick(driver->timer->base.clockFreq, tOn[channelIndex + driver->base.channelCount]);
+        o = (uint16)IfxStdIf_Timer_sToTick(driver->timer->base.clockFreq, offset[channelIndex + driver->base.channelCount]);
 
         if (driver->base.inverted != FALSE)
         {
@@ -702,17 +704,17 @@ IFX_STATIC void IfxGtm_Tom_PwmHl_updatePulseOff(IfxGtm_Tom_PwmHl *driver, float3
 IFX_STATIC void IfxGtm_Tom_PwmHl_updateShiftCenterAligned(IfxGtm_Tom_PwmHl *driver, Ifx_TimerValue *tOn, Ifx_TimerValue *shift)
 {
     uint8          channelIndex;
-    Ifx_TimerValue period;
-    Ifx_TimerValue deadtime = driver->base.deadtime;
+    uint16 period;
+    uint16 deadtime = (uint16)driver->base.deadtime;
 
-    period = driver->timer->base.period;
+    period = (uint16)driver->timer->base.period;
 
     for (channelIndex = 0; channelIndex < driver->base.channelCount; channelIndex++)
     {
-        Ifx_TimerValue x; /* x=period*dutyCycle, x=OnTime+deadTime */
-        Ifx_TimerValue s; /* Shift value */
-        Ifx_TimerValue cm0, cm1;
-        x = tOn[channelIndex];
+        uint16 x; /* x=period*dutyCycle, x=OnTime+deadTime */
+        uint16 s; /* Shift value */
+        uint16 cm0, cm1;
+        x = (uint16)tOn[channelIndex];
 
         if (driver->base.inverted != FALSE)
         {
@@ -751,7 +753,7 @@ IFX_STATIC void IfxGtm_Tom_PwmHl_updateShiftCenterAligned(IfxGtm_Tom_PwmHl *driv
         }
         else
         {                           /* x% duty cycle */
-            s = shift[channelIndex];
+            s = (uint16)shift[channelIndex];
 
             if (s > 0)
             {

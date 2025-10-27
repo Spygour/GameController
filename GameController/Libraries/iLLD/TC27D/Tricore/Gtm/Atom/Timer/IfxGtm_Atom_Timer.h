@@ -3,8 +3,9 @@
  * \brief GTM TIMER details
  * \ingroup IfxLld_Gtm
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2020 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2023 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -37,6 +38,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  * \defgroup IfxLld_Gtm_Atom_Timer_Usage How to use the GTM ATOM Timer Driver
  * \ingroup IfxLld_Gtm_Atom_Timer
@@ -333,7 +335,15 @@ IFX_EXTERN boolean IfxGtm_Atom_Timer_init(IfxGtm_Atom_Timer *driver, const IfxGt
  * \param bitShift the number of bits that need to be shifted every time CN0 reaches CM0
  * \return TRUE on success else FALSE
  */
-IFX_EXTERN boolean IfxGtm_Atom_TimerSerial_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Timer_Config *config , uint32 bitShift);
+IFX_EXTERN boolean IfxGtm_Atom_TimerSerial_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Timer_Config *config , uint32 bitShift, boolean AruEnable);
+
+/** \brief Initialises the timer object , master timer is in pwm mode with trigger in soms
+ * \param driver ATOM Timer interface Handle
+ * \param config Configuration structure for ATOM Timer
+ * \param bitShift the number of bits that need to be shifted every time CN0 reaches CM0
+ * \return TRUE on success else FALSE
+ */
+IFX_EXTERN boolean IfxGtm_Atom_TimerPwmOutputSerial_init(IfxGtm_Atom_Timer *driver, const IfxGtm_Atom_Timer_Config *config, uint32 bitShift, boolean AruEnable);
 
 /** \brief Initializes the configuration structure to default
  * \param config Configuration structure for ATOM Timer

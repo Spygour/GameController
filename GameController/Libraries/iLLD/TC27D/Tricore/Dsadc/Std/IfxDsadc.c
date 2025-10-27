@@ -2,8 +2,9 @@
  * \file IfxDsadc.c
  * \brief DSADC  basic functionality
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2017 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2022 Infineon Technologies AG. All rights reserved.
+ *
  *
  *
  *                                 IMPORTANT NOTICE
@@ -36,6 +37,7 @@
  * FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
  *
  */
 
@@ -90,7 +92,7 @@ float32 IfxDsadc_getMainGroupDelay(Ifx_DSADC *dsadc, IfxDsadc_ChannelId channel)
     Ifx_DSADC_CH_FCFGM fcfgm  = dsadc->CH[channel].FCFGM;
     Ifx_DSADC_CH_DICFG dicfg  = dsadc->CH[channel].DICFG;
     Ifx_DSADC_CH_IWCTR iwctr  = dsadc->CH[channel].IWCTR;
-    float32            tsMod  = 1.0 / IfxDsadc_getModulatorClockFreq(dsadc, channel);
+    float32            tsMod  = 1.0f / IfxDsadc_getModulatorClockFreq(dsadc, channel);
     float32            tsCic  = tsMod * (1 + fcfgc.B.CFMDF);
     float32            tsFir0 = tsCic * (1 + fcfgm.B.FIR0EN);
     float32            tsFir1 = tsFir0 * (1 + fcfgm.B.FIR1EN);
@@ -98,17 +100,17 @@ float32 IfxDsadc_getMainGroupDelay(Ifx_DSADC *dsadc, IfxDsadc_ChannelId channel)
     float32            gdDsA  = (7 + 1) * tsMod;
     float32            cicN   = (1 + fcfgc.B.CFMDF);
     float32            cick   = (1 + fcfgc.B.CFMC);
-    float32            gdCic  = tsMod * ((cick < 4) ? (0.5 * cick * (cicN - 1.0)) : ((2.0 * cicN) - 1.0));
-    float32            gdFir0 = (fcfgm.B.FIR0EN != 0) ? ((3.5 + (3.0 / cicN)) * tsCic) : 0.0;
+    float32            gdCic  = tsMod * ((cick < 4) ? (0.5f * cick * (cicN - 1.0f)) : ((2.0f * cicN) - 1.0f));
+    float32            gdFir0 = (fcfgm.B.FIR0EN != 0) ? ((3.5f + (3.0f / cicN)) * tsCic) : 0.0;
     float32            gdFir1;
 
     if (fcfgm.B.FIR0EN)
     {
-        gdFir1 = (fcfgm.B.FIR1EN != 0) ? (0.5 * (28.0 + (5.0 / cicN)) * tsFir0) : 0.0;
+        gdFir1 = (fcfgm.B.FIR1EN != 0) ? (0.5f * (28.0f + (5.0f / cicN)) * tsFir0) : 0.0f;
     }
     else
     {
-        gdFir1 = (fcfgm.B.FIR1EN != 0) ? ((28.0 + (5.0 / cicN)) * tsFir0) : 0.0;
+        gdFir1 = (fcfgm.B.FIR1EN != 0) ? ((28.0f + (5.0f / cicN)) * tsFir0) : 0.0f;
     }
 
     float32 gdInt = (dicfg.B.ITRMODE == IfxDsadc_IntegratorTrigger_bypassed) ? 0 : ((iwctr.B.NVALINT) * tsFir1);

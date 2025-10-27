@@ -2,8 +2,8 @@
  * \file IfxAsclin.c
  * \brief ASCLIN  basic functionality
  *
- * \version iLLD_1_0_1_12_0
- * \copyright Copyright (c) 2019 Infineon Technologies AG. All rights reserved.
+ * \version iLLD_1_20_0
+ * \copyright Copyright (c) 2024 Infineon Technologies AG. All rights reserved.
  *
  *
  *
@@ -101,7 +101,7 @@ float32 IfxAsclin_getFaFrequency(Ifx_ASCLIN *asclin)
     switch (clockSource)
     {
     case IfxAsclin_ClockSource_noClock: /* gets the respective frequency*/
-        frequency = 0.0;
+        frequency = 0.0f;
         break;
     case IfxAsclin_ClockSource_kernelClock:
         frequency = IfxScuCcu_getSpbFrequency();
@@ -119,7 +119,7 @@ float32 IfxAsclin_getFaFrequency(Ifx_ASCLIN *asclin)
         frequency = IfxScuCcu_getBaud1Frequency();
         break;
     default:
-        frequency = 0.0;
+        frequency = 0.0f;
         break;
     }
 
@@ -161,7 +161,7 @@ float32 IfxAsclin_getPdFrequency(Ifx_ASCLIN *asclin)
 
 float32 IfxAsclin_getShiftFrequency(Ifx_ASCLIN *asclin)
 {
-    return IfxAsclin_getOvsFrequency(asclin) / asclin->BITCON.B.OVERSAMPLING;
+    return IfxAsclin_getOvsFrequency(asclin) / (asclin->BITCON.B.OVERSAMPLING + 1);
 }
 
 
@@ -263,32 +263,108 @@ boolean IfxAsclin_setBitTiming(Ifx_ASCLIN *asclin, float32 baudrate, IfxAsclin_O
     uint32                d      = 0, n, dBest = 1, nBest = 1;
     float32               f;
 
-    /* Set the PD frequency */
-    float32               fpd = IfxAsclin_getPdFrequency(asclin);
-    oversampling = (IfxAsclin_OversamplingFactor)__maxu((oversampling + 1), 4);
-    samplepoint  = (IfxAsclin_SamplePointPosition)__maxu(samplepoint, 1);
-    fOvs         = baudrate * oversampling;
+    /* Get the prescaler value */
+    uint32                prescaler      = asclin->BITCON.B.PRESCALER + 1;
+    /* Get the PD frequency */
+    float32               fpd            = IfxAsclin_getPdFrequency(asclin);
+    /* min. value of (l_oversampling + 1) is 4 */
+    uint32                l_oversampling = (IfxAsclin_OversamplingFactor)__maxu((oversampling + 1), 4);
+    samplepoint = (IfxAsclin_SamplePointPosition)__maxu(samplepoint, 1);
+    /* Calculate the required  fOvs */
+    fOvs        = baudrate * l_oversampling;
     float32               relError   = fOvs;
-    float32               limit      = 0.001 * fOvs;                     // save the error limit
-
+    float32               limit;                                         /* save the error limit */
     boolean               terminated = FALSE;
     float32               newRelError;                                   //modified by Hassan
     uint32                adder_facL, adder_facH, adder_facL_min, count; //modified by Hassan
 
+    /* Increment the limit with the increase in baud rate */
+    if (baudrate <= 6000)
+    {
+        limit = 0.01f * fOvs;
+    }
+    else if (baudrate < 100000)
+    {
+        limit = 0.001f * fOvs;
+    }
+    else if (baudrate < 1000000)
+    {
+        limit = 0.0001f * fOvs;
+    }
+    else if (baudrate < 8330000)
+    {
+        limit = 0.00001f * fOvs;
+    }
+    else
+    {
+        limit = 0.000001f * fOvs;
+    }
+
+    /* Calculate the possible denominator "d" */
     d = (uint32)(fpd / fOvs);
+    /* Initialize "numerator" n with 1 */
     n = 1;
 
+    if (d == 0)
+    {
+        while (d < 1)
+        {
+            /* decrement l_oversampling until "d" becomes >= 1; (l_oversampling + 1) should not be less than 4 */
+            if (l_oversampling >= 5)
+            {
+                l_oversampling--;
+                fOvs = baudrate * l_oversampling;
+                d    = (uint32)(fpd / fOvs);
+            }
+            else
+            {
+                /* fall back to default values as desired baud rate cannot be achieved with the prescaler > 0*/
+                prescaler      = 1;
+                l_oversampling = (uint32)(IfxAsclin_OversamplingFactor_16 + 1);
+                fpd            = (float32)IfxAsclin_getFaFrequency(asclin) / prescaler;
+                fOvs           = baudrate * l_oversampling;
+                d              = (uint32)(fpd / fOvs);
+            }
+        }
+    }
+
+    /* if d is possibly greater than 4095 or 0xFFF (12-bit resolution) */
     if (d >> 12)
     {
+        /* check if the current baud rate fits in for the 12-bit  "d", for max. l_oversampling value. */
         if (((uint32)(fpd / (baudrate * 16))) >> 12)
         {
-            /* Increase the value of the prescalar to generate the required baudrate */
-            IFX_ASSERT(IFX_VERBOSE_LEVEL_WARNING, FALSE);
+            /* Increase the value of the prescaler to generate the required baudrate */
+            while (d >> 12)
+            {
+                prescaler++;
+
+                if (prescaler >> 12)
+                {
+                    prescaler = 0xFFF;
+                    break;
+                }
+
+                fpd = (float32)IfxAsclin_getFaFrequency(asclin) / prescaler;
+                d   = (uint32)(fpd / fOvs);
+            }
         }
         else
         {
             /* Increase the value of the oversampling to generate the required baudrate */
-            IFX_ASSERT(IFX_VERBOSE_LEVEL_WARNING, FALSE);
+            while (d >> 12)
+            {
+                l_oversampling++;
+
+                if (l_oversampling > 16)
+                {
+                    l_oversampling = (uint32)(IfxAsclin_OversamplingFactor_16 + 1);
+                    break;
+                }
+
+                fOvs = baudrate * l_oversampling;
+                d    = (uint32)(fpd / fOvs);
+            }
         }
     }
 
@@ -303,7 +379,7 @@ boolean IfxAsclin_setBitTiming(Ifx_ASCLIN *asclin, float32 baudrate, IfxAsclin_O
         terminated = TRUE;
     }
 
-    for (n = 2; ((!terminated) && ((n * d) <= 0xFFF)); n++)
+    for (n = 2; ((!terminated) && (n <= 0xFFF)); n++)
     {
         if (n == 2)
         {
@@ -316,23 +392,30 @@ boolean IfxAsclin_setBitTiming(Ifx_ASCLIN *asclin, float32 baudrate, IfxAsclin_O
             adder_facH = adder_facL + 1;
         }
 
-        for (count = adder_facL; count <= adder_facH; count++)
+        for (count = adder_facL; ((count <= adder_facH) && (nBest <= dBest)); count++)
         {
-            f           = (fpd * n) / (n * d + count);
+            f           = (fpd * n) / (n * d + count); //why n in denominator?
             newRelError = __absf(fOvs - f);
 
-            if (relError > (newRelError))
+            if (relError > newRelError)
             {
-                relError       = newRelError;
-                nBest          = n;
-                dBest          = (n * d + count);
+                relError = newRelError;
+                nBest    = n;
+                dBest    = (n * d + count);
+
+                if (dBest > 4095)
+                {
+                    dBest = 4095;
+                }
+
                 adder_facL_min = count;
             }
-        }
 
-        if (relError <= limit)
-        {
-            break;
+            if (relError <= limit)
+            {
+                terminated = TRUE;
+                break;
+            }
         }
     }
 
@@ -340,8 +423,11 @@ boolean IfxAsclin_setBitTiming(Ifx_ASCLIN *asclin, float32 baudrate, IfxAsclin_O
     asclin->BRG.B.DENOMINATOR = dBest;
     asclin->BRG.B.NUMERATOR   = nBest;
 
+    /* Set the clock divider value */
+    asclin->BITCON.B.PRESCALER = prescaler - 1;
+
     /* Set the SHIFT frequency */
-    asclin->BITCON.B.OVERSAMPLING = oversampling - 1;
+    asclin->BITCON.B.OVERSAMPLING = l_oversampling - 1;
 
     /* Set the sampling point */
     asclin->BITCON.B.SAMPLEPOINT = samplepoint;
