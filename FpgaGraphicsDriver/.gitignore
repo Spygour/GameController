@@ -1,0 +1,14 @@
+# Ignore common Quartus/EDA tool output directories
+db/
+greybox_tmp/
+incremental_db/
+output_files/
+simulation/
+*.bak
+*.ipregen.rpt
+*.txt
+*.rpt
+*.qws
+*.stp
+*.metadata/
+qmegawiz_errors_log.txts

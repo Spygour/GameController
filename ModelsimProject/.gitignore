@@ -1,0 +1,7 @@
+# Ignore common Quartus/EDA tool output directories
+work/
+*.mti
+*.mpf
+*.wlf
+*.bak
+*.do
