@@ -210,6 +210,7 @@ BEGIN
             DataHandler_WrFinish_reg <= '1';
             DataHandler_RdFinish_reg <= '1';
             DataHandler_WaitCounter <= 0;
+            DataHandler_Index <= (OTHERS => '0');
             --DataHandler_DebugLeds <= (OTHERS => '0');
         ELSIF rising_edge(DataHandler_SdRamClk) AND DataHandler_PllLocked = '1' THEN
             CASE DataHandler_SdRamHandlerState IS
@@ -303,7 +304,6 @@ BEGIN
                         DataHandler_ColsAddress <= unsigned(DataHandler_ReadDataWord(1)(15 DOWNTO 8) & '0');
 
                         DataHandler_RdEn <= '1';
-                        DataHandler_Finish <= '0';
                         DataHandler_SdRamHandlerState <= WAIT_READ;
                     END IF;
 
@@ -346,7 +346,7 @@ BEGIN
                         DataHandler_SpiWordsReg <= DataHandler_SpiWordsReg + 1;
                         IF DataHandler_Index = x"1" THEN
                             DataHandler_Finish <= '1';
-                            DataHandler_Index <= (OTHERS => '0');
+                            DataHandler_Index <= DataHandler_Index + 1;
                             DataHandler_SdRamHandlerState <= READ_DATA_IDLE;
                         ELSE
                             DataHandler_Index <= DataHandler_Index + 1;

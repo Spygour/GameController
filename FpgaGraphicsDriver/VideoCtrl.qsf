@@ -145,6 +145,12 @@ set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name ENABLE_SIGNALTAP OFF
 set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
+set_global_assignment -name VHDL_FILE Vga/VgaBram2.vhd
+set_global_assignment -name QIP_FILE Vga/VgaBram2.qip
+set_global_assignment -name SOURCE_FILE Vga/VgaBram2.cmp
+set_global_assignment -name VHDL_FILE Vga/VgaBram1.vhd
+set_global_assignment -name QIP_FILE Vga/VgaBram1.qip
+set_global_assignment -name SOURCE_FILE Vga/VgaBram1.cmp
 set_global_assignment -name VHDL_FILE Vga/VgaTypes.vhd
 set_global_assignment -name VHDL_FILE Vga/Vga.vhd
 set_global_assignment -name SDC_FILE SDC1.sdc
