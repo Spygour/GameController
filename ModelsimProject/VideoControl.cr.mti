@@ -1,0 +1,146 @@
+C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/Vga/Vga.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/Vga/Vga.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Loading package VgaTypes
+-- Compiling entity Vga
+-- Compiling architecture rtl of Vga
+-- Loading entity VgaBram1
+-- Loading entity VgaBram2
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/VideoCtrl_test.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/VideoCtrl_test.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Loading package DataHandlerTypes
+-- Loading package SdRamTypes
+-- Loading package std_logic_arith
+-- Loading package STD_LOGIC_SIGNED
+-- Loading package SpiSlaveTypes
+-- Loading package VgaTypes
+-- Compiling entity VideoCtrl_test
+-- Compiling architecture sim of VideoCtrl_test
+-- Loading entity VideoCtrl
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/VideoCtrl.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/VideoCtrl.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Loading package DataHandlerTypes
+-- Loading package SdRamTypes
+-- Loading package VgaTypes
+-- Compiling entity VideoCtrl
+-- Compiling architecture rtl of VideoCtrl
+-- Loading package std_logic_arith
+-- Loading package STD_LOGIC_SIGNED
+-- Loading package SpiSlaveTypes
+-- Loading entity DataHandler
+-- Loading entity Vga
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/SdRam/SdRam.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/SdRam/SdRam.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Loading package SdRamTypes
+-- Compiling entity SdRam
+-- Compiling architecture SYN of SdRam
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/Spi/SpiSlaveTypes.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/Spi/SpiSlaveTypes.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package std_logic_arith
+-- Loading package STD_LOGIC_SIGNED
+-- Compiling package SpiSlaveTypes
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/DataHandler.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/DataHandler.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Loading package DataHandlerTypes
+-- Loading package SdRamTypes
+-- Loading package std_logic_arith
+-- Loading package STD_LOGIC_SIGNED
+-- Loading package SpiSlaveTypes
+-- Compiling entity DataHandler
+-- Compiling architecture rtl of DataHandler
+-- Loading entity SdRam
+-- Loading entity SpiSlave
+-- Loading entity SpiRam_1
+-- Loading entity SpiRam_2
+-- Loading entity SpiRam_3
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/Spi/SpiBram.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/Spi/SpiBram.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity SpiRam_1
+-- Compiling architecture SYN of SpiRam_1
+-- Compiling entity SpiRam_2
+-- Compiling architecture SYN of SpiRam_2
+-- Compiling entity SpiRam_3
+-- Compiling architecture SYN of SpiRam_3
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/Vga/VgaTypes.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/Vga/VgaTypes.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling package VgaTypes
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/DataHandlerTypes.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/DataHandlerTypes.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling package DataHandlerTypes
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/Vga/VgaBram.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/Vga/VgaBram.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity VgaBram1
+-- Compiling architecture SYN of VgaBram1
+-- Compiling entity VgaBram2
+-- Compiling architecture SYN of VgaBram2
+-- Compiling entity VgaBram3
+-- Compiling architecture SYN of VgaBram3
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/Spi/SpiSlave.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/Spi/SpiSlave.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Loading package std_logic_arith
+-- Loading package STD_LOGIC_SIGNED
+-- Loading package SpiSlaveTypes
+-- Compiling entity SpiSlave
+-- Compiling architecture rtl of SpiSlave
+
+} {} {}} C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/SdRam/SdRamTypes.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Users/spyro/ModelSim-workspace/VideoCtrlTestFolder/DataHandler/SdRam/SdRamTypes.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 10.5b Compiler 2016.10 Oct  5 2016
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling package SdRamTypes
+
+} {} {}}

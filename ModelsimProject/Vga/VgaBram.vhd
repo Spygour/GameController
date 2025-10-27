@@ -1,0 +1,125 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+
+ENTITY VgaBram1 IS
+  PORT (
+    data : IN STD_LOGIC_VECTOR(23 DOWNTO 0);
+    rdaddress : IN STD_LOGIC_VECTOR(6 DOWNTO 0);
+    rdclock : IN STD_LOGIC;
+    wraddress : IN STD_LOGIC_VECTOR(6 DOWNTO 0);
+    wrclock : IN STD_LOGIC;
+    wren : IN STD_LOGIC;
+    q : OUT STD_LOGIC_VECTOR(23 DOWNTO 0)
+  );
+END ENTITY;
+
+ARCHITECTURE SYN OF VgaBram1 IS
+  TYPE vgabram_t IS ARRAY(0 TO 99) OF STD_LOGIC_VECTOR(23 DOWNTO 0);
+  SIGNAL vgabram : vgabram_t := (OTHERS => (OTHERS => '0'));
+  SIGNAL vgaOut_tmp1 : STD_LOGIC_VECTOR(23 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL vgaOut_tmp2 : STD_LOGIC_VECTOR(23 DOWNTO 0) := (OTHERS => '0');
+BEGIN
+  PROCESS (wrclock)
+  BEGIN
+    IF (wrclock'event AND wrclock = '1') THEN
+      IF (wren = '1') THEN
+        vgabram(to_integer(unsigned(wraddress))) <= data;
+      END IF;
+    END IF;
+  END PROCESS;
+
+  PROCESS (rdclock)
+  BEGIN
+    IF (rdclock'event AND rdclock = '1') THEN
+      vgaOut_tmp1 <= vgabram(to_integer(unsigned(rdaddress)));
+      vgaOut_tmp2 <= vgaOut_tmp1;
+      q <= vgaOut_tmp2;
+    END IF;
+  END PROCESS;
+
+END ARCHITECTURE;
+
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+ENTITY VgaBram2 IS
+  PORT (
+    data : IN STD_LOGIC_VECTOR(23 DOWNTO 0);
+    rdaddress : IN STD_LOGIC_VECTOR(6 DOWNTO 0);
+    rdclock : IN STD_LOGIC;
+    wraddress : IN STD_LOGIC_VECTOR(6 DOWNTO 0);
+    wrclock : IN STD_LOGIC;
+    wren : IN STD_LOGIC;
+    q : OUT STD_LOGIC_VECTOR(23 DOWNTO 0)
+  );
+END ENTITY;
+
+ARCHITECTURE SYN OF VgaBram2 IS
+  TYPE vgabram_t IS ARRAY(0 TO 99) OF STD_LOGIC_VECTOR(23 DOWNTO 0);
+  SIGNAL vgabram : vgabram_t := (OTHERS => (OTHERS => '0'));
+  SIGNAL vgaOut_tmp1 : STD_LOGIC_VECTOR(23 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL vgaOut_tmp2 : STD_LOGIC_VECTOR(23 DOWNTO 0) := (OTHERS => '0');
+
+BEGIN
+  PROCESS (wrclock)
+  BEGIN
+    IF (wrclock'event AND wrclock = '1') THEN
+      IF (wren = '1') THEN
+        vgabram(to_integer(unsigned(wraddress))) <= data;
+      END IF;
+    END IF;
+  END PROCESS;
+
+  PROCESS (rdclock)
+  BEGIN
+    IF (rdclock'event AND rdclock = '1') THEN
+      vgaOut_tmp1 <= vgabram(to_integer(unsigned(rdaddress)));
+      vgaOut_tmp2 <= vgaOut_tmp1;
+      q <= vgaOut_tmp2;
+    END IF;
+  END PROCESS;
+
+END ARCHITECTURE;
+
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+ENTITY VgaBram3 IS
+  PORT (
+    data : IN STD_LOGIC_VECTOR(23 DOWNTO 0);
+    rdaddress : IN STD_LOGIC_VECTOR(6 DOWNTO 0);
+    rdclock : IN STD_LOGIC;
+    wraddress : IN STD_LOGIC_VECTOR(6 DOWNTO 0);
+    wrclock : IN STD_LOGIC;
+    wren : IN STD_LOGIC;
+    q : OUT STD_LOGIC_VECTOR(23 DOWNTO 0)
+  );
+END ENTITY;
+
+ARCHITECTURE SYN OF VgaBram3 IS
+  TYPE vgabram_t IS ARRAY(0 TO 99) OF STD_LOGIC_VECTOR(23 DOWNTO 0);
+  SIGNAL vgabram : vgabram_t := (OTHERS => (OTHERS => '0'));
+  SIGNAL vgaOut_tmp1 : STD_LOGIC_VECTOR(23 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL vgaOut_tmp2 : STD_LOGIC_VECTOR(23 DOWNTO 0) := (OTHERS => '0');
+
+BEGIN
+  PROCESS (wrclock)
+  BEGIN
+    IF (wrclock'event AND wrclock = '1') THEN
+      IF (wren = '1') THEN
+        vgabram(to_integer(unsigned(wraddress))) <= data;
+      END IF;
+    END IF;
+  END PROCESS;
+
+  PROCESS (rdclock)
+  BEGIN
+    IF (rdclock'event AND rdclock = '1') THEN
+      vgaOut_tmp1 <= vgabram(to_integer(unsigned(rdaddress)));
+      vgaOut_tmp2 <= vgaOut_tmp1;
+      q <= vgaOut_tmp2;
+    END IF;
+  END PROCESS;
+
+END ARCHITECTURE;

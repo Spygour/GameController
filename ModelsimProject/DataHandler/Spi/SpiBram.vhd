@@ -1,0 +1,94 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+
+ENTITY SpiRam_1 IS
+  PORT (
+    clock     : IN  STD_LOGIC;
+    data      : IN  STD_LOGIC_VECTOR(15 DOWNTO 0);
+    rdaddress : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+    wraddress : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+    wren      : IN  STD_LOGIC;
+    q         : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
+  );
+END ENTITY;
+
+ARCHITECTURE SYN OF SpiRam_1 IS
+  TYPE bram_t IS ARRAY (0 TO 255) OF STD_LOGIC_VECTOR(15 DOWNTO 0);
+  SIGNAL bram : bram_t := (OTHERS => (OTHERS => '0'));
+BEGIN
+
+  PROCESS (clock)
+  BEGIN
+    IF rising_edge(clock) THEN
+      IF (wren = '1') THEN
+        bram(to_integer(unsigned(wraddress))) <= data;
+      END IF;
+      q <= bram(to_integer(unsigned(rdaddress)));
+    END IF;
+  END PROCESS;
+
+END ARCHITECTURE;
+
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+ENTITY SpiRam_2 IS
+  PORT (
+    clock     : IN  STD_LOGIC;
+    data      : IN  STD_LOGIC_VECTOR(15 DOWNTO 0);
+    rdaddress : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+    wraddress : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+    wren      : IN  STD_LOGIC;
+    q         : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
+  );
+END ENTITY;
+
+ARCHITECTURE SYN OF SpiRam_2 IS
+  TYPE bram_t IS ARRAY (0 TO 255) OF STD_LOGIC_VECTOR(15 DOWNTO 0);
+  SIGNAL bram : bram_t := (OTHERS => (OTHERS => '0'));
+BEGIN
+
+  PROCESS (clock)
+  BEGIN
+    IF rising_edge(clock) THEN
+      IF (wren = '1') THEN
+        bram(to_integer(unsigned(wraddress))) <= data;
+      END IF;
+      q <= bram(to_integer(unsigned(rdaddress)));
+    END IF;
+  END PROCESS;
+
+END ARCHITECTURE;
+
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+ENTITY SpiRam_3 IS
+  PORT (
+    clock     : IN  STD_LOGIC;
+    data      : IN  STD_LOGIC_VECTOR(15 DOWNTO 0);
+    rdaddress : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+    wraddress : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+    wren      : IN  STD_LOGIC;
+    q         : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
+  );
+END ENTITY;
+
+ARCHITECTURE SYN OF SpiRam_3 IS
+  TYPE bram_t IS ARRAY (0 TO 255) OF STD_LOGIC_VECTOR(15 DOWNTO 0);
+  SIGNAL bram : bram_t := (OTHERS => (OTHERS => '0'));
+BEGIN
+
+  PROCESS (clock)
+  BEGIN
+    IF rising_edge(clock) THEN
+      IF (wren = '1') THEN
+        bram(to_integer(unsigned(wraddress))) <= data;
+      END IF;
+      q <= bram(to_integer(unsigned(rdaddress)));
+    END IF;
+  END PROCESS;
+
+
+END ARCHITECTURE;

@@ -1,0 +1,15 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+
+PACKAGE DataHandlerTypes IS
+    -- 8 bits per color (We hope)
+    TYPE DataColor_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(23 DOWNTO 0);
+    TYPE Data_Xaxis_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+    TYPE Data_Yaxis_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+    TYPE Data_Type_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(2 DOWNTO 0);
+    TYPE Data_Resolution_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+    TYPE Data_Ackn_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+    TYPE Data_AngleStep_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(5 DOWNTO 0);
+    TYPE DataPart_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+END DataHandlerTypes;

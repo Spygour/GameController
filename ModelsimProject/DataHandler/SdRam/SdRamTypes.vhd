@@ -1,0 +1,32 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
+
+PACKAGE SdRamTypes IS
+    -- 8 bits per color (We hope)
+    TYPE DataCols_t IS ARRAY (0 TO 1) OF STD_LOGIC_VECTOR(15 DOWNTO 0);
+    TYPE DataCols_ary IS ARRAY (0 TO 255) OF DataCols_t; --255 data X 32 BIT COLORS
+    TYPE Address_t IS ARRAY (0 TO 2) OF STD_LOGIC_VECTOR(8 DOWNTO 0);
+
+    TYPE SDRAM_STATE IS
+    (
+    POWERON,
+    DELAY,
+    POWERDOWN,
+    IDLE,
+    MODE_REGISTER_SET,
+    ACTIVE_STATE,
+    WRITE_STATE,
+    WRITE_STORE,
+    PRECHARGE_TO_WRITE_FINISH,
+    WRITE_FINISH,
+    READ_STATE,
+    READ_STORE,
+    PRECHARGE_TO_READ_FINISH,
+    READ_FINISH,
+    PRECHARGE_ALL,
+    AUTO_REFRESH_STARTUP,
+    AUTO_REFRESH_EXIT,
+    NOP_WITH_COUNTER
+    );
+END SdRamTypes;
