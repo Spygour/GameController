@@ -44,14 +44,27 @@
  {
   uint8 x_pos;
   uint8 y_pos;
+  uint8 distance;
   float32 angle;
   uint8 x_startPosition;
   uint8 y_startPosition;
   float32 fov;
  }PLAYER_MAIN;
 
+ typedef struct
+ {
+  uint8 x_start;
+  uint8 y_end;
+  uint8 distance;
+  uint8 angle;
+  uint8 type;
+  uint8 ack;
+  uint8 Color;
+ }COLOR_PACKET
+
  typedef enum
  {
+  CREATE_MAP,
   COLOR_PENDING,
   COLOR_WAIT,
   COLOR_SEND

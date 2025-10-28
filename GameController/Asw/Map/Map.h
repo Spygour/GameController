@@ -61,6 +61,7 @@ typedef struct MAP_OBJ_s
   uint8 Yaxis;
   uint8 Length;
   float32 Angle;
+  uint8 Sector;
   MAP_TYPE type;
   struct MAP_OBJ_s *NEXT_OBJ;
   struct MAP_OBJ_s *PREV_OBJ;

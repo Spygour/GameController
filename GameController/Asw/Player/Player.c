@@ -43,7 +43,7 @@
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState = COLOR_PENDING;
+PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState = CREATE_MAP;
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -66,7 +66,7 @@ float32 Player_Atan2(float32 y_axis, float32 x_axis)
     }
     else
     {
-      float32 z =fabsf(y_axis/x_axis);
+      float32 z = fabsf(y_axis/x_axis);
 
       arctan_approx = z * ( PI_4 - ( ( z - 1 ) * ( DEGS_FORMULA1 + DEGS_FORMULA2 * z ) ) );
       if (x_axis > 0.0f)
@@ -83,7 +83,7 @@ float32 Player_Atan2(float32 y_axis, float32 x_axis)
 }
 
 /* This function evaluates and calculates the wall's starting pixel if the user sees it */
-static uint8 Player_CheckObjOnFov(PLAYER_MAIN* mainUser, MAP_OBJ* obj, float32 relative_angle_start, float32 relative_angle_end)
+static uint8 Player_CheckObjOnFov(PLAYER_MAIN* mainUser, MAP_OBJ* obj, float32 *relative_angle_start, float32 *relative_angle_end)
 {
   uint8 result = 0;
   float32 angle_to_wall;
@@ -92,84 +92,86 @@ static uint8 Player_CheckObjOnFov(PLAYER_MAIN* mainUser, MAP_OBJ* obj, float32 r
   bool endInFov;
 
   /* Calculate start of wall - user position with looking center angle */
-  uint8 dxObjStart = mainUser->x_pos - obj->Xaxis;
-  uint8 dyObjStart = mainUser->y_pos - obj->Yaxis;
+  float32 dxObjStart = (float32)obj->Xaxis - (float32)mainUser->x_pos;
+  float32 dyObjStart = (float32)obj->Yaxis - (float32)mainUser->y_pos;
 
-  angle_to_wall = Player_Atan2((float32)dyObjStart, (float32)dxObjStart);
-  relative_angle_start = angle_to_wall - mainUser->angle;
+  angle_to_wall = Player_Atan2(dyObjStart, dxObjStart);
+  *relative_angle_start = angle_to_wall - mainUser->angle;
 
-  while (relative_angle_start > PI_1) { relative_angle_start -= 2* PI_1; };
-  while (relative_angle_start < PI_1) { relative_angle_start += 2* PI_1; };
+  while (*relative_angle_start > PI_1) { *relative_angle_start -= 2* PI_1; };
+  while (*relative_angle_start < -PI_1) { *relative_angle_start += 2* PI_1; };
 
-  uint8 dxObjEnd = mainUser->x_pos - (uint8)((float32)obj->Xaxis + cosf(obj->Angle) * obj->Distance);
-  uint8 dyObjEnd = mainUser->y_pos - (uint8)((float32)obj->Yaxis + sinf(obj->Angle) * obj->Distance);
-  angle_to_wall =  Player_Atan2((float32)dyObjEnd, (float32)dxObjEnd);
-  relative_angle_end = angle_to_wall - mainUser->angle;
+  float32 xEnd = obj->Xaxis + cosf(obj->Angle) * obj->Distance;
+  float32 yEnd = obj->Yaxis + sinf(obj->Angle) * obj->Distance;
+  float32 dxObjEnd = xEnd - mainUser->x_pos;
+  float32 dyObjEnd = yEnd - mainUser->y_pos;
+  angle_to_wall =  Player_Atan2(dyObjEnd, dxObjEnd);
+  *relative_angle_end = angle_to_wall - mainUser->angle;
 
-  while (relative_angle_end > PI_1) { relative_angle_end -= 2* PI_1; };
-  while (relative_angle_end < PI_1) { relative_angle_end += 2* PI_1; };
-  startInFov = (fabsf(relative_angle_start) <  (mainUser->fov / 2));
-  endInFov = (fabsf(relative_angle_end) <  (mainUser->fov / 2));
+  while (*relative_angle_end > PI_1) { *relative_angle_end -= 2* PI_1; };
+  while (*relative_angle_end < -PI_1) { *relative_angle_end += 2* PI_1; };
+  startInFov = (fabsf(*relative_angle_start) <  (mainUser->fov / 2));
+  endInFov = (fabsf(*relative_angle_end) <  (mainUser->fov / 2));
   if ( (startInFov == true)  && ( endInFov == true ))
   {
-    result = 3;
+    result = 3u;
   }
   else if (startInFov)
   {
-    result = 1;
+    result = 1u;
   }
   else if (endInFov)
   {
-    result = 2;
+    result = 2u;
   }
 
   return result;
 }
 
-uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 pixel_start , uint8 pixel_end )
+uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 *pixel_start , uint8 *pixel_end )
 {
   float32 angle_start = 0.0f;
   float32 angle_end = 0.0f;
-  uint8 result = Player_CheckObjOnFov(mainUser, obj, angle_start, angle_end);
-  if (result == 1)
+  uint8 result = Player_CheckObjOnFov(mainUser, obj, &angle_start, &angle_end);
+  if (result == 1u)
   {
-    pixel_start = (uint8)( SCREEN_WIDTH * (angle_start + (mainUser->fov / 2.0f)) / mainUser->fov );
+    *pixel_start = (uint8)( SCREEN_WIDTH * (angle_start + (mainUser->fov / 2.0f)) / mainUser->fov );
   }
-  else if (result == 2)
+  else if (result == 2u)
   {
-    pixel_end = (uint8)( SCREEN_WIDTH * (angle_end + (mainUser->fov / 2.0f)) / mainUser->fov ) ;
+    *pixel_end = (uint8)( SCREEN_WIDTH * (angle_end + (mainUser->fov / 2.0f)) / mainUser->fov ) ;
   }
-  else if (result == 3)
+  else if (result == 3u)
   {
-    pixel_start = (uint8)( SCREEN_WIDTH * (angle_start + (mainUser->fov / 2.0f) ) / mainUser->fov);
-    pixel_end = (uint8)( SCREEN_WIDTH * (angle_end + (mainUser->fov / 2.0f)) / mainUser->fov);
+    *pixel_start = (uint8)( SCREEN_WIDTH * (angle_start + (mainUser->fov / 2.0f) ) / mainUser->fov);
+    *pixel_end = (uint8)( SCREEN_WIDTH * (angle_end + (mainUser->fov / 2.0f)) / mainUser->fov);
   }
   else 
   {
     /* This is when the result is zero */
     if ((angle_start < 0.0f) && (angle_end > 0.0f))
     {
-      pixel_start = 0U;
-      pixel_end = SCREEN_WIDTH;
+      *pixel_start = 0U;
+      *pixel_end = SCREEN_WIDTH;
       result = 4U;
     }
     else if ( (angle_start > 0.0f) && (angle_end < 0.0f))
     {
-      pixel_start = 0U;
-      pixel_end = SCREEN_WIDTH;
+      *pixel_start = 0U;
+      *pixel_end = SCREEN_WIDTH;
       result = 5U;
     }
   }
   return result;
 }
 
-void Player_Task16ms(void)
+void Player_Task1ms(void)
 {
   switch (Player_TransmitState)
   {
-    case COLOR_PENDING:
+    case CREATE_MAP:
     {
-      /* Here we calculate the colors that the user sees */
+      /* The map creation starts here depends on a cfg file maybe */
       
       break;
     }
