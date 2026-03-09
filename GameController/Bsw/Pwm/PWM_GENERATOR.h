@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file Player.h
+ * \file PWM_AND_digitalReadWrite.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,55 +25,27 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
-#ifndef ASW_PLAYER_PLAYER_H_
-#define ASW_PLAYER_PLAYER_H_
+
+#ifndef PWM_AND_DIGITALREADWRITE_H_
+#define PWM_AND_DIGITALREADWRITE_H_
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "../Asw/Map/Map.h"
+#include "IfxGtm_Tom_Pwm.h"
+#include "IfxGtm_Atom_Pwm.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define SCREEN_WIDTH  100.0F
-#define SCREEN_HEIGHT 100.0F
+
+/*********************************************************************************************************************/
+/*-------------------------------------------------Global variables--------------------------------------------------*/
+/*********************************************************************************************************************/
+extern boolean GtmModuleInit;
 /*********************************************************************************************************************/
 /*-------------------------------------------------Data Structures---------------------------------------------------*/
 /*********************************************************************************************************************/
- typedef struct
- {
-  uint8 x_pos;
-  uint8 y_pos;
-  uint8 distance;
-  float32 angle;
-  uint8 x_startPosition;
-  uint8 y_startPosition;
-  float32 fov;
- }PLAYER_MAIN;
 
- typedef struct
- {
-  uint8 x_start;
-  uint8 y_end;
-  uint8 distance;
-  uint8 angleStep;
-  uint8 type;
-  uint8 ack;
-  uint8 Color;
- }COLOR_PACKET;
-
- typedef enum
- {
-  CREATE_MAP,
-  COLOR_PENDING,
-  COLOR_WAIT,
-  COLOR_SEND
- }PLAYER_TRANSACTION_COLOR_STATE;
-
- /*********************************************************************************************************************/
-/*-------------------------------------------------Global variables--------------------------------------------------*/
-/*********************************************************************************************************************/
-extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -81,8 +53,14 @@ extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
+void TomPwm_Init(IfxGtm_Tom_Pwm_Driver* mytomdriver,uint16 period,uint16 dutyCycle,uint16 clock,IfxGtm_Tom_ToutMap* pin, IfxSrc_Tos coreNum);
+void AtomPwm_Init(IfxGtm_Atom_Pwm_Driver* myatomdriver,uint16 period,uint16 dutyCycle,IfxGtm_Atom_ToutMap* pin, IfxSrc_Tos coreNum);
+void TomPwm_SetPeriod(IfxGtm_Tom_Pwm_Driver* mytomdriver,uint16 period);
+void TomPwm_SetClock(IfxGtm_Tom_Pwm_Driver* mytomdriver,uint16 clock);
+void AtomPwm_SetPeriod(IfxGtm_Atom_Pwm_Driver* myatomdriver,uint16 period);
+void AtomPwm_SetClock(IfxGtm_Atom_Pwm_Driver* myatomdriver,uint16 clock);
+void TomPwm_SetDutyCycle(IfxGtm_Tom_Pwm_Driver* mytomdriver,uint16 dutyCycle);
+void AtomPwm_SetDutyCycle(IfxGtm_Atom_Pwm_Driver* myatomdriver,uint16 dutyCycle);
 
-uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 *pixel_start , uint8 *pixel_end );
-float32 Player_Atan2(float32 y_axis, float32 x_axis);
 
-#endif /* ASW_PLAYER_PLAYER_H_ */
+#endif /* PWM_AND_DIGITALREADWRITE_H_ */

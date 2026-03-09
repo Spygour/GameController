@@ -31,7 +31,6 @@
 /*********************************************************************************************************************/
 
 #include "../Bsw/QuadSpi/QSpiAtom.h"
-#include "../Bsw/Pwm/PWM_GENERATOR.h"
 #include "../Bsw/Dma/Dma.h"
 #include "IfxCpu_IntrinsicsTasking.h"
 /*********************************************************************************************************************/
@@ -376,8 +375,6 @@ void QSpiAtom_Init(float32 baseFrequency,IfxGtm_Atom_ToutMap* masterPin, IfxGtm_
   /* Enable GTM, it is necessary if the GTM is not initialized earlier */
   
   IfxGtm_enable(&MODULE_GTM);
-
-  GtmModuleInit = TRUE;
 
   frequency = IfxGtm_Cmu_getModuleFrequency(&MODULE_GTM);
   /* Set the global clock frequency to the max */

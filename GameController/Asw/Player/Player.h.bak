@@ -56,11 +56,11 @@
   uint8 x_start;
   uint8 y_end;
   uint8 distance;
-  uint8 angleStep;
+  uint8 angle;
   uint8 type;
   uint8 ack;
   uint8 Color;
- }COLOR_PACKET;
+ }COLOR_PACKET
 
  typedef enum
  {
@@ -81,8 +81,7 @@ extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-
-uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 *pixel_start , uint8 *pixel_end );
-float32 Player_Atan2(float32 y_axis, float32 x_axis);
+ uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 pixel_start , uint8 pixel_end );
+ float32 Player_Atan2(float32 y_axis, float32 x_axis);
 
 #endif /* ASW_PLAYER_PLAYER_H_ */

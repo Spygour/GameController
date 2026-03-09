@@ -41,6 +41,7 @@
 #include "IfxCpu.h"
 #include "IfxScuWdt.h"
 #include "../Asw/PixelSend/PixelSend.h"
+#include "../Asw/UserOs/UserOs.h"
 #include "Bsp.h"
 
 IfxCpu_syncEvent cpuSyncEvent = 0;
@@ -58,10 +59,14 @@ int core0_main(void)
     /* Wait for CPU sync event */
     IfxCpu_emitEvent(&cpuSyncEvent);
     IfxCpu_waitEvent(&cpuSyncEvent, 1);
-    Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
+
+    /* Init the application */
+    PixelSend_Init();
+
+    /* Init the OS */
+    vTasksInit();
     while(1)
     {
-      wait(time100ms);
     }
     return (1);
 }

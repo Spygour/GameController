@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file Player.h
+ * \file I2C.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,55 +25,28 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
-#ifndef ASW_PLAYER_PLAYER_H_
-#define ASW_PLAYER_PLAYER_H_
+#ifndef INFINEONARDUINOLIKE_I2C_H_
+#define INFINEONARDUINOLIKE_I2C_H_
+
+#include "Ifx_Types.h"
+#include "IfxI2c_I2c.h"
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "../Asw/Map/Map.h"
+
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define SCREEN_WIDTH  100.0F
-#define SCREEN_HEIGHT 100.0F
+
+/*********************************************************************************************************************/
+/*-------------------------------------------------Global variables--------------------------------------------------*/
+/*********************************************************************************************************************/
+
 /*********************************************************************************************************************/
 /*-------------------------------------------------Data Structures---------------------------------------------------*/
 /*********************************************************************************************************************/
- typedef struct
- {
-  uint8 x_pos;
-  uint8 y_pos;
-  uint8 distance;
-  float32 angle;
-  uint8 x_startPosition;
-  uint8 y_startPosition;
-  float32 fov;
- }PLAYER_MAIN;
-
- typedef struct
- {
-  uint8 x_start;
-  uint8 y_end;
-  uint8 distance;
-  uint8 angleStep;
-  uint8 type;
-  uint8 ack;
-  uint8 Color;
- }COLOR_PACKET;
-
- typedef enum
- {
-  CREATE_MAP,
-  COLOR_PENDING,
-  COLOR_WAIT,
-  COLOR_SEND
- }PLAYER_TRANSACTION_COLOR_STATE;
-
- /*********************************************************************************************************************/
-/*-------------------------------------------------Global variables--------------------------------------------------*/
-/*********************************************************************************************************************/
-extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
+ 
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -81,8 +54,11 @@ extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-
-uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 *pixel_start , uint8 *pixel_end );
-float32 Player_Atan2(float32 y_axis, float32 x_axis);
-
-#endif /* ASW_PLAYER_PLAYER_H_ */
+void I2c_Init(IfxI2c_I2c_Device* myi2cdev, IfxI2c_Scl_InOut* SclPin,IfxI2c_Sda_InOut* SdaPin,uint8 I2cAddress,float32 Baudrate);
+void I2c_Write(IfxI2c_I2c_Device* myi2cdev,uint8 *data,Ifx_SizeT size);
+void I2c_ReadBytes(IfxI2c_I2c_Device* myi2cdev,volatile uint8 *data,Ifx_SizeT size);
+void I2c_ReadRegister(IfxI2c_I2c_Device* myi2cdev,uint8 registerAddress, Ifx_SizeT size,volatile uint8* myRxTxBuffer);
+void I2c_InitSlave(IfxI2c_I2c_Device* myi2cdev, IfxI2c_Scl_InOut* SclPin,IfxI2c_Sda_InOut* SdaPin,uint8 I2cAddress,float32 Baudrate);
+void I2c_ReadSlave(IfxI2c_I2c_Device* myi2cdev,Ifx_SizeT size,volatile uint8* I2cSlaveBuffer);
+void I2c_WriteSlave(IfxI2c_I2c_Device* myi2cdev,Ifx_SizeT size,volatile uint8* I2cSlaveBuffer);
+#endif /* INFINEONARDUINOLIKE_I2C_H_ */

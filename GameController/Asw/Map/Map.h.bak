@@ -44,34 +44,13 @@
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
 
-#define MAP_MAX_OBJ 256u
-#define MAP_SECTOR_TYPE 20
+#define MAP_MAX_OBJ 128u
 
 typedef enum
 {
   WALL,
-  DOOR,
-  SECTOR_0,
-  SECTOR_1,
-  SECTOR_2,
-  SECTOR_3,
-  SECTOR_4,
-  SECTOR_5,
-  SECTOR_6,
-  SECTOR_7,
-  SECTOR_8,
-  SECTOR_9,
-  SECTOR_10,
-  SECTOR_11,
-  SECTOR_12,
-  SECTOR_13,
-  SECTOR_14,
-  SECTOR_15,
-  SECTOR_16,
-  SECTOR_17,
-  SECTOR_18,
-  SECTOR_19
-}MAP_OBJ_TYPE;
+  DOOR
+}MAP_TYPE;
 
 typedef struct MAP_OBJ_s
 {
@@ -82,38 +61,26 @@ typedef struct MAP_OBJ_s
   uint8 Yaxis;
   uint8 Length;
   float32 Angle;
-  MAP_OBJ_TYPE type;
-  uint8 SectorNumber;
+  uint8 Sector;
+  MAP_TYPE type;
   struct MAP_OBJ_s *NEXT_OBJ;
   struct MAP_OBJ_s *PREV_OBJ;
 }MAP_OBJ;
 
-typedef MAP_OBJ* MAP_OBJ_PTR;
+struct MAP_QUEUE;
 
-typedef struct
+typedef uint8 (*MAP_ADD_FUNC)(struct MAP_QUEUE *queue, MAP_OBJ *obj);
+typedef uint8 (*MAP_REMOVE_FUNC)(struct MAP_QUEUE *queue, MAP_OBJ *obj);
+
+typedef struct MAP_QUEUE
 {
-    MAP_OBJ* MapPtr;
-  uint32 size;
-}MAP_CFG_t;
-
-struct SECTOR_ARRAY;
-
-typedef uint8 (*SECTOR_ADD_FUNC)(struct SECTOR_ARRAY *array, MAP_OBJ *obj);
-typedef uint8 (*SECTOR_REMOVE_FUNC)(struct SECTOR_ARRAY *array);
-
-typedef struct SECTOR_ARRAY
-{
-  MAP_OBJ **map;
+  MAP_OBJ *first;
+  MAP_OBJ *last;
+  uint8 baseIndex;
   uint8 length;
-}SECTOR_ARRAY;
-
-typedef struct
-{
-  SECTOR_ARRAY* SectorPtr;
-  uint8*         SectorNum;
-  SECTOR_ADD_FUNC add;
-  SECTOR_REMOVE_FUNC remove;
-}MAP_t;
+  MAP_ADD_FUNC add;
+  MAP_REMOVE_FUNC remove;
+}MAP_QUEUE;
 
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
@@ -130,8 +97,8 @@ typedef struct
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
-uint8 Map_Init(MAP_CFG_t* MapCfg);
-MAP_OBJ* Map_ReturnObjPtr(MAP_OBJ* MapArray, uint8 idx);
-MAP_OBJ* Sector_ReturnObjptr(MAP_t *map, uint8 deep, uint8 sectorNum);
+bool Map_InitQueue(struct MAP_QUEUE *queue, MAP_OBJ *obj);
+uint8 Map_Init(void) ;
+MAP_OBJ* Map_ReturnObjPtr(uint8 idx);
 
 #endif /* ASW_WALLS_WALLS_H_ */

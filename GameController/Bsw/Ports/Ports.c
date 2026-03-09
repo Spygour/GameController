@@ -57,6 +57,19 @@ void Ports_SetPinOutputPullup(Ifx_P *port, uint8 pinIndex)
     IfxPort_setPinHigh(port,pinIndex);
 }
 
+void Ports_SetPinOutputOpenDrain(Ifx_P *port, uint8 pinIndex, boolean EnableState)
+{
+    IfxPort_setPinModeOutput(port,pinIndex, IfxPort_OutputMode_openDrain, IfxPort_OutputIdx_general);
+    if (EnableState == TRUE)
+    {
+        IfxPort_setPinHigh(port,pinIndex);
+    }
+    else
+    {
+        IfxPort_setPinLow(port,pinIndex);
+    }
+}
+
 void Ports_SetPinOutputTrue(Ifx_P *port, uint8 pinIndex)
 {
     IfxPort_setPinHigh(port,pinIndex);

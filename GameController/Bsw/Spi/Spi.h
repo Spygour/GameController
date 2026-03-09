@@ -41,7 +41,7 @@ typedef struct
 {
     const IfxQspi_Slso_Out* ChannelOutput;
     float32                Baudrate;
-    uint32                 ClockPolarity;
+    boolean                 ClockPolarity;
     boolean       ShiftClock;
     boolean      DataHeading;
 }SpiChannelConfig;

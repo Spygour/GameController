@@ -191,6 +191,25 @@ IFX_INLINE Ifx_TickTime now(void)
     return stmNow;
 }
 
+/** \brief Return system timer value (critical section).
+ *
+ * The function IfxStm_get() is called in a critical section, disabling
+ * the interrupts. The system timer value is limited to TIME_INFINITE.
+ *
+ * \return Returns system timer value.
+ */
+IFX_INLINE Ifx_TickTime now_stm1(void)
+{
+    Ifx_TickTime stmNow;
+    boolean      interruptState;
+
+    interruptState = disableInterrupts();
+    stmNow         = (Ifx_TickTime)IfxStm_get(&MODULE_STM1) & TIME_INFINITE;
+    restoreInterrupts(interruptState);
+
+    return stmNow;
+}
+
 
 /** \brief Return system timer value (without critical section).
  *
@@ -266,6 +285,28 @@ IFX_INLINE Ifx_TickTime getDeadLine(Ifx_TickTime timeout)
     return deadLine;
 }
 
+/** \brief Return the time dead line.
+ *
+ * \param timeout Specifies the dead line from now: Deadline = Now + Timeout
+ *
+ * \return Return the time dead line.
+ */
+IFX_INLINE Ifx_TickTime getDeadLine_stm1(Ifx_TickTime timeout)
+{
+    Ifx_TickTime deadLine;
+
+    if (timeout == TIME_INFINITE)
+    {
+        deadLine = TIME_INFINITE;
+    }
+    else
+    {
+        deadLine = now_stm1() + timeout;
+    }
+
+    return deadLine;
+}
+
 
 /** \brief Return the time until the dead line.
  *
@@ -308,6 +349,29 @@ IFX_INLINE boolean isDeadLine(Ifx_TickTime deadLine)
     else
     {
         result = now() >= deadLine;
+    }
+
+    return result;
+}
+
+/** \brief Return TRUE if the dead line is over.
+ *
+ * \param deadLine Specifies the dead line.
+ *
+ * \retval TRUE Returns TRUE if the dead line is over
+ * \retval FALSE Returns FALSE if the dead line is not yet over
+ */
+IFX_INLINE boolean isDeadLine_stm1(Ifx_TickTime deadLine)
+{
+    boolean result;
+
+    if (deadLine == TIME_INFINITE)
+    {
+        result = FALSE;
+    }
+    else
+    {
+        result = now_stm1() >= deadLine;
     }
 
     return result;
@@ -382,6 +446,20 @@ IFX_INLINE void wait(Ifx_TickTime timeout)
     Ifx_TickTime deadLine = getDeadLine(timeout);
 
     while (isDeadLine(deadLine) == FALSE)
+    {}
+}
+
+/** \brief Wait for a while.
+ *
+ * \param timeout Specifies the waiting time
+ *
+ * \return None.
+ */
+IFX_INLINE void wait_stm1(Ifx_TickTime timeout)
+{
+    Ifx_TickTime deadLine = getDeadLine_stm1(timeout);
+
+    while (isDeadLine_stm1(deadLine) == FALSE)
     {}
 }
 

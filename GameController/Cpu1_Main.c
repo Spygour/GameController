@@ -27,6 +27,8 @@
 #include "Ifx_Types.h"
 #include "IfxCpu.h"
 #include "IfxScuWdt.h"
+#include "TempControl.h"
+#include "Bsp.h"
 
 extern IfxCpu_syncEvent cpuSyncEvent;
 
@@ -42,8 +44,10 @@ void core1_main(void)
     /* Wait for CPU sync event */
     IfxCpu_emitEvent(&cpuSyncEvent);
     IfxCpu_waitEvent(&cpuSyncEvent, 1);
-    
+    Ifx_TickTime time1ms = IfxStm_getTicksFromMilliseconds(&MODULE_STM1, 100);
     while(1)
     {
+        TempControl_task();
+        wait_stm1(time1ms);
     }
 }

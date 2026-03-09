@@ -410,6 +410,15 @@ IFX_EXTERN void IfxI2c_I2c_initDeviceConfig(IfxI2c_I2c_deviceConfig *i2cDeviceCo
  */
 IFX_EXTERN void IfxI2c_I2c_initModule(IfxI2c_I2c *i2c, const IfxI2c_I2c_Config *config);
 
+/** \brief Initializes the Module as Slave
+ * \param i2c Handler
+ * \param config Configuration structure
+ * \return None
+ *
+ *
+ */
+IFX_EXTERN void IfxI2c_I2c_initSlaveModule(IfxI2c_I2c *i2c, const IfxI2c_I2c_Config *config, uint8 I2cAddress);
+
 /** \brief reads the I2c device
  *
  * A coding example can be found in \ref IfxLld_I2c_I2c_Usage
@@ -417,12 +426,26 @@ IFX_EXTERN void IfxI2c_I2c_initModule(IfxI2c_I2c *i2c, const IfxI2c_I2c_Config *
  */
 IFX_EXTERN IfxI2c_I2c_Status IfxI2c_I2c_read(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size);
 
+
+
 /** \brief writes to the I2c device
  *
  * A coding example can be found in \ref IfxLld_I2c_I2c_Usage
  *
  */
 IFX_EXTERN IfxI2c_I2c_Status IfxI2c_I2c_write(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size);
+
+/** \brief read function for the slave device
+ *
+ *
+ */
+IFX_EXTERN IfxI2c_I2c_Status IfxI2c_I2c_SlaveRead(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size);
+
+/** \brief write function for the slave device
+ *
+ *
+ */
+IFX_EXTERN IfxI2c_I2c_Status IfxI2c_I2c_SlaveWrite(IfxI2c_I2c_Device *i2cDevice, volatile uint8 *data, Ifx_SizeT size);
 
 /** \} */
 

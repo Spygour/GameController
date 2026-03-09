@@ -33,8 +33,11 @@
 #include "../Bsw/Ports/Ports.h"
 #include "PixelSend.h"
 #include "../Asw/Map/Map.h"
+#include "../Asw/Map/Map_cfg.h"
+#include "../Asw/TempControl/TempControl.h"
 #include "Bsp.h"
-
+#include "../Asw/UserOs/UserOs.h"
+#include "Cpu/Std/IfxCpu_Intrinsics.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -86,28 +89,46 @@ QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
 
 void PixelSend_Init(void)
 {
-  boolean SpiReady;
+  boolean SpiReady = FALSE;
+
+  Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
+  /* Here we set a flag in order to inform core 1 that he can't start the fan before set the reset */
+  GameController_State = CORE0_INIT;
   Ports_SetPinInputNoPull(&PIXELSEND_READY);
 
   /* Initialize the fpga reset pin */
-  Ports_SetPinOutputPullup(&PIXELSEND_RESET);
+  Ports_SetPinOutputOpenDrain(&PIXELSEND_RESET, TRUE);
   /* Initialize the Spi Pin */
   QSpiAtom_Init(QSPI_FREQUENCY,  PIXELSEND_MASTERCLOCK, PixelSend_SpiSignals, PixelSend_SpiData);
 
-  Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
+  /* Initialize the temperature sensor and fan pwm */
+  TempControl_Init();
+
+  /* Here we set a flag in order to give core 1 that he can start the fan before set the reset */
+  __ldmst(&GameController_State, 0xFFFF, CORE1_INIT);
+  __dsync();
+
   wait(time100ms);
   /* Start the fpga */
   Ports_SetPinOutputFalse(&PIXELSEND_RESET);
+
+  /* Wait till the core 1 has started the control of the temperature */
+  do
+  {
+      __dsync();
+  } while(GameController_State == CORE1_INIT );
+
+  /* Wait 100 ms more for the fpga init */
   wait(time100ms);
 
-  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
   /* Wait till the port becomes true */
-  while (SpiReady == FALSE)
+  do
   {
-    SpiReady = Ports_GetPinState(&PIXELSEND_READY);
-  }
+      SpiReady = Ports_GetPinState(&PIXELSEND_READY);
+  } while(SpiReady == FALSE);
+
   /* Init the queue */
-  (void)Map_Init();
+  (void)Map_Init(&MapCfg);
 }
 
 

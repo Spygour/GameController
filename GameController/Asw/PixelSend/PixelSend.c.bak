@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file Player.h
+ * \file PixelSend.c
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,55 +25,53 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
-#ifndef ASW_PLAYER_PLAYER_H_
-#define ASW_PLAYER_PLAYER_H_
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
+#include "../Bsw/QuadSpi/QSpiAtom.h"
+#include "../Bsw/Ports/Ports.h"
+#include "PixelSend.h"
 #include "../Asw/Map/Map.h"
+#include "Bsp.h"
+
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define SCREEN_WIDTH  100.0F
-#define SCREEN_HEIGHT 100.0F
+#define PIXELSEND_READY MODULE_P00,3
+#define QSPI_FREQUENCY 10000000
+#define PIXELSEND_MAXSIZE 512U
+#define PIXELSEND_MOSI1                       0u
+#define PIXELSEND_MOSI2                       1u
+#define PIXELSEND_MOSI3                       2u
+#define PIXELSEND_CHIP_SELECT                 3u
+#define PIXELSEND_CLOCK                       4u
+#define PIXELSEND_MASTERCLOCK                 &IfxGtm_ATOM0_0_TOUT0_P02_0_OUT
+#define PIXELSEND_RESET MODULE_P00,4
 /*********************************************************************************************************************/
-/*-------------------------------------------------Data Structures---------------------------------------------------*/
-/*********************************************************************************************************************/
- typedef struct
- {
-  uint8 x_pos;
-  uint8 y_pos;
-  uint8 distance;
-  float32 angle;
-  uint8 x_startPosition;
-  uint8 y_startPosition;
-  float32 fov;
- }PLAYER_MAIN;
-
- typedef struct
- {
-  uint8 x_start;
-  uint8 y_end;
-  uint8 distance;
-  uint8 angleStep;
-  uint8 type;
-  uint8 ack;
-  uint8 Color;
- }COLOR_PACKET;
-
- typedef enum
- {
-  CREATE_MAP,
-  COLOR_PENDING,
-  COLOR_WAIT,
-  COLOR_SEND
- }PLAYER_TRANSACTION_COLOR_STATE;
-
- /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
+/* SPI Configuration Registers */
+IfxGtm_Atom_ToutMapP PixelSend_SpiSignals[5] =
+{
+  [PIXELSEND_MOSI1] = &IfxGtm_ATOM0_1_TOUT47_P22_0_OUT,
+  [PIXELSEND_MOSI2] = &IfxGtm_ATOM0_2_TOUT33_P33_11_OUT,
+  [PIXELSEND_MOSI3] = &IfxGtm_ATOM0_3_TOUT49_P22_2_OUT,
+  [PIXELSEND_CHIP_SELECT] = &IfxGtm_ATOM0_4_TOUT50_P22_3_OUT,
+  [PIXELSEND_CLOCK] = &IfxGtm_ATOM0_5_TOUT41_P23_0_OUT
+};
+
+static uint16 PixelSend_SpiData1[PIXELSEND_MAXSIZE];
+static uint16 PixelSend_SpiData2[PIXELSEND_MAXSIZE];
+static uint16 PixelSend_SpiData3[PIXELSEND_MAXSIZE];
+
+QSPIATOM_INPUTBUFFER PixelSend_SpiData[3] =
+{
+  PixelSend_SpiData1,
+  PixelSend_SpiData2,
+  PixelSend_SpiData3
+};
+
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -82,7 +80,58 @@ extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
 
-uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 *pixel_start , uint8 *pixel_end );
-float32 Player_Atan2(float32 y_axis, float32 x_axis);
+/*********************************************************************************************************************/
+/*---------------------------------------------Function Implementations----------------------------------------------*/
+/*********************************************************************************************************************/
 
-#endif /* ASW_PLAYER_PLAYER_H_ */
+void PixelSend_Init(void)
+{
+  boolean SpiReady;
+  Ports_SetPinInputNoPull(&PIXELSEND_READY);
+
+  /* Initialize the fpga reset pin */
+  Ports_SetPinOutputPullup(&PIXELSEND_RESET);
+  /* Initialize the Spi Pin */
+  QSpiAtom_Init(QSPI_FREQUENCY,  PIXELSEND_MASTERCLOCK, PixelSend_SpiSignals, PixelSend_SpiData);
+
+  Ifx_TickTime time100ms = IfxStm_getTicksFromMilliseconds(BSP_DEFAULT_TIMER, 100);
+  wait(time100ms);
+  /* Start the fpga */
+  Ports_SetPinOutputFalse(&PIXELSEND_RESET);
+  wait(time100ms);
+
+  SpiReady = Ports_GetPinState(&PIXELSEND_READY);
+  /* Wait till the port becomes true */
+  while (SpiReady == FALSE)
+  {
+    SpiReady = Ports_GetPinState(&PIXELSEND_READY);
+  }
+  /* Init the queue */
+  (void)Map_Init();
+}
+
+
+uint8 PixelSend_SendSpi(uint16 size)
+{
+  uint8 SendSpiEval = 0;
+  if (size <  PIXELSEND_MAXSIZE)
+  {
+    boolean SpiReady;
+    /* Wait till the port becomes high */
+    SpiReady = Ports_GetPinState(&PIXELSEND_READY);
+    if (SpiReady == TRUE)
+    {
+      SendSpiEval = 1;
+      QSpiAtom_StartQuadSpiTranscaction(size);
+    }
+    else
+    {
+     SendSpiEval = 0;
+    }
+  }
+  else 
+  {
+    SendSpiEval = 2;
+  }
+  return SendSpiEval;
+}

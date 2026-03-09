@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file Player.h
+ * \file TenoControl.h
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,55 +25,37 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
-#ifndef ASW_PLAYER_PLAYER_H_
-#define ASW_PLAYER_PLAYER_H_
+#ifndef TEMPCONTORL_TEMPCONTROL_H_
+#define TEMPCONTORL_TEMPCONTROL_H_
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "../Asw/Map/Map.h"
+#include "../Bsw/I2c/I2c.h"
+#include "Ifx_Types.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define SCREEN_WIDTH  100.0F
-#define SCREEN_HEIGHT 100.0F
+typedef enum
+{
+  BEST_TEMP,
+  INC_TEMP,
+  DEC_TEMP
+}Temperature_Controller;
+
+typedef enum
+{
+  WAIT_CORE0_INIT,
+  START_TEMPCONTROL
+}Temperature_State;
+/*********************************************************************************************************************/
+/*-------------------------------------------------Global variables--------------------------------------------------*/
+/*********************************************************************************************************************/
+extern boolean GiveCommand;
 /*********************************************************************************************************************/
 /*-------------------------------------------------Data Structures---------------------------------------------------*/
 /*********************************************************************************************************************/
- typedef struct
- {
-  uint8 x_pos;
-  uint8 y_pos;
-  uint8 distance;
-  float32 angle;
-  uint8 x_startPosition;
-  uint8 y_startPosition;
-  float32 fov;
- }PLAYER_MAIN;
-
- typedef struct
- {
-  uint8 x_start;
-  uint8 y_end;
-  uint8 distance;
-  uint8 angleStep;
-  uint8 type;
-  uint8 ack;
-  uint8 Color;
- }COLOR_PACKET;
-
- typedef enum
- {
-  CREATE_MAP,
-  COLOR_PENDING,
-  COLOR_WAIT,
-  COLOR_SEND
- }PLAYER_TRANSACTION_COLOR_STATE;
-
- /*********************************************************************************************************************/
-/*-------------------------------------------------Global variables--------------------------------------------------*/
-/*********************************************************************************************************************/
-extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
+ 
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -81,8 +63,10 @@ extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
+void TempControl_Init(void);
+void TempControl_ReadTemp(void);
+void TempControl_task(void);
+void TempControl_GetTempVal(float *RoomTemp);
+void TempControl_GetTempCommand(Temperature_Controller *tempCommand);
 
-uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 *pixel_start , uint8 *pixel_end );
-float32 Player_Atan2(float32 y_axis, float32 x_axis);
-
-#endif /* ASW_PLAYER_PLAYER_H_ */
+#endif /* TEMP_CTONROL */

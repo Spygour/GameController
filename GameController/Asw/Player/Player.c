@@ -35,7 +35,7 @@
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
 #define PI_1                        3.1415f
-#define PI_2                        1.6708f
+#define PI_2                        1.5708f
 #define PI_4                        0.7853f
 #define DEGS_FORMULA1 0.2443f
 #define DEGS_FORMULA2 0.0668F
@@ -47,7 +47,16 @@ PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState = CREATE_MAP;
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
-
+static PLAYER_MAIN Player_MainUser =
+{
+        .x_pos = 0u,
+        .y_pos = 0u,
+        .x_startPosition = 25u,
+        .y_startPosition = 25u,
+        .fov = PI_2,
+        .angle = 0.0f,
+        .distance = 0u
+};
 /*********************************************************************************************************************/
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -83,85 +92,102 @@ float32 Player_Atan2(float32 y_axis, float32 x_axis)
 }
 
 /* This function evaluates and calculates the wall's starting pixel if the user sees it */
-static uint8 Player_CheckObjOnFov(PLAYER_MAIN* mainUser, MAP_OBJ* obj, float32 *relative_angle_start, float32 *relative_angle_end)
+static uint8 Player_CalcPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, COLOR_PACKET* packet)
 {
   uint8 result = 0;
   float32 angle_to_wall;
+  uint16 distance_start;
+  float32 relative_angle_start;
+  float32 relative_angle_end;
+  float32 halfFov = mainUser->fov *0.5f;
 
   bool startInFov;
   bool endInFov;
+  bool insideFov;
+
+  packet->y_end = 100u;
+  packet->Color = obj->Color;
 
   /* Calculate start of wall - user position with looking center angle */
-  float32 dxObjStart = (float32)obj->Xaxis - (float32)mainUser->x_pos;
-  float32 dyObjStart = (float32)obj->Yaxis - (float32)mainUser->y_pos;
-
+  float dxObjStart = (float)obj->Xaxis - (float)mainUser->x_pos;
+  float dyObjStart = (float)obj->Yaxis - (float)mainUser->y_pos;
   angle_to_wall = Player_Atan2(dyObjStart, dxObjStart);
-  *relative_angle_start = angle_to_wall - mainUser->angle;
+  relative_angle_start = angle_to_wall - mainUser->angle;
 
-  while (*relative_angle_start > PI_1) { *relative_angle_start -= 2* PI_1; };
-  while (*relative_angle_start < -PI_1) { *relative_angle_start += 2* PI_1; };
+  while (relative_angle_start > PI_1) { relative_angle_start -= 2* PI_1; };
+  while (relative_angle_start < -PI_1) { relative_angle_start += 2* PI_1; };
 
-  float32 xEnd = obj->Xaxis + cosf(obj->Angle) * obj->Distance;
-  float32 yEnd = obj->Yaxis + sinf(obj->Angle) * obj->Distance;
+  float32 xEnd = obj->Xaxis + cosf(obj->Angle) * obj->Length;
+  float32 yEnd = obj->Yaxis + sinf(obj->Angle) * obj->Length;
   float32 dxObjEnd = xEnd - mainUser->x_pos;
   float32 dyObjEnd = yEnd - mainUser->y_pos;
   angle_to_wall =  Player_Atan2(dyObjEnd, dxObjEnd);
-  *relative_angle_end = angle_to_wall - mainUser->angle;
+  relative_angle_end = angle_to_wall - mainUser->angle;
 
-  while (*relative_angle_end > PI_1) { *relative_angle_end -= 2* PI_1; };
-  while (*relative_angle_end < -PI_1) { *relative_angle_end += 2* PI_1; };
-  startInFov = (fabsf(*relative_angle_start) <  (mainUser->fov / 2));
-  endInFov = (fabsf(*relative_angle_end) <  (mainUser->fov / 2));
-  if ( (startInFov == true)  && ( endInFov == true ))
+  while (relative_angle_end > PI_1) { relative_angle_end -= 2* PI_1; };
+  while (relative_angle_end < -PI_1) { relative_angle_end += 2* PI_1; };
+  startInFov = (fabsf(relative_angle_start) < halfFov);
+  endInFov = (fabsf(relative_angle_end) <  halfFov);
+  insideFov = ((relative_angle_start < -halfFov && relative_angle_end > halfFov) ||
+      (relative_angle_end < -halfFov && relative_angle_start > halfFov));
+  if ( startInFov == true)
   {
-    result = 3u;
-  }
-  else if (startInFov)
-  {
+    packet->x_start = (uint8)( SCREEN_WIDTH * (relative_angle_start + halfFov) / mainUser->fov );
+    /* Calculate the distance */
+    packet->distance = (uint8)(dxObjStart*dxObjStart + dyObjStart*dyObjStart);
+
+    if (relative_angle_start > 0.0)
+    {
+      packet->angleStep = fabsf(relative_angle_start) * (180.0f / PI_1);
+      packet->type = 3u;
+    }
+    else if (relative_angle_start == 0.0 )
+    {
+      packet->angleStep = 0;
+      packet->type = 1u;
+    }
+    else
+    {
+      packet->angleStep = fabsf(relative_angle_start) * (180.0f / PI_1);
+      packet->type = 2u;
+    }
     result = 1u;
   }
-  else if (endInFov)
+  else if (endInFov || insideFov)
   {
+    float32 startAngle = mainUser->angle - halfFov;
+    float tanfUser = tanf(startAngle);
+    float tanfWall =  tanf(obj->Angle);
+    packet->x_start = 0;
+
+    float32 x_first =
+        (obj->Yaxis - tanfWall * obj->Xaxis + tanfUser * mainUser->x_pos - mainUser->y_pos)
+        / (tanfUser - tanfWall);
+    float32 y_first = (tanfUser*x_first + mainUser->y_pos - tanfUser*mainUser->x_pos);
+
+    /* Calculate start of wall - user position with looking center angle */
+    dxObjStart = x_first - (float)mainUser->x_pos;
+    dyObjStart = y_first - (float)mainUser->y_pos;
+    packet->distance = (uint8)(dxObjStart*dxObjStart + dyObjStart*dyObjStart);
+
+    if (startAngle > 0.0)
+    {
+      packet->angleStep = (uint8)(fabsf(startAngle) * (180.0f / PI_1));
+      packet->type = 3u;
+    }
+    else if (startAngle == 0.0 )
+    {
+      packet->angleStep = 0u;
+      packet->type = 1u;
+    }
+    else
+    {
+      packet->angleStep = (uint8)(fabsf(startAngle) * (180.0f / PI_1));
+      packet->type = 2u;
+    }
     result = 2u;
   }
 
-  return result;
-}
-
-uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 *pixel_start , uint8 *pixel_end )
-{
-  float32 angle_start = 0.0f;
-  float32 angle_end = 0.0f;
-  uint8 result = Player_CheckObjOnFov(mainUser, obj, &angle_start, &angle_end);
-  if (result == 1u)
-  {
-    *pixel_start = (uint8)( SCREEN_WIDTH * (angle_start + (mainUser->fov / 2.0f)) / mainUser->fov );
-  }
-  else if (result == 2u)
-  {
-    *pixel_end = (uint8)( SCREEN_WIDTH * (angle_end + (mainUser->fov / 2.0f)) / mainUser->fov ) ;
-  }
-  else if (result == 3u)
-  {
-    *pixel_start = (uint8)( SCREEN_WIDTH * (angle_start + (mainUser->fov / 2.0f) ) / mainUser->fov);
-    *pixel_end = (uint8)( SCREEN_WIDTH * (angle_end + (mainUser->fov / 2.0f)) / mainUser->fov);
-  }
-  else 
-  {
-    /* This is when the result is zero */
-    if ((angle_start < 0.0f) && (angle_end > 0.0f))
-    {
-      *pixel_start = 0U;
-      *pixel_end = SCREEN_WIDTH;
-      result = 4U;
-    }
-    else if ( (angle_start > 0.0f) && (angle_end < 0.0f))
-    {
-      *pixel_start = 0U;
-      *pixel_end = SCREEN_WIDTH;
-      result = 5U;
-    }
-  }
   return result;
 }
 

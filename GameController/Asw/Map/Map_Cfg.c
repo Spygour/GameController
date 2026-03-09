@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * \file Player.h
+ * \file Map_Cfg.c
  * \copyright Copyright (C) Infineon Technologies AG 2019
  * 
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of 
@@ -25,55 +25,84 @@
  * IN THE SOFTWARE.
  *********************************************************************************************************************/
 
-#ifndef ASW_PLAYER_PLAYER_H_
-#define ASW_PLAYER_PLAYER_H_
 
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "../Asw/Map/Map.h"
+#include "Map_Cfg.h"
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define SCREEN_WIDTH  100.0F
-#define SCREEN_HEIGHT 100.0F
+
 /*********************************************************************************************************************/
-/*-------------------------------------------------Data Structures---------------------------------------------------*/
-/*********************************************************************************************************************/
- typedef struct
- {
-  uint8 x_pos;
-  uint8 y_pos;
-  uint8 distance;
-  float32 angle;
-  uint8 x_startPosition;
-  uint8 y_startPosition;
-  float32 fov;
- }PLAYER_MAIN;
-
- typedef struct
- {
-  uint8 x_start;
-  uint8 y_end;
-  uint8 distance;
-  uint8 angleStep;
-  uint8 type;
-  uint8 ack;
-  uint8 Color;
- }COLOR_PACKET;
-
- typedef enum
- {
-  CREATE_MAP,
-  COLOR_PENDING,
-  COLOR_WAIT,
-  COLOR_SEND
- }PLAYER_TRANSACTION_COLOR_STATE;
-
- /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
-extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
+/* 4 walls forming a box */
+static MAP_OBJ mapObjects[4] =
+{
+    /* Left wall */
+    {
+        .Color = 40,
+        .Distance = 0,
+        .Xaxis = 0,
+        .Yaxis = 0,
+        .Length = 50,
+        .Angle = 90.0f,
+        .type = WALL,
+        .SectorNumber = 0u,
+        .NEXT_OBJ = &mapObjects[1],
+        .PREV_OBJ = NULL
+    },
+
+    /* Top wall */
+    {
+        .Color = 40,
+        .Distance = 0,
+        .Xaxis = 0,
+        .Yaxis = 50,
+        .Length = 50,
+        .Angle = 0.0f,
+        .type = WALL,
+        .SectorNumber = 0u,
+        .NEXT_OBJ = &mapObjects[2],
+        .PREV_OBJ = &mapObjects[0]
+    },
+
+    /* Right wall */
+    {
+        .Color = 40,
+        .Distance = 0,
+        .Xaxis = 50,
+        .Yaxis = 0,
+        .Length = 50,
+        .Angle = 90.0f,
+        .type = WALL,
+        .SectorNumber = 0u,
+        .NEXT_OBJ = &mapObjects[3],
+        .PREV_OBJ = &mapObjects[1]
+    },
+
+    /* Bottom wall */
+    {
+        .Color = 40,
+        .Distance = 0,
+        .Xaxis = 0,
+        .Yaxis = 0,
+        .Length = 50,
+        .Angle = 0.0f,
+        .type = WALL,
+        .SectorNumber = 0u,
+        .NEXT_OBJ = NULL,
+        .PREV_OBJ = &mapObjects[2]
+    }
+};
+
+/* Map configuration */
+MAP_CFG_t MapCfg =
+{
+    .MapPtr = mapObjects,
+    .size   = 4
+};
 /*********************************************************************************************************************/
 /*--------------------------------------------Private Variables/Constants--------------------------------------------*/
 /*********************************************************************************************************************/
@@ -82,7 +111,6 @@ extern PLAYER_TRANSACTION_COLOR_STATE Player_TransmitState;
 /*------------------------------------------------Function Prototypes------------------------------------------------*/
 /*********************************************************************************************************************/
 
-uint8 Player_CalcStartingPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, uint8 *pixel_start , uint8 *pixel_end );
-float32 Player_Atan2(float32 y_axis, float32 x_axis);
-
-#endif /* ASW_PLAYER_PLAYER_H_ */
+/*********************************************************************************************************************/
+/*---------------------------------------------Function Implementations----------------------------------------------*/
+/*********************************************************************************************************************/

@@ -304,7 +304,8 @@ void IfxI2c_setBaudrate(Ifx_I2C *i2c, float32 baudrate)
 
 void IfxI2c_configureAsSlave(Ifx_I2C *i2c)
 {
-    i2c->ADDRCFG.B.MnS = 1; // master mode
+    IfxI2c_stop(i2c);
+    i2c->ADDRCFG.B.MnS = 1; // slave mode
 }
 
 

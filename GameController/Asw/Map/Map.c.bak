@@ -37,87 +37,10 @@
 /*********************************************************************************************************************/
 #include "Map.h"
 
-
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
-#define MAP_SECTORS_MAX_NUM 13
-#define MAP_WALLS_MAX_NUM 20
-
-static MAP_OBJ* Walls_Sector_0[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_1[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_2[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_3[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_4[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_5[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_6[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_7[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_8[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_9[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_10[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_11[MAP_WALLS_MAX_NUM];
-static MAP_OBJ* Walls_Sector_12[MAP_WALLS_MAX_NUM];
-
-static SECTOR_ARRAY Map_Sectors[MAP_SECTORS_MAX_NUM] =
-{
-    {
-        Walls_Sector_0,
-        0u
-    },
-    {
-        Walls_Sector_1,
-        0u
-    },
-    {
-        Walls_Sector_2,
-        0u
-    },
-    {
-        Walls_Sector_3,
-        0u
-    },
-    {
-        Walls_Sector_4,
-        0u
-    },
-    {
-        Walls_Sector_5,
-        0u
-    },
-    {
-        Walls_Sector_6,
-        0u
-    },
-    {
-        Walls_Sector_7,
-        0u
-    },
-    {
-        Walls_Sector_8,
-        0u
-    },
-    {
-        Walls_Sector_9,
-        0u
-    },
-    {
-        Walls_Sector_10,
-        0u
-    },
-    {
-        Walls_Sector_11,
-        0u
-    },
-    {
-        Walls_Sector_12,
-        0u
-    }
-};
-static uint8 Map_SectorsNum[MAP_SECTORS_MAX_NUM];
-static  MAP_t Map_Main = {
-  Map_Sectors,
-  Map_SectorsNum
-};
+static MAP_OBJ Map_ObjsBuf[MAP_MAX_OBJ];
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -134,15 +57,18 @@ static  MAP_t Map_Main = {
 /*********************************************************************************************************************/
 /*---------------------------------------------Function Implementations----------------------------------------------*/
 /*********************************************************************************************************************/
-static uint8 Sector_AddObj(struct SECTOR_ARRAY *array, MAP_OBJ *obj)
+static uint8 Map_AddObj(struct MAP_QUEUE *queue, MAP_OBJ *obj)
 {
-  uint8 result = 1U;
-  if (array->length < MAP_MAX_OBJ)
+  uint8 result = 0U;
+  if (queue->length < MAP_MAX_OBJ)
   {
-    array->map[array->length] = obj;
-    array->length++;
-  }
-  else
+    queue->length++;
+    obj->NEXT_OBJ =  NULL_PTR;
+    obj->PREV_OBJ = queue->last;
+    queue->last->NEXT_OBJ= obj;
+    queue->last = obj;
+    result = 1U;
+  } else 
   {
     result = 2U;
   }
@@ -151,78 +77,60 @@ static uint8 Sector_AddObj(struct SECTOR_ARRAY *array, MAP_OBJ *obj)
 }
 
 
-static uint8 Sector_RemoveObj(struct SECTOR_ARRAY *array)
+static uint8 Map_RemoveObj(struct MAP_QUEUE *queue, MAP_OBJ *obj)
 {
   uint8 result = 1U;
-  if (array->length >= 1u)
+  if (queue->length >= 1u)
   {
-    array->map[array->length - 1] = NULL_PTR;
-    array->length--;
+    queue->last = queue->last->PREV_OBJ;
+    queue->last->NEXT_OBJ = NULL_PTR;
+    queue->length--;
   } 
   else 
   {
-    result = 2U;
+    result = 0U;
   }
   return result;
 }
 
+bool Map_InitQueue(struct MAP_QUEUE *queue, MAP_OBJ *obj)
+{
+  bool result = false;
+  if (obj != NULL_PTR)
+  {
+    queue->add = &Map_AddObj;
+    queue->remove = &Map_RemoveObj;
+    queue->first = obj;
+    queue->last = obj;
+    queue->length++;
+    queue->baseIndex = 0u;
+    result = true;
+  }
+  return result;
+}
 
-uint8 Map_Init(MAP_CFG_t* MapCfg)
+uint8 Map_Init(void)
 {
   /* Initialize the WallsBuffer first */
   uint8 result = 1U;
-  uint8 SectorNum = 0xFFU;
-
-  Map_Main.add = &Sector_AddObj;
-  Map_Main.remove = &Sector_RemoveObj;
-
-  for (uint8 i = 0; i < MapCfg->size; i++)
+  for (uint8 i = 0; i < MAP_MAX_OBJ; i++)
   {
-    SectorNum =  MapCfg->MapPtr[i].SectorNumber;
-    if (SectorNum > MAP_SECTORS_MAX_NUM)
-    {
-      result = 3;
-      break;
-    }
-    result = Map_Main.add(&Map_Main.SectorPtr[SectorNum ], &MapCfg->MapPtr[i]);
-    if (result == 2)
-    {
-      break;
-    }
-    else
-    {
-      Map_Main.SectorNum[SectorNum]++;
-    }
-  }
+    Map_ObjsBuf[i].type = WALL;
+   }
 
   return result;
 }
 
-MAP_OBJ* Map_ReturnObjPtr(MAP_OBJ* MapArray, uint8 idx)
+MAP_OBJ* Map_ReturnObjPtr(uint8 idx)
 {
     MAP_OBJ* ObjPtr;
     if (idx < MAP_MAX_OBJ)
     {
-        ObjPtr = &MapArray[idx];
+        ObjPtr = &Map_ObjsBuf[idx];
     }
     else
     {
-        ObjPtr = &MapArray[0u];
+        ObjPtr = &Map_ObjsBuf[0u];
     }
     return ObjPtr;
-}
-
-MAP_OBJ* Sector_ReturnObjptr(MAP_t *map, uint8 deep, uint8 sectorNum)
-{
-  MAP_OBJ* ObjPtr;
-
-  if (sectorNum < MAP_SECTORS_MAX_NUM)
-  {
-    ObjPtr = map->SectorPtr[sectorNum].map[deep];
-  }
-  else
-  {
-    ObjPtr = map->SectorPtr[0].map[0];
-  }
-  return ObjPtr;
 }
