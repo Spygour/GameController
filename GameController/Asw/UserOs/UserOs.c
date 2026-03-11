@@ -34,6 +34,14 @@
 #include "IfxStm.h"
 #include "../Bsw/Os/include/FreeRTOS.h"
 #include "../Bsw/Os/include/task.h"
+#include "Ifx_Types.h"
+
+#define GPT_TIMER 0
+#if GPT_TIMER
+#include "IfxGpt12.h"
+#else
+#include "IfxStm.h"
+#endif
 /*********************************************************************************************************************/
 /*------------------------------------------------------Macros-------------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -44,6 +52,10 @@
 #define TASK_1_MS_PRIORITY 2
 
 #define TASK_500_MS_PRIORITY 1
+
+#if GPT_TIMER
+#define RELOAD_VALUE                97u                  /* Reload value to have an interrupt each 500ms         */
+#endif
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -111,14 +123,18 @@ configTIMER_TASK_STACK_DEPTH is specified in words, not bytes. */
 *puxTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
 
+uint32 var = 0;
 void vApplicationIdleHook( void )
 {
   /* Here the user can write in case reached a failure in the os */
+  var++;
 }
 
 
 void OsTasks_setupTimerInterrupt(Ifx_STM *stm)
 {
+#if !GPT_TIMER
+    IfxStm_setSuspendMode(stm, IfxStm_SuspendMode_soft);
     IfxStm_setCompareControl(stm,
                              IfxStm_Comparator_0,
                              IfxStm_ComparatorOffset_0,
@@ -142,6 +158,29 @@ void OsTasks_setupTimerInterrupt(Ifx_STM *stm)
                              stmCount + (configSTM_CLOCK_HZ/configTICK_RATE_HZ )* 100 );
         IfxStm_enableComparatorInterrupt(stm, IfxStm_Comparator_0);
     }
+#else
+    /* Initialize the GPT12 module */
+    IfxGpt12_enableModule(&MODULE_GPT120);                                          /* Enable the GPT12 module      */
+    IfxGpt12_setGpt1BlockPrescaler(&MODULE_GPT120, IfxGpt12_Gpt1BlockPrescaler_16); /* Set GPT1 block prescaler     */
+
+    /* Initialize the Timer T3 */
+    IfxGpt12_T3_setMode(&MODULE_GPT120, IfxGpt12_Mode_timer);                       /* Set T3 to timer mode         */
+    IfxGpt12_T3_setTimerDirection(&MODULE_GPT120, IfxGpt12_TimerDirection_down);    /* Set T3 count direction       */
+    IfxGpt12_T3_setTimerPrescaler(&MODULE_GPT120, IfxGpt12_TimerInputPrescaler_64); /* Set T3 input prescaler       */
+    IfxGpt12_T3_setTimerValue(&MODULE_GPT120, RELOAD_VALUE);                        /* Set T3 start value           */
+
+    /* Initialize the Timer T2 */
+    IfxGpt12_T2_setMode(&MODULE_GPT120, IfxGpt12_Mode_reload);                      /* Set T2 to reload mode        */
+    IfxGpt12_T2_setReloadInputMode(&MODULE_GPT120, IfxGpt12_ReloadInputMode_bothEdgesTxOTL); /* Set reload trigger  */
+    IfxGpt12_T2_setTimerValue(&MODULE_GPT120, RELOAD_VALUE);                        /* Set T2 reload value          */
+
+    /* Initialize the interrupt */
+    volatile Ifx_SRC_SRCR *src = IfxGpt12_T3_getSrc(&MODULE_GPT120);                /* Get the interrupt address    */
+    IfxSrc_init(src, IfxSrc_Tos_cpu0, configKERNEL_INTERRUPT_PRIORITY);           /* Initialize service request   */
+    IfxSrc_enable(src);
+
+    IfxGpt12_T3_run(&MODULE_GPT120, IfxGpt12_TimerRun_start);                       /* Start the timer              */
+#endif
 }
 
 /**
@@ -151,16 +190,17 @@ void OsTasks_setupTimerInterrupt(Ifx_STM *stm)
  */
 IFX_INTERRUPT(OsTasks_TickProvider, 0, configKERNEL_INTERRUPT_PRIORITY)
 {
+    var++;
+  vPortSystemTickHandler();
+#if !GPT_TIMER
   uint32 stmCount= IfxStm_getCompare(&MODULE_STM0, IfxStm_Comparator_0);
   IfxStm_updateCompare(&MODULE_STM0,
                                IfxStm_Comparator_0,
                                stmCount + configSTM_CLOCK_HZ/configTICK_RATE_HZ );
-    vPortSystemTickHandler();
+#else
+  /* Do nothing here */
+#endif
 }
-
-
-
-
 
 void vTasksInit(void)
 {

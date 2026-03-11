@@ -107,7 +107,7 @@
 #define configMAX_CO_ROUTINE_PRIORITIES 	( 2 )
 
 /* Software timer configuration. */
-#define configUSE_TIMERS					(0)
+#define configUSE_TIMERS					(1)
 #define configSTM_MODULE					(AURIX_STM0)
 #define configSTM_CLOCK_HZ					(configCPU_CLOCK_HZ/3)
 #define configTIMER_TASK_PRIORITY			( 9 )

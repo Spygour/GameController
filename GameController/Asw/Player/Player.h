@@ -46,6 +46,7 @@
   uint8 y_pos;
   uint8 distance;
   float32 angle;
+  float32 tanLeftAngle;
   uint8 x_startPosition;
   uint8 y_startPosition;
   float32 fov;
