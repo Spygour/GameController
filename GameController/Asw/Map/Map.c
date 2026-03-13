@@ -139,6 +139,10 @@ static uint8 Sector_AddObj(struct SECTOR_ARRAY *array, MAP_OBJ *obj)
   uint8 result = 1U;
   if (array->length < MAP_MAX_OBJ)
   {
+    /* Calculate only on initialization the trigonometric information */
+    obj->cosAngle = cosf(obj->Angle);
+    obj->sinAngle = sinf(obj->Angle);
+    obj->tanAngle = tanf(obj->Angle);
     array->map[array->length] = obj;
     array->length++;
   }
