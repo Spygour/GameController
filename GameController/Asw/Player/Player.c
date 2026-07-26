@@ -40,8 +40,9 @@
 #define DEGS_FORMULA1 0.2443f
 #define DEGS_FORMULA2 0.0668F
 #define PLAYER_COLORSEND_RDY        false
+#define MAX_ANGLE                   45.0f
 
-#define PROJECTION_CONST 1024f
+#define PROJECTION_CONST 1024.0f
 /*********************************************************************************************************************/
 /*-------------------------------------------------Global variables--------------------------------------------------*/
 /*********************************************************************************************************************/
@@ -113,8 +114,8 @@ static uint8 Player_CalcPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, COLOR_PACKET*
   bool endInFov;
   bool insideFov;
 
-  packet->y_end = 100u;
-  packet->Color = obj->Color;
+  packet->spi0.b.y_pos = 100;
+  packet->spi1.b.color = obj->Color;
 
   /* Calculate start of wall - user position with looking center angle */
   float dxObjStart = (float)obj->Xaxis - (float)mainUser->x_pos;
@@ -155,10 +156,10 @@ static uint8 Player_CalcPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, COLOR_PACKET*
 
   insideFov = (!startInFov && !endInFov &&
             (relative_angle_start < -halfFov && relative_angle_end > halfFov));
-  
+
   if ( startInFov == true)
   {
-    packet->x_start = (uint8)( SCREEN_WIDTH * (relative_angle_start + halfFov) / mainUser->fov );
+    packet->spi0.b.x_pos = (uint8)( SCREEN_WIDTH * (relative_angle_start + halfFov) / mainUser->fov );
     /* Calculate the distance */
     float dist2 = sqrtf(dxObjStart*dxObjStart + dyObjStart*dyObjStart);
 
@@ -166,22 +167,22 @@ static uint8 Player_CalcPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, COLOR_PACKET*
     {
       dist2 = 255;
     }
-    packet->distance = (uint8)(PROJECTION_CONST / dist2);
+    packet->spi1.b.distance = (uint8)(PROJECTION_CONST / dist2);
 
     if (relative_angle_start > 0.0)
     {
-      packet->angleStep = fabsf(relative_angle_start) * (180.0f / PI_1);
-      packet->type = 3u;
+      packet->spi2.b.anglestep = fabsf(relative_angle_start) * (MAX_ANGLE / PI_1);
+      packet->spi2.b.type = 3u;
     }
     else if (relative_angle_start == 0.0 )
     {
-      packet->angleStep = 0;
-      packet->type = 1u;
+      packet->spi2.b.anglestep = 0;
+      packet->spi2.b.type = 1u;
     }
     else
     {
-      packet->angleStep = fabsf(relative_angle_start) * (180.0f / PI_1);
-      packet->type = 2u;
+      packet->spi2.b.anglestep = fabsf(relative_angle_start) * (MAX_ANGLE / PI_1);
+      packet->spi2.b.type = 2u;
     }
     result = 1u;
   }
@@ -190,7 +191,7 @@ static uint8 Player_CalcPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, COLOR_PACKET*
     float tanfUser = mainUser->tanLeftAngle;
     float tanfWall =  obj->tanAngle;
     float denom = tanfUser - tanfWall;
-    packet->x_start = 0;
+    packet->spi0.b.x_pos = 0;
     /* Calculate start of wall - user position with looking center angle */
     if (fabsf(denom) < 0.0001f)
     {
@@ -210,24 +211,24 @@ static uint8 Player_CalcPixel(PLAYER_MAIN* mainUser, MAP_OBJ* obj, COLOR_PACKET*
     {
       dist2 = 255;
     }
-    packet->distance = (uint8)(PROJECTION_CONST / dist2);
+    packet->spi1.b.distance = (uint8)(PROJECTION_CONST / dist2);
 
     /* Compute the angleSteps and the type */
     float32 startAngle = mainUser->angle - halfFov;
     if (startAngle > 0.0)
     {
-      packet->angleStep = (uint8)(fabsf(startAngle) * (180.0f / PI_1));
-      packet->type = 3u;
+      packet->spi2.b.anglestep = (uint8)(fabsf(startAngle) * (MAX_ANGLE / PI_1));
+      packet->spi2.b.type = 3u;
     }
     else if (startAngle == 0.0 )
     {
-      packet->angleStep = 0u;
-      packet->type = 1u;
+      packet->spi2.b.anglestep = 0u;
+      packet->spi2.b.type = 1u;
     }
     else
     {
-      packet->angleStep = (uint8)(fabsf(startAngle) * (180.0f / PI_1));
-      packet->type = 2u;
+      packet->spi2.b.anglestep = (uint8)(fabsf(startAngle) * (MAX_ANGLE / PI_1));
+      packet->spi2.b.type = 2u;
     }
     result = 2u;
   }

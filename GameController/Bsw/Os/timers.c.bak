@@ -32,7 +32,6 @@
  * task.h is included from an application file. */
 #define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
-#include "Compilers.h"
 #include "../Bsw/Os/include/FreeRTOS.h"
 #include "../Bsw/Os/include/task.h"
 #include "../Bsw/Os/include/queue.h"
@@ -658,14 +657,7 @@
          * this task to unblock when the tick count overflows, at which point the
          * timer lists will be switched and the next expiry time can be
          * re-assessed.  */
-        if (pxCurrentTimerList==NULL_PTR)
-        {
-          *pxListWasEmpty = pdTRUE;
-        }
-        else
-        {
-          *pxListWasEmpty = listLIST_IS_EMPTY( pxCurrentTimerList );
-        }
+        *pxListWasEmpty = listLIST_IS_EMPTY( pxCurrentTimerList );
 
         if( *pxListWasEmpty == pdFALSE )
         {

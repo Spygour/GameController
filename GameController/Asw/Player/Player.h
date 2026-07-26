@@ -40,6 +40,37 @@
 /*********************************************************************************************************************/
 /*-------------------------------------------------Data Structures---------------------------------------------------*/
 /*********************************************************************************************************************/
+typedef union
+{
+  uint16 U;
+  struct
+  {
+    uint16 x_pos:8;
+    uint16 y_pos:8;
+  }b;
+}Color_Spi0;
+
+typedef union
+{
+  uint16 U;
+  struct
+  {
+    uint16 color :8;
+    uint16 distance :8;
+  }b;
+}Color_Spi1;
+
+typedef union
+{
+  uint16 U;
+  struct
+  {
+    uint16 anglestep : 6;
+    uint16 type : 3;
+    uint16 ack : 7;
+  }b;
+}Color_Spi2;
+
  typedef struct
  {
   uint8 x_pos;
@@ -54,13 +85,9 @@
 
  typedef struct
  {
-  uint8 x_start;
-  uint8 y_end;
-  uint8 distance;
-  uint8 angleStep;
-  uint8 type;
-  uint8 ack;
-  uint8 Color;
+  Color_Spi0 spi0;
+  Color_Spi1 spi1;
+  Color_Spi2 spi2;
  }COLOR_PACKET;
 
  typedef enum
