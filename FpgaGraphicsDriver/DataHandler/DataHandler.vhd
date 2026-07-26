@@ -314,8 +314,8 @@ BEGIN
 
                         DataHandler_Resolution(to_integer(DataHandler_Index)) <= DataHandler_ReadDataWord(1)(7 DOWNTO 0);
                         DataHandler_AngleStep(to_integer(DataHandler_Index)) <= DataHandler_ReadDataWord(2)(15 DOWNTO 10);
-                        DataHandler_Type(to_integer(DataHandler_Index)) <= DataHandler_ReadDataWord(2)(10 DOWNTO 8);
-                        DataHandler_Ackn(to_integer(DataHandler_Index)) <= DataHandler_ReadDataWord(2)(7 DOWNTO 0);
+                        DataHandler_Type(to_integer(DataHandler_Index)) <= DataHandler_ReadDataWord(2)(9 DOWNTO 7);
+                        DataHandler_Ackn(to_integer(DataHandler_Index)) <= DataHandler_ReadDataWord(2)(6 DOWNTO 0);
                         DataHandler_SdRamHandlerState <= READ_DATA;
                     ELSE
                         DataHandler_RdFinish_reg <= DataHandler_RdFinish;

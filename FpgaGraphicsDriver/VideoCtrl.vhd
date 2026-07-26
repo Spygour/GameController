@@ -119,7 +119,7 @@ ARCHITECTURE rtl OF VideoCtrl IS
     SIGNAL VideoCtrl_SdRamXend : unsigned(6 DOWNTO 0) := (OTHERS => '0');
     SIGNAL VideoCtrl_SdRamYend : unsigned(9 DOWNTO 0) := (OTHERS => '0');
     SIGNAL VideoCtrl_SdRamType : STD_LOGIC_VECTOR(2 DOWNTO 0) := (OTHERS => '0');
-    SIGNAL VideoCtrl_SdRamAckn : STD_LOGIC_VECTOR(7 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL VideoCtrl_SdRamAckn : STD_LOGIC_VECTOR(6 DOWNTO 0) := (OTHERS => '0');
     SIGNAL VideoCtrl_SdRamAngleStep : unsigned(5 DOWNTO 0) := (OTHERS => '0');
     SIGNAL VideoCtrl_SdRamRed : unsigned(15 DOWNTO 0) := (OTHERS => '0');
     SIGNAL VideoCtrl_SdRamGreen : unsigned(15 DOWNTO 0) := (OTHERS => '0');
